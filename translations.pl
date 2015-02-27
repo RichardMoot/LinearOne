@@ -1,3 +1,4 @@
+:- module(translations, [translate_lambek/3,translate_displacement/3]).
 
 % = translate_lambek(+LambekFormula, -LinearLogicFormula)
 %
@@ -238,13 +239,3 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 
 % dr(>,A,B) = uparrow_<
 % dl(>,A,B) = downarrow_<
-
-test_d1(F) :-
-	/* generalized quantifier */
-	translate_displacement(dl(>,dr(>,at(s),at(np)),at(s)), [1,2], F).
-test_d2(F) :-
-	/* did */
-	translate_displacement(dl(dr(dr(>,at(vp),at(vp)),at(vp)),dr(>,at(vp),at(vp))), [4,5], F).
-test_d3(F) :-
-	/* himself */
-	translate_displacement(dl(<,dr(<,dr(>,at(vp),at(np)),at(np)),dr(>,at(vp),at(np))), [3,4], F).

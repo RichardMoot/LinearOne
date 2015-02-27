@@ -1,5 +1,8 @@
 :- use_module(ordset, [ord_union/3,ord_delete/3]).
 :- use_module(portray_graph_tikz, [portray_graph/1,header/0,footer/1]).
+:- use_module(translations, [translate_lambek/3,translate_displacement/3]).
+
+:- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 
 portray(neg(F, X, L)) :-
 	atom(F),
@@ -9,12 +12,19 @@ portray(pos(F, X, L)) :-
 	atom(F),
 	Term =.. [F|L],
 	format('+~p ~p',[Term,X]).
-
+portray(at(X, Vs)) :-
+	atom(X),
+	Term =.. [X|Vs],
+	print(Term).
+portray(impl(A,B)) :-
+	format('(~p -o ~p)', [A,B]).
 
 prove(List, Goal, Sem) :-
 	header,
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(0)),
+	retractall('$AXIOMS'(_)),
+	assert('$AXIOMS'(0)),
         unfold_sequent(List, Goal, Vs0, W, Sem0),
         prove1(Vs0),
 	numbervars(Sem0, W, _),
@@ -25,8 +35,37 @@ prove(List, Goal, Sem) :-
 	assert('$PROOFS'(N)),
 	fail.
 prove(_, _, _) :-
+	'$AXIOMS'(A),
 	'$PROOFS'(N),
+	write_axioms(A),
+	write_proofs(N),
 	footer(N).
+
+write_proofs(P) :-
+   (
+       P =:= 0
+   ->
+       format(user_output, 'No proofs found!~n', [])
+   ;
+       P =:= 1
+   ->
+       format(user_output, '1 proof found.~n', [])
+   ;
+       format(user_output, '~p proofs found.~n', [P])
+   ).
+write_axioms(A) :-
+   (
+       A =:= 0
+   ->
+       format(user_output, 'No axioms performed!~n', [])
+   ;
+       A =:= 1
+   ->
+       format(user_output, '1 axiom performed.~n', [])
+   ;
+       format(user_output, '~p axioms performed.~n', [A])
+   ).
+
 
 prove1([vertex(_, [], _, [])]) :-
         !.
@@ -40,7 +79,11 @@ prove1(G0) :-
 	select(vertex(N1, [B|Bs0], FVs1, Ps), G1, G2),
 	select(pos(At,X,Vars), [B|Bs0], Bs),
 	\+ cyclic(Ps, G2, N0),
-%	assert(axiom(N0,N1,At,X,Var)),
+	'$AXIOMS'(Ax0),
+	Ax is Ax0 + 1,
+	retractall('$AXIOMS'(_)),
+	assert('$AXIOMS'(Ax)),
+%	assert(axiom(N0,N1,At,X,Vars)),
 	append(As, Bs, Cs),
 	merge_fvs(FVs0, FVs1, FVs),
 	replace(G2, N0, N1, G3),
@@ -368,3 +411,26 @@ test2(Sem) :-
 test3(Sem) :-
 	prove([forall(Y,forall(Z,impl(impl(at(np,[0,1]),at(s,[Y,Z])),at(s,[Y,Z])))),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2]), Sem).
 
+
+% = test translations
+
+test_d1(F) :-
+	/* generalized quantifier */
+	translate_displacement(dl(>,dr(>,at(s),at(np)),at(s)), [1,2], F).
+test_d2(F) :-
+	/* did */
+	translate_displacement(dl(dr(dr(>,at(vp),at(vp)),at(vp)),dr(>,at(vp),at(vp))), [4,5], F).
+test_d3(F) :-
+	/* himself */
+	translate_displacement(dl(<,dr(<,dr(>,at(vp),at(np)),at(np)),dr(>,at(vp),at(np))), [3,4], F).
+
+% = I need a better axiom selection strategy
+
+test_jlbmd(Sem) :-
+	translate_displacement(at(np), [0,1], John),
+	translate_displacement(dl(at(np),at(s)), [1,2], Left),
+	translate_displacement(dr(dl(dl(at(np),at(s)),dl(at(np),at(s))),at(s)), [2,3], Before),
+	translate_displacement(at(np), [3,4], Mary),
+	translate_displacement(dl(dr(dr(>,dl(at(np),at(s)),dl(at(np),at(s))),dl(at(np),at(s))),dr(>,dl(at(np),at(s)),dl(at(np),at(s)))), [4,5], Did),
+	prove([John,Left,Before,Mary,Did], at(s,[0,5]), Sem).
+	

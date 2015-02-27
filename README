@@ -1,4 +1,13 @@
+% =================
+% =   LinearOne   =
+% =================
+
+(c) 2015 CNRS         (http://www.cnrs.fr)
+(c) 2015 Richard Moot (Richard.Moot@labri.fr)
 
 LinearOne is an prototype theorem prover for first-order (multiplicative, intuitionistic) linear logic.
 
-LinearOne is provided under the GNU Lesser General Public License (see the file LICENSE for details).
+LinearOne is provided under the GNU Lesser General Public License (see the included file LICENSE for details).
+
+LinearOne is a set of SWI Prolog files, which optional graph output to LuaLaTeX (using the TikZ 3.0.0 graph drawing
+libraries).

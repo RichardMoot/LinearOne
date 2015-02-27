@@ -9,6 +9,7 @@
 header :-
 	tell('graph.tex'),
 	format('\\documentclass{article}~2n', []),
+	format('\\usepackage[a3paper]{geometry}~n', []),
 	format('\\usepackage{amsmath}~n', []),
 	format('\\usepackage{tikz}~n', []),
 	format('\\usetikzlibrary{graphs, graphdrawing}~n', []),
@@ -18,6 +19,7 @@ header :-
 	format('\\begin{center}~n', []),
 	retractall('$GRAPH_NO'(_)),
 	assert('$GRAPH_NO'(0)).
+
 footer(P) :-
 	'$GRAPH_NO'(N),
 	write_graphs(N),
@@ -25,8 +27,7 @@ footer(P) :-
 	format('\\end{center}~n', []),
 	format('\\end{document}~n', []),
 	told,
-	write_proofs(P),
-	shell('lualatex graph.tex >! /dev/null'),
+	shell('lualatex graph.tex > /dev/null'),
 	format('LaTeX ready~n', []).
 
 
