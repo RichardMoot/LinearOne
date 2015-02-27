@@ -239,3 +239,70 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 
 % dr(>,A,B) = uparrow_<
 % dl(>,A,B) = downarrow_<
+
+formula_type(h(B,A), impl(TA,TB)) :-
+	formula_type(A, TA),
+	formula_type(B, TB).
+formula_type(dr(_,_), impl(s,s)).
+formula_type(dl(_,_), impl(s,s)).
+formula_type(p(_,_), impl(s,s)).
+formula_type(at(At), Type) :-
+	atom_type(At, Type).
+
+atom_type(s, impl(s,s)).
+atom_type(n, impl(s,s)).
+atom_type(np, impl(s,s)).
+atom_type(pp, impl(s,s)).
+atom_type(inf, impl(impl(s,s),impl(s,s))).
+
+translate_hybrid(Formula, Term, Word, L, R, LinearFormula) :-
+	formula_type(Formula, Type),
+	type_skeleton(Type, TypeS),
+	principal_type(lambda(Word,Term), impl(impl(R,L),TypeS)),
+	match(Formula, TypeS, LinearFormula).
+
+match(at(A), impl(TB,TA), at(A, [TA,TB])).
+match(h(B,A), impl(TA,TB), impl(FA,FB)) :-
+	match(A, TA, FA),
+	match(B, TB, FB).
+match(dr(A,B), impl(TB, TA), F) :-
+	translate_lambek(dr(A,B), [TA,TB], F).
+match(dl(A,B), impl(TB, TA), F) :-
+	translate_lambek(dl(A,B), [TA,TB], F).
+match(p(A,B), impl(TB, TA), F) :-
+	translate_lambek(p(A,B), [TA,TB], F).
+
+type_skeleton(s, _).
+type_skeleton(impl(A0,B0), impl(A,B)) :-
+	type_skeleton(A0, A),
+	type_skeleton(B0, B).
+
+principal_type(Term, Type) :-
+	principal_type(Term, Type, List),
+	write(List).
+
+principal_type(V, Type, [V-Type]) :-
+	var(V),
+	!.
+principal_type(At, Type, [At-Type]) :-
+	atom(At),
+	!.
+principal_type(appl(A,B), TypeA, ABlist) :-
+	principal_type(A, impl(TypeB,TypeA), Alist),
+	principal_type(B, TypeB, Blist),
+	append(Alist, Blist, ABlist).
+principal_type(lambda(A,B), impl(TypeA,TypeB), AList) :-
+	principal_type(B, TypeB, BList),
+	get_type(BList, A, TypeA, AList).
+
+get_type([], _, _, []).
+get_type([A-TypeA|Rest], B, TypeB, New) :-
+     (
+         A == B
+     ->
+         TypeA = TypeB,
+         New = Rest
+     ;
+         New = [A-TypeA|New0],
+         get_type(Rest, B, TypeB, New0)
+     ).
