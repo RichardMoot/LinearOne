@@ -26,9 +26,10 @@ prove(List, Goal, Sem) :-
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)),
         unfold_sequent(List, Goal, Vs0, W, Sem0),
-        prove1(Vs0),
+        prove1(Vs0, Trace),
 	numbervars(Sem0, W, _),
 	Sem = Sem0,
+	print_trace(user_output, Trace),
 	'$PROOFS'(N0),
 	N is N0 + 1,
 	retractall('$PROOFS'(_)),
@@ -67,18 +68,19 @@ write_axioms(A) :-
    ).
 
 
-prove1([vertex(_, [], _, [])]) :-
+prove1([vertex(_, [], _, [])], []) :-
         !.
-prove1(G0) :-
+prove1(G0, [ax(N0-AtNoNeg,N1-AtNoPos)|Rest0]) :-
         nl,
         nl,
         portray_graph(G0),
         select(vertex(N0, [A|As0], FVs0, []), G0, G1),
-        select(neg(At,X,Vars), [A|As0], As),
+        nth1(AtNoNeg, [A|As0], neg(At,X,Vars), As),
 	!,
 	select(vertex(N1, [B|Bs0], FVs1, Ps), G1, G2),
-	select(pos(At,X,Vars), [B|Bs0], Bs),
-	\+ cyclic(Ps, G2, N0),
+	nth1(AtNoPos, [B|Bs0], pos(At,X,Vars), Bs),
+        \+ cyclic(Ps, G2, N0),
+%	format(user_output, 'Axiom: -(~w-~w) +(~w-~w)~n', [N0, AtNoNeg, N1, AtNoPos]),
 	'$AXIOMS'(Ax0),
 	Ax is Ax0 + 1,
 	retractall('$AXIOMS'(_)),
@@ -90,10 +92,10 @@ prove1(G0) :-
 	replace_pars(Ps, N0, N1, Rs),
 	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
         portray_graph(G4),
-	contract(G4, G),
+	contract(G4, G, Rest0, Rest),
 	connected(G),
-	prove1(G).
-prove1(G1) :-
+	prove1(G, Rest).
+prove1(G1, _) :-
         format('~nFailed!~n', []),
         portray_graph(G1),
         fail.
@@ -185,17 +187,17 @@ reduce_fvs([V|Vs], Ws) :-
 % these are Danos-style contractions, performed in a first-found
 % search.
 
-contract(G0, G) :-
-        contract1(G0, G1),
+contract(G0, G, L0, L) :-
+        contract1(G0, G1, L0, L1),
         nl,
         nl,
         portray_graph(G1),
         !,
-        contract(G1, G).
-contract(G, G).
+        contract(G1, G, L1, L).
+contract(G, G, L, L).
 
 % par contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G]) :-
+contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest) :-
         select(vertex(N0, As, FVsA, Ps0), G0, G1),
         select(par(N1, N1), Ps0, Ps),
 	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
@@ -207,7 +209,7 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G]) :-
 	replace_pars(Rs0, N0, N1, Rs),
 	replace(G2, N0, N1, G).
 % forall contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G]) :-
+contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest) :-
         select(vertex(N0, As, FVsA, Ps0), G0, G1),
         select(univ(U, N1), Ps0, Ps),
 	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
@@ -397,6 +399,19 @@ free_vars(exists(X,A), Vars) :-
 free_vars(forall(X,A), Vars) :-
         free_vars(A, Vars0),
         ord_delete(Vars0, X, Vars).
+
+% = print_trace(+Stream, +List).
+
+print_trace(Stream, [A|As]) :-
+        format(Stream, '~n= Proof trace =~n', []),
+        print_trace(As, A, Stream).
+
+print_trace([], A, Stream) :-
+        format(Stream, '~p~n= End of trace =~2n', [A]).
+print_trace([B|Bs], A, Stream) :-
+        format(Stream, '~p~n', [A]),
+        print_trace(Bs, B, Stream).
+
 
 % = some test predicates
 
