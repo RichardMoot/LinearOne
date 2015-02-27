@@ -1,4 +1,4 @@
-:- module(translations, [translate_lambek/3,translate_displacement/3]).
+:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 
 % = translate_lambek(+LambekFormula, -LinearLogicFormula)
 %
@@ -295,7 +295,8 @@ principal_type(lambda(A,B), impl(TypeA,TypeB), AList) :-
 	principal_type(B, TypeB, BList),
 	get_type(BList, A, TypeA, AList).
 
-get_type([], _, _, []).
+get_type([], B, _, []) :-
+	format(user_error, 'Warning, free occurrences of ~w~n', [B]). 
 get_type([A-TypeA|Rest], B, TypeB, New) :-
      (
          A == B

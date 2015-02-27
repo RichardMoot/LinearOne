@@ -1,6 +1,6 @@
 :- use_module(ordset, [ord_union/3,ord_delete/3]).
 :- use_module(portray_graph_tikz, [portray_graph/1,header/0,footer/1]).
-:- use_module(translations, [translate_lambek/3,translate_displacement/3]).
+:- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 
@@ -423,6 +423,11 @@ test_d2(F) :-
 test_d3(F) :-
 	/* himself */
 	translate_displacement(dl(<,dr(<,dr(>,at(vp),at(np)),at(np)),dr(>,at(vp),at(np))), [3,4], F).
+
+test_h1(F) :-
+	translate_hybrid(h(at(s),at(np)), lambda(P,lambda(Z,appl(P,appl(walks,Z)))), walks, 1, 2, F).
+test_h2(F) :-
+	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), everyone, 0, 1, F).
 
 % = I need a better axiom selection strategy
 
