@@ -106,6 +106,17 @@ translate_displacement(dl(A0,C0), [V|Vars], F0) :-
 	translate_displacement(A0, VarsA, A),
 	translate_displacement(C0, VarsC, C).
 
+% allow "up" and "down" as aliases for "dr" and "dl" respectively  
+% eg. dr(>,A,B) = \uparrow_<
+%     dl(>,A,B) = \downarrow_<
+
+translate_displacement(up(K,A,B), Vs, F) :-
+        !,
+        translate_displacement(dr(K,A,B), Vs, F).
+translate_displacement(down(K,A,B), Vs, F) :-
+        !,
+        translate_displacement(dl(K,A,B), Vs, F).
+
 % initial wrap
 
 translate_displacement(p(>,A0,B0), [X0|Vars], exists(X1,exists(XN,p(A,B)))) :-
@@ -237,10 +248,6 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
         N is N0 - 1,
         split(Vs, N, Ls0, Ls, Rs)
     ).
-
-
-% dr(>,A,B) = uparrow_<
-% dl(>,A,B) = downarrow_<
 
 % ====================================
 % =   Hybrid type-logical grammars   =

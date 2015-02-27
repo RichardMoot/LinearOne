@@ -1,2 +1,3 @@
 # ignore LuaLaTeX graph files
 graph.*
+texput.log
