@@ -1,6 +1,7 @@
 :- use_module(ordset, [ord_union/3,ord_delete/3]).
-:- use_module(portray_graph_tikz, [portray_graph/1,header/0,footer/1]).
+:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
+:- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
@@ -21,7 +22,7 @@ portray(impl(A,B)) :-
 	format('(~p -o ~p)', [A,B]).
 
 prove(List, Goal, Sem) :-
-	header,
+	graph_header,
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(0)),
 	retractall('$AXIOMS'(_)),
@@ -43,18 +44,30 @@ prove(_, _, _) :-
 	'$PROOFS'(N),
 	write_axioms(A),
 	write_proofs(N),
-	footer(N).
+	graph_footer(N).
 
 node_proofs(Vs) :-
         nl(user_output),
         print(user_output, Vs),
 	nl(user_output),
 	telling(Stream),
-	tell(user_output),
-	listing(node_formula),
-	tell(Stream),
+        shell('rm latex_proofs.tex', _),
+        tell('latex_proofs.tex'),
+	proof_header,
+    (
         node_proofs(Vs, Ps),
-        print(user_output, Ps).
+        numbervars(Ps, 0, _),
+	member(P, Ps),
+	latex_proof(P),
+        write('\\bigskip'),
+        nl,
+	fail
+    ;
+        proof_footer,
+        tell(Stream)
+    ).
+     
+	
 
 node_proofs([V|Vs], [P|Ps]) :-
         node_proof1(V, P),
@@ -63,18 +76,27 @@ node_proofs([], []).
 
 node_proof1(vertex(N0, As, _, _), Proof) :-
         node_formula(N0, Pol, F),
-        node_proof2(As, F, Pol, Proof).
-
+        node_proof2(As, F, Pol, Proof),
+	!.
 
 node_proof2([], F, _, rule(ax, [F], F, [])).
 node_proof2([A|As], F, Pol, Proof) :-
-        node_proof3(Pol, [A|As], F, Proof).
+	number_antecedent([A|As], 1, [B|Bs]),
+        node_proof3(Pol, [B|Bs], F, Proof).
 
 node_proof3(pos, L, F, Proof) :-
         create_pos_proof(F, L, [], Proof).
-node_proof3(neg, L0, F, Proof) :-
-        select(neg(At,_,Vars), L0, L),
-        create_neg_proof(F, L, [], neg(At,Vars), Proof).
+node_proof3(neg, L, F, Proof) :-
+        max_neg(F, MN),
+        create_neg_proof(F, L, [], MN, Proof).
+
+max_neg(impl(_,F0), F) :-
+	!,
+	max_neg(F0, F).
+max_neg(forall(_,F0), F) :-
+	!,
+	max_neg(F0, F).
+max_neg(F, F).
 
 % I'm worried about "atom confusion" here, where a single node has
 % multiple possible atoms which each unify
@@ -87,8 +109,7 @@ atom_select(pos(A,Vs), [pos(B,_,Ws)|Ys], Ys) :-
 atom_select(X, [Y|Ys], [Y|Zs]) :-
         atom_select(X, Ys, Zs).
 
-create_pos_proof(at(A,Vars), L0, L, rule(ax,[at(A,Vars)], at(A,Vars), [])) :-
-        atom_select(pos(A,Vars), L0, L),
+create_pos_proof(at(A,Vars), [Num-pos(A,_,Vars)|L], L, rule(ax,[Num-at(A,Vars)], at(A,Vars), [])) :-
 	!.
 create_pos_proof(exists(X,A), L0, L, rule(er, Gamma, exists(X,A), [ProofA])) :-
         !,
@@ -104,28 +125,50 @@ create_pos_proof(p(A,B), L0, L, rule(pr, GD, p(A,B), [P1,P2])) :-
 % complex subformula
 create_pos_proof(F, L, L, rule(ax, [F], F, [])).
 
-create_neg_proof(at(A,Vars), L, L, neg(B,Vars0), rule(ax, [at(A,Vars)], at(A,Vars), [])) :-
+create_neg_proof(at(A,Vars), [_-neg(B,_,Vars0)|L], L, at(B,Vars0), rule(ax, [at(A,Vars)], at(A,Vars), [])) :-
         A == B,
         Vars == Vars0,
         !.
-create_neg_proof(impl(A,B), L0, L, Neg, rule(il,GD,B, [ProofA,ProofB])) :-
+create_neg_proof(impl(A,B), L0, L, Neg, rule(il, GD,B, [ProofA,ProofB])) :-
         !,
         create_neg_subproof(A, L0, L1, ProofA),
 	create_neg_proof(B, L1, L, Neg, ProofB),
 	ProofA = rule(_, Gamma, _, _),
 	ProofB = rule(_, Delta, _, _),
-	append(Gamma, [impl(A,B)|Delta], GD).
+	/* careful! */
+	select(B, Delta, Delta_B),
+	append(Gamma, [impl(A,B)|Delta_B], GD).
 	
-create_neg_proof(forall(X,A), L0, L, Neg, rule(fl, Gamma, forall(X,A), [ProofA])) :-
+create_neg_proof(forall(X,A), L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
         create_neg_proof(A, L0, L, Neg, ProofA),
-        ProofA = rule(_, Gamma, _, _).
+        ProofA = rule(_, Gamma, C, _),
+	replace_list(Gamma, A, forall(X,A), GammaP).
 create_neg_proof(F, L, L, _, rule(ax, [F], F, [])).
 
-create_neg_subproof(at(A,Vars), L0, L, rule(ax, [at(A,Vars)], at(A,Vars), [])) :-
-        !,
-        select(pos(A,_,Vars), L0, L).
+create_neg_subproof(at(A,Vars), [Num-pos(A,_,Vars)|L], L, rule(ax, [Num-at(A,Vars)], at(A,Vars), [])) :-
+        !.
+create_neg_subproof(p(A,B), L0, L, rule(pr, ProofA, ProofB)) :-
+	!,
+	create_neg_subproof(A, L0, L1, ProofA),
+	create_neg_subproof(B, L1, L, ProofB).
 create_neg_subproof(A, L, L, rule(ax, [A], A, [])).
+
+number_antecedent([], _, []).
+number_antecedent([A|As], N0, [N0-A|Bs]) :-
+	N is N0 + 1,
+	number_antecedent(As, N, Bs).
+
+replace_list([], _, _, []).
+replace_list([A|As], C, D, [B|Bs]) :-
+    (
+       A = C
+    ->
+       B = D
+    ;
+       B = A
+    ),
+       replace_list(As, C, D, Bs).
 
 write_proofs(P) :-
    (

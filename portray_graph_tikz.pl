@@ -2,11 +2,11 @@
 %
 % GraphViz output
 
-:- module(portray_graph_tikz, [portray_graph/1,header/0,footer/1]).
+:- module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1]).
 
 :- dynamic '$GRAPH_NO'/1.
 
-header :-
+graph_header :-
         shell('rm graph.tex', _),
         tell('graph.tex'),
 	format('\\documentclass{article}~2n', []),
@@ -21,7 +21,7 @@ header :-
 	retractall('$GRAPH_NO'(_)),
 	assert('$GRAPH_NO'(0)).
 
-footer(P) :-
+graph_footer(P) :-
 	'$GRAPH_NO'(N),
 	write_graphs(N),
 	write_proofs(P),
