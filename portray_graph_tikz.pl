@@ -7,7 +7,8 @@
 :- dynamic '$GRAPH_NO'/1.
 
 header :-
-	tell('graph.tex'),
+        shell('rm graph.tex', _),
+        tell('graph.tex'),
 	format('\\documentclass{article}~2n', []),
 	format('\\usepackage[a3paper]{geometry}~n', []),
 	format('\\usepackage{amsmath}~n', []),
@@ -27,8 +28,14 @@ footer(P) :-
 	format('\\end{center}~n', []),
 	format('\\end{document}~n', []),
 	told,
+    (
+	access_file('graph.tex', read)
+    ->
 	shell('lualatex graph.tex > /dev/null'),
-	format('LaTeX ready~n', []).
+	format('LaTeX ready~n', [])
+     ;
+        format('LaTeX output failed~n', [])
+     ).
 
 
 write_proofs(P) :-

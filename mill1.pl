@@ -3,6 +3,7 @@
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
+:- dynamic node_formula/3.
 
 portray(neg(F, X, L)) :-
 	atom(F),
@@ -26,7 +27,9 @@ prove(List, Goal, Sem) :-
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)),
         unfold_sequent(List, Goal, Vs0, W, Sem0),
+	copy_term(Vs0, Vs),
         prove1(Vs0, Trace),
+	node_proofs(Vs),
 	numbervars(Sem0, W, _),
 	Sem = Sem0,
 	print_trace(user_output, Trace),
@@ -41,6 +44,88 @@ prove(_, _, _) :-
 	write_axioms(A),
 	write_proofs(N),
 	footer(N).
+
+node_proofs(Vs) :-
+        nl(user_output),
+        print(user_output, Vs),
+	nl(user_output),
+	telling(Stream),
+	tell(user_output),
+	listing(node_formula),
+	tell(Stream),
+        node_proofs(Vs, Ps),
+        print(user_output, Ps).
+
+node_proofs([V|Vs], [P|Ps]) :-
+        node_proof1(V, P),
+        node_proofs(Vs, Ps).
+node_proofs([], []).
+
+node_proof1(vertex(N0, As, _, _), Proof) :-
+        node_formula(N0, Pol, F),
+        node_proof2(As, F, Pol, Proof).
+
+
+node_proof2([], F, _, rule(ax, [F], F, [])).
+node_proof2([A|As], F, Pol, Proof) :-
+        node_proof3(Pol, [A|As], F, Proof).
+
+node_proof3(pos, L, F, Proof) :-
+        create_pos_proof(F, L, [], Proof).
+node_proof3(neg, L0, F, Proof) :-
+        select(neg(At,_,Vars), L0, L),
+        create_neg_proof(F, L, [], neg(At,Vars), Proof).
+
+% I'm worried about "atom confusion" here, where a single node has
+% multiple possible atoms which each unify
+atom_select(neg(A,Vs), [neg(B,_,Ws)|Ys], Ys) :-
+        A == B,
+        Vs = Ws. % alphabetic variant instead (is this enough?)
+atom_select(pos(A,Vs), [pos(B,_,Ws)|Ys], Ys) :-
+        A == B,
+        Vs = Ws. % alphabetic variant instead (is this enough?)
+atom_select(X, [Y|Ys], [Y|Zs]) :-
+        atom_select(X, Ys, Zs).
+
+create_pos_proof(at(A,Vars), L0, L, rule(ax,[at(A,Vars)], at(A,Vars), [])) :-
+        atom_select(pos(A,Vars), L0, L),
+	!.
+create_pos_proof(exists(X,A), L0, L, rule(er, Gamma, exists(X,A), [ProofA])) :-
+        !,
+        create_pos_proof(A, L0, L, ProofA),
+        ProofA = rule(_, Gamma, _, _).
+create_pos_proof(p(A,B), L0, L, rule(pr, GD, p(A,B), [P1,P2])) :-
+        !,
+        create_pos_proof(A, L0, L1, P1),
+        create_pos_proof(B, L1, L, P2),
+        P1 = rule(_, Gamma, _, _),
+        P2 = rule(_, Delta, _, _),
+        append(Gamma, Delta, GD).
+% complex subformula
+create_pos_proof(F, L, L, rule(ax, [F], F, [])).
+
+create_neg_proof(at(A,Vars), L, L, neg(B,Vars0), rule(ax, [at(A,Vars)], at(A,Vars), [])) :-
+        A == B,
+        Vars == Vars0,
+        !.
+create_neg_proof(impl(A,B), L0, L, Neg, rule(il,GD,B, [ProofA,ProofB])) :-
+        !,
+        create_neg_subproof(A, L0, L1, ProofA),
+	create_neg_proof(B, L1, L, Neg, ProofB),
+	ProofA = rule(_, Gamma, _, _),
+	ProofB = rule(_, Delta, _, _),
+	append(Gamma, [impl(A,B)|Delta], GD).
+	
+create_neg_proof(forall(X,A), L0, L, Neg, rule(fl, Gamma, forall(X,A), [ProofA])) :-
+        !,
+        create_neg_proof(A, L0, L, Neg, ProofA),
+        ProofA = rule(_, Gamma, _, _).
+create_neg_proof(F, L, L, _, rule(ax, [F], F, [])).
+
+create_neg_subproof(at(A,Vars), L0, L, rule(ax, [at(A,Vars)], at(A,Vars), [])) :-
+        !,
+        select(pos(A,_,Vars), L0, L).
+create_neg_subproof(A, L, L, rule(ax, [A], A, [])).
 
 write_proofs(P) :-
    (
@@ -273,13 +358,16 @@ replace_item(X, N0, N1, Y) :-
 % transforms sequents, antecedents and (polarized) formulas into graphs
 
 unfold_sequent(List, Goal, Vs0, W, Sem) :-
+        retractall(node_formula(_,_,_)),
 	unfold_antecedent(List, 0, W, 0, N0, 0, M, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
 	N is N0 + 1,
+        assert(node_formula(N0, pos, Goal)),
 	free_vars_p(Goal, FVsG),
 	unfold_pos(Goal, Sem, N, _, M, _, As, [], Es, [], Vs1, []).
 
 unfold_antecedent([], W, W, N, N, M, M, Vs, Vs).
 unfold_antecedent([F|Fs], W0, W, N0, N, M0, M, [vertex(N0,As,FVsF,Es)|Vs0], Vs) :-
+        assert(node_formula(N0, neg, F)),
         N1 is N0 + 1,
         W1 is W0 + 1,
 	free_vars_n(F, FVsF),
@@ -292,11 +380,14 @@ unfold_neg(at(A,Vars), X, N, N, M, M, [neg(A,X,Vars)|As], As, Es, Es, Vs, Vs).
 unfold_neg(forall(_,A), X, N0, N, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
 	unfold_neg(A, X, N0, N, M0, M, As0, As, Es0, Es, Vs0, Vs).
 unfold_neg(exists(var(M0),A), X, N0, N, M0, M, As, As, [univ(M0,N0)|Es], Es, [vertex(N0,Bs,FVsA,Fs)|Vs0], Vs) :-
+        assert(node_formula(N0, neg, A)),
         free_vars_n(A, FVsA),
 	N1 is N0 + 1,
 	M1 is M0 + 1,
 	unfold_neg(A, X, N1, N, M1, M, Bs, [], Fs, [], Vs0, Vs).
 unfold_neg(p(A,B), X, N0, N, M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
+        assert(node_formula(N0, neg, A)),
+        assert(node_formula(N1, neg, B)),
         free_vars_n(A, FVsA),
         free_vars_n(B, FVsB),
 	N1 is N0 + 1,
@@ -309,6 +400,7 @@ unfold_neg(impl(A,B), X, N0, N, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
 
 unfold_pos(at(A,Vars), X, N, N, M, M, [pos(A,X,Vars)|As], As, Es, Es, Vs, Vs).
 unfold_pos(forall(var(M0),A), X, N0, N, M0, M, As, As, [univ(M0,N0)|Es], Es, [vertex(N0,Bs,FVsA,Fs)|Vs0], Vs) :-
+        assert(node_formula(N0, pos, A)),
         free_vars_p(A, FVsA),
         N1 is N0 + 1,
 	M1 is M0 + 1,
@@ -319,6 +411,8 @@ unfold_pos(p(A,B), pair(X,Y), N0, N, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
 	unfold_pos(A, X, N0, N1, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
 	unfold_pos(B, Y, N1, N, M1, M, As1, As, Es1, Es, Vs1, Vs).
 unfold_pos(impl(A,B), lambda(X,Y), N0, N, M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
+        assert(node_formula(N0, neg, A)),
+        assert(node_formula(N1, pos, B)),
         free_vars_n(A, FVsA),
         free_vars_p(B, FVsB),
         N1 is N0 + 1,
