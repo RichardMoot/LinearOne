@@ -91,6 +91,10 @@ atom_numbervars(neg(_, _, Vars), N0, N) :-
     numbervars(Vars, N0, N).
 atom_numbervars(pos(_, _, Vars), N0, N) :-
     numbervars(Vars, N0, N).
+atom_numbervars(neg(_, _, _, _, Vars), N0, N) :-
+    numbervars(Vars, N0, N).
+atom_numbervars(pos(_, _, _, _, Vars), N0, N) :-
+    numbervars(Vars, N0, N).
 
 portray_vertices([]).
 portray_vertices([vertex(N,As,FVs,_Ps)|Rest]) :-
@@ -140,6 +144,10 @@ portray_atoms1([B|Bs], A) :-
 portray_atom(neg(A,_,Vars)) :-
     format('\\overset{-}{~@}',[portray_atom1(Vars, A)]).
 portray_atom(pos(A,_,Vars)) :-
+    format('\\overset{+}{~@}',[portray_atom1(Vars, A)]).
+portray_atom(neg(A,_,_,_,Vars)) :-
+    format('\\overset{-}{~@}',[portray_atom1(Vars, A)]).
+portray_atom(pos(A,_,_,_,Vars)) :-
     format('\\overset{+}{~@}',[portray_atom1(Vars, A)]).
 
 portray_fvs([]).

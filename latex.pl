@@ -75,22 +75,22 @@ latex_antecedent([A|As]) :-
 	latex_antecedent(As, A).
 
 latex_antecedent([], A) :-
-	latex_a_formula(A).
+	latex_formula(A).
 latex_antecedent([A|As], B) :-
-	latex_a_formula(B),
+	latex_formula(B),
 	write(','),
 	latex_antecedent(As, A).
-
-latex_a_formula(_-F) :-
-	!,
-	latex_formula(F).
-latex_a_formula(F) :-
-	latex_formula(F, 0).
 
 latex_formula(F) :-
 	latex_formula(F, 0).
 
+latex_formula(_-F, N) :-
+	latex_formula(F, N).
 latex_formula(at(F,Vs0), _) :-
+	update_vars(Vs0, Vs),
+	Term =.. [F|Vs],
+	print(Term).
+latex_formula(at(F,_,_,Vs0), _) :-
 	update_vars(Vs0, Vs),
 	Term =.. [F|Vs],
 	print(Term).
@@ -119,23 +119,26 @@ latex_formula(p(A,B), NB) :-
    (
         NB =:= 0
    ->
-	format('~@ \\otimes ~@', [latex_formula(A),latex_formula(B, 1)])
+	format('~@ \\otimes ~@', [latex_formula(A, 1),latex_formula(B, 1)])
    ;
-	format('(~@ \\otimes ~@)', [latex_formula(A),latex_formula(B, 1)])
+	format('(~@ \\otimes ~@)', [latex_formula(A, 1),latex_formula(B, 1)])
    ).
 latex_formula(impl(A,B), NB) :-
 	!,
    (
         NB =:= 0
    ->
-	format('~@ \\multimap ~@', [latex_formula(A),latex_formula(B, 1)])
+	format('~@ \\multimap ~@', [latex_formula(A, 1),latex_formula(B, 0)])
    ;
-	format('(~@ \\multimap ~@)', [latex_formula(A),latex_formula(B, 1)])
+	format('(~@ \\multimap ~@)', [latex_formula(A, 1),latex_formula(B, 1)])
    ).
 
+is_quantified(_-F) :-
+	is_quantified(F).
 is_quantified(exists(_,_)).
 is_quantified(forall(_,_)).
 is_quantified(at(_,_)).
+is_quantified(at(_,_,_,_)).
 
 update_vars([], []).
 update_vars([V|Vs], [W|Ws]) :-

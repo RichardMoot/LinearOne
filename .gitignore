@@ -1,3 +1,4 @@
-# ignore LuaLaTeX graph files
+# ignore (Lua)LaTeX graph and proof files
 graph.*
+latex_proofs.*
 texput.log
