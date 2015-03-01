@@ -106,7 +106,7 @@ create_pos_proof(N-A, L0, L, Proof) :-
 
 create_pos_proof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax,[at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
 	!.
-create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(X,A), [ProofA])) :-
+create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(X,N-A), [ProofA])) :-
         !,
         create_pos_proof(A, N, L0, L, ProofA),
         ProofA = rule(_, Gamma, _, _).
@@ -131,14 +131,13 @@ create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, B, [ProofA,ProofB]))
 	ProofA = rule(_, Gamma, _, _),
 	ProofB = rule(_, Delta, _, _),
 	select_formula(B, N, Delta, Delta_B),
-	append(Gamma, [N-impl(A,B)|Delta_B], GD).
+	append(Gamma, [N-impl(N-A,N-B)|Delta_B], GD).
 	
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
         create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
-	replace_list(A, N, Gamma, N-forall(X,A), GammaP),
-	diagnostic(A, N, Gamma, N-forall(X,A), GammaP).	
+	replace_list(A, N, Gamma, N-forall(X,N-A), GammaP).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
 create_neg_subproof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
@@ -148,12 +147,6 @@ create_neg_subproof(p(N-A,N-B), N, L0, L, rule(pr, ProofA, ProofB)) :-
 	create_neg_subproof(A, N, L0, L1, ProofA),
 	create_neg_subproof(B, N, L1, L, ProofB).
 create_neg_subproof(A, N, L, L, rule(ax, [N-A], N-A, [])).
-
-diagnostic(A, N, G, N-F, G) :-
-	!,
-	format(user_error, '~nNo substitution: ~p-~p, ~p-~p~n', [N,A,N,F]),
-	print_list(G).
-diagnostic(_, _, _, _, _).
 
 
 print_list([]).
@@ -167,24 +160,26 @@ select_formula(F, N, L0, L) :-
    ->
 	select(F, L0, L)
    ;
-        select(N-F, L0, L)
-   ).
+        select(N-_, L0, L)
+   ),
+        !.
 
 replace_list(at(A,C,N,Vars), _, List0, R, List) :-
 	!,
 	replace_list(List0, at(A,C,N,Vars), R, List).
-replace_list(_F, N, List0, R, List) :-
-	replace_list(List0, N, R, List). 
+replace_list(F, N, List0, R, List) :-
+	replace_list(List0, N-F, R, List). 
 replace_list([], _, _, []).
 replace_list([A|As], C, D, [B|Bs]) :-
     (
-       A = C-_
+       A = C
     ->
        B = D
     ;
        B = A
     ),
        replace_list(As, C, D, Bs).
+
 
 write_proofs(P) :-
    (
