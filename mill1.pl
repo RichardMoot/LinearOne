@@ -79,7 +79,6 @@ combine_proofs([], [Proof], Proof).
 combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
 	select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-	format(user_error, '~n~p - ~p~n', [N0, N1]),
 	!,
 	combine(P0, P1, N0, N1, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
@@ -96,34 +95,101 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
-	replace_proofs_labels([N0-rule(cut, GDP, C, [P1,P2])|Ps2], N1, N0, Ps),
+	trivial_cut_elimination(P1, P2, GDP, C, Rule),
+	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	combine_proofs(Rest, Ps, Proof).
 
-combine_univ(P1, P2, N0, N1, V, N1-rule(cut, GD, C, [P1,rule(el, [N1-exists(var(V),N1-A)|Delta], C, [P2])])) :-
-        P1 = rule(_, Gamma, N0-exists(var(V),N1-A), _),
+trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
+        is_axiom(P1),
+        !,
+	rulename(P2, Nm),
+        subproofs(P2, R).
+trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
+        is_axiom(P2),
+        !,
+	rulename(P1, Nm),		    
+        subproofs(P1, R).
+trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
+
+
+subproofs(_-R, S) :-
+        subproofs(R, S).
+subproofs(rule(_,_,_,S), S).
+
+rulename(_-R, N) :-
+        rulename(R, N).
+rulename(rule(N,_,_,_), N).
+
+
+is_axiom(_-R) :-
+        is_axiom(R).
+is_axiom(rule(ax,_,_,_)).
+
+combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
+        P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	select_formula(A, N1, Delta0, Delta),
-	append(Gamma, Delta, GD).
-combine_univ(P1, P2, _N0, N1, V, N1-rule(cut, GD, C, [P1,rule(fr,Gamma,N1-forall(var(V),N1-A), [P2])])) :-
-        P1 = rule(_, Gamma, A, _),
-	P2 = rule(_, Delta0, C, _),
-	select(_-forall(var(V),N1-_A0), Delta0, Delta),
-	append(Gamma, Delta, GD).
-combine(P1, P2, N0, N1, N1-rule(cut, GD, C, [P1,rule(pl, [N1-p(N1-A,N1-B)|Delta], C, [P2])])) :-
-	P1 = rule(_, Gamma, N0-p(N1-A, N1-B), _),
+	copy_term(A, AA),
+	select_formula(AA, N1, Delta0, Delta),
+	replace_formula(AA, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
+	append(Gamma, Delta, GD),
+	/* don't create trivial cuts */
+   (
+	Nm = ax
+   ->
+        Rule = rule(el, GD, C, [P2])
+   ;		  
+        Rule = rule(cut, GD, C, [P1,rule(el, Delta1, C, [P2])])
+   ).
+combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
+        P2 = rule(_, Gamma, A, _),
+	P1 = rule(Nm, Delta, C, _),
+	copy_term(A, AA),
+	append(Delta0, [_-forall(var(V),N1-AA)|Delta1], Delta),
+	append(Delta0, Gamma, GD0),
+	append(GD0, Delta1, GD),
+	/* don't create trivial cuts */
+   (
+	Nm = ax
+   ->
+        Rule = rule(fr,GD,N1-forall(var(V),N1-A), [P2])
+   ;		  
+        Rule = rule(cut, GD, C, [P1,rule(fr,Gamma,N1-forall(var(V),N1-A), [P2])])
+   ).
+combine(P1, P2, N0, N1, N1-Rule) :-
+	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
-	select_formula(A, N1, Delta0, Delta1),
-	select_formula(B, N1, Delta1, Delta),
-	append(Gamma, Delta, GD).		  
-combine(P1, P2, N0, N1, N1-rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])) :-
-	P1 = rule(_, Gamma0, A, _),
-	P2 = rule(_, Delta0, B, _),
-	format(user_error, '~n~p |- ~p~n~p |- ~p~n', [Gamma0,A,Delta0,B]),
-	select(_-impl(N1-C,N1-D), Gamma0, Gamma),
-	select_formula(C, N0, Delta0, Delta),
-	append(Gamma, Delta, GD).
+	copy_term(A, AA),
+	copy_term(B, BB),
+	select_formula(BB, N1, Delta0, Delta1),
+	select_formula(AA, N1, Delta1, Delta),
+	replace_formula(AA, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
+	append(Gamma, Delta, GD),		  
+	/* don't create trivial cuts */
+   (
+	Nm = ax
+   ->
+        Rule = rule(pl, GD, C, [P2])
+   ;		  
+        Rule = rule(cut, GD, C, [P1,rule(pl, Delta2, C, [P2])])
+   ).
+combine(P1, P2, N0, N1, N1-Rule) :-
+	P1 = rule(Nm, Gamma, A, _),
+	P2 = rule(_, Delta0, _B, _),
+	append(Gamma0, [_-impl(N1-C,N1-D)|Gamma1], Gamma),
+	copy_term(C, CC),
+	select_formula(CC, N0, Delta0, Delta),
+	append(Gamma0, Delta, GD0),
+	append(GD0, Gamma1, GD),
+	/* don't create trivial cuts */
+   (
+	Nm = ax
+   ->
+        Rule = rule(ir, GD, A, [P2])
+   ;		  
+        Rule = rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])
+   ).
 
 /* I don't believe it's necessary to do replacements inside the subproofs Rs here */
 
@@ -144,7 +210,6 @@ replace_antecedent_labels([A|As], X, Y, [B|Bs]) :-
 	replace_formula_labels(A, X, Y, B),
 	replace_antecedent_labels(As, X, Y, Bs).
 
-
 replace_formula_labels(N0-F0, X, Y, N-F) :-
 	replace_item(N0, X, Y, N),
 	replace_formula_labels(F0, X, Y, F).
@@ -159,9 +224,6 @@ replace_formula_labels(forall(V,A0), X, Y, forall(V,A)) :-
 	replace_formula_labels(A0, X, Y, A).
 replace_formula_labels(exists(V,A0), X, Y, exists(V,A)) :-
 	replace_formula_labels(A0, X, Y, A).
-
-
-
 
 unify_atoms(at(A, _, _, Vs), at(A, _, _, Vs)).
 
@@ -250,8 +312,8 @@ create_pos_proof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax,[at(A,C,N,
 	!.
 create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-Exists, [ProofA])) :-
         !,
-	/* copy to make sure bound variable isn't unified */
-	rename_bound_variable(exists(X,N-A), Exists),
+	/* rename to make sure bound variable isn't unified */
+	rename_bound_variable(exists(X,N-A), X, _, Exists),
         create_pos_proof(A, N, L0, L, ProofA),
         ProofA = rule(_, Gamma, _, _).
 create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
@@ -339,6 +401,17 @@ select_formula(F, N, L0, L) :-
         select(N-_, L0, L)
    ),
         !.
+
+replace_formula(F0, N, F, L0, L) :-
+   (
+        F0 = at(_,_,_,_)
+   ->
+	select(F0, L0, F, L)
+   ;
+        select(N-_, L0, F, L)
+   ),
+        !.
+
 
 replace_list(at(A,C,N,Vars), _, List0, R, List) :-
 	!,
@@ -793,6 +866,7 @@ print_trace([B|Bs], A, Stream) :-
 % = some test predicates
 
 test(Sem) :-
+        /* this should fail ! */
 	prove([forall(X,exists(Y,at(f,[X,Y])))], exists(V,forall(W,at(f,[W,V]))), Sem).
 test0(Sem) :-
 	prove([exists(X,forall(Y,at(f,[X,Y])))], forall(V,exists(W,at(f,[W,V]))), Sem).

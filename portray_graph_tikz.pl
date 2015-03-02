@@ -32,9 +32,9 @@ graph_footer(P) :-
 	access_file('graph.tex', read)
     ->
 	shell('lualatex graph.tex > /dev/null'),
-	format('LaTeX ready~n', [])
+	format('LaTeX graphs ready~n', [])
      ;
-        format('LaTeX output failed~n', [])
+        format('LaTeX graph output failed~n', [])
      ).
 
 

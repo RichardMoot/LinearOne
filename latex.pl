@@ -2,7 +2,7 @@
 
 proof_header :-
 	format('\\documentclass{article}~2n', []),
-	format('\\usepackage[a3paper]{geometry}~n', []),
+	format('\\usepackage[a2paper]{geometry}~n', []),
 	format('\\usepackage{proof}~n', []),
 	format('\\usepackage{amssymb}~2n', []),
 	format('\\begin{document}~n', []).
@@ -14,9 +14,9 @@ proof_footer :-
 	access_file('latex_proofs.tex', read)
     ->
 	shell('pdflatex latex_proofs.tex > /dev/null'),
-	format('LaTeX ready~n', [])
+	format('LaTeX proofs ready~n', [])
      ;
-        format('LaTeX output failed~n', [])
+        format('LaTeX proof output failed~n', [])
      ).
 
 
@@ -50,8 +50,9 @@ latex_proofs1([P|Ps], Q, Tab) :-
 	latex_proofs1(Ps, P, Tab).
 
 
-latex_rule_name(ax) :-
-	write('Axiom').
+%latex_rule_name(ax) :-
+%	write('Axiom').
+latex_rule_name(ax).
 latex_rule_name(cut) :-
 	write('Cut').
 latex_rule_name(fl) :-
