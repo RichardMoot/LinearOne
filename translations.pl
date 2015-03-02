@@ -313,14 +313,21 @@ principal_type(At, Type, [At-Type]) :-
 	atom(At),
 	!.
 principal_type(appl(A,B), TypeA, ABlist) :-
+        !,
 	principal_type(A, impl(TypeB,TypeA), Alist),
 	principal_type(B, TypeB, Blist),
 	/* might be doable with difference lists, though the abstraction */
         /* case below requires us to select from the constructed list */
 	append(Alist, Blist, ABlist).
 principal_type(lambda(A,B), impl(TypeA,TypeB), AList) :-
+        !,
 	principal_type(B, TypeB, BList),
 	get_type(BList, A, TypeA, AList).
+principal_type(Term, Type, _) :-
+        /* unknown term, print error message (helps correct typos, such as subterms of the form lambda/3 or appl/1) */
+        functor(Term, F, A),
+        format(user_error, '~N{Error: unknown subterm ~w (~w/~w) of type ~p}~n', [Term, F, A, Type]),
+	fail.
 
 get_type([], B, _, []) :-
 	format(user_error, '{Warning: free occurrences of ~w}~n', [B]). 

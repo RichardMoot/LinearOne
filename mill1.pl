@@ -881,6 +881,12 @@ test2(Sem) :-
 test3(Sem) :-
 	prove([forall(Y,forall(Z,impl(impl(at(np,[0,1]),at(s,[Y,Z])),at(s,[Y,Z])))),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2]), Sem).
 
+test4(Sem) :-
+        translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
+	translate_hybrid(h(h(at(s),at(np)),at(s)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(believes,appl(P,Z)))))), believes, 1, 2, Believes),
+	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(VP,lambda(Z,appl(appl(VP,someone),Z))), someone, 2, 3, Someone),
+	translate_hybrid(h(at(s),at(np)), lambda(S,lambda(Z,appl(S,appl(left,Z)))), left, 3, 4, Left),
+	prove([John, Believes, Someone, Left], at(s, [0,4]), Sem).
 
 % = test translations
 
