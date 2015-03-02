@@ -50,6 +50,8 @@ latex_proofs1([P|Ps], Q, Tab) :-
 
 latex_rule_name(ax) :-
 	write('Axiom').
+latex_rule_name(cut) :-
+	write('Cut').
 latex_rule_name(fl) :-
 	write('L\\forall').
 latex_rule_name(fr) :-

@@ -24,17 +24,27 @@ portray(at(X, _, _, Vs)) :-
 	print(Term).
 portray(impl(A,B)) :-
 	format('(~p -o ~p)', [A,B]).
+portray(rule(N,A,B,Ps)) :-
+	Ps \== [],
+	format('rule(~p,~p,~p,...)', [N,A,B]).
 
 prove(List, Goal, Sem) :-
+	/* LaTeX output */
 	graph_header,
+	telling(Stream),
+	tell('latex_proofs.tex'),
+	proof_header,
+	tell(Stream),
+	/* reset counters */
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(0)),
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)),
+	/* end initialisation */
         unfold_sequent(List, Goal, Vs0, W, Sem0),
 	copy_term(Vs0, Vs),
         prove1(Vs0, Trace),
-	node_proofs(Vs),
+	generate_proof(Vs, Trace),
 	numbervars(Sem0, W, _),
 	Sem = Sem0,
 	print_trace(user_output, Trace),
@@ -48,7 +58,60 @@ prove(_, _, _) :-
 	'$PROOFS'(N),
 	write_axioms(A),
 	write_proofs(N),
-	graph_footer(N).
+	graph_footer(N),
+	telling(Stream),
+	tell('latex_proofs.tex'),
+	proof_footer,
+	told,
+	tell(Stream).
+
+generate_proof(Vs, Trace) :-
+	telling(Stream),
+	tell('latex_proofs.tex'),
+	node_proofs(Vs, Ps),
+	combine_proofs(Trace, Ps, Proof),
+	numbervars(Proof, 0, _),
+	latex_proof(Proof),
+        write('\\bigskip'),
+	tell(Stream).
+
+combine_proofs([], [Proof], Proof).
+combine_proofs([ax(_N1,AtV1,AtO1,_N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
+	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
+	select_neg_proof(Ps1, Ps, AtV0, AtO0, Gamma, A1, Delta, C, P1),
+        append(Gamma, DeltaP, GDP1),
+	append(GDP1, Delta, GDP),
+	unify_atoms(A1, A2),
+	combine_proofs(Rest, [rule(cut, GDP, C, [P1,P2])|Ps], Proof).
+
+unify_atoms(at(A, _, _, Vs), at(A, _, _, Vs)).
+
+select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
+	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
+	!.
+select_neg_proof([P|Ps], [P|Rs], V, O, Gamma, A, Delta, C, Proof) :-
+	select_neg_proof(Ps, Rs, V, O, Gamma, A, Delta, C, Proof).
+
+select_neg_proof1(_-P, V, O, Gamma, A, Delta, C, R) :-
+	select_neg_proof1(P, V, O, Gamma, A, Delta, C, R).
+select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(Nm, GammaADelta, C, Ps)) :-
+	select_ant_formula(GammaADelta, V, O, Gamma, [], A, Delta).
+
+select_pos_proof([P|Ps], Ps, V, O, Delta, A, Proof) :-
+	select_pos_proof1(P, V, O, Delta, A, Proof),
+	!.
+select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
+	select_pos_proof(Ps, Rs, V, O, Delta, A, Proof).
+
+select_pos_proof1(_-P, V, O, Delta, A, R) :-
+	select_pos_proof1(P, V, O, Delta, A, R).
+select_pos_proof1(rule(Nm, Delta, at(At,V,O,Vars), Rs), V, O, Delta, at(At,V,O,Vars), rule(Nm, Delta, at(At,V,O,Vars), Rs)).
+
+select_ant_formula([at(At,V,O,Vars)|Delta], V, O, Gamma, Gamma, at(At,V,O,Vars), Delta) :-
+	!.
+select_ant_formula([G|Gs], V, O, [G|Gamma0], Gamma, A, Delta) :-
+	select_ant_formula(Gs, V, O, Gamma0, Gamma, A, Delta).
+
 
 node_proofs(Vs) :-
         nl(user_output),
@@ -61,7 +124,7 @@ node_proofs(Vs) :-
     (
         node_proofs(Vs, Ps),
         numbervars(Ps, 0, _),
-	member(P, Ps),
+	member(_-P, Ps),
 	latex_proof(P),
         write('\\bigskip'),
         nl,
@@ -78,7 +141,7 @@ node_proofs([V|Vs], [P|Ps]) :-
         node_proofs(Vs, Ps).
 node_proofs([], []).
 
-node_proof1(vertex(N0, As, _, _), Proof) :-
+node_proof1(vertex(N0, As, _, _), N0-Proof) :-
         node_formula(N0, Pol, F),
         node_proof2(As, F, N0, Pol, Proof),
 	!.
@@ -106,8 +169,10 @@ create_pos_proof(N-A, L0, L, Proof) :-
 
 create_pos_proof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax,[at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
 	!.
-create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(X,N-A), [ProofA])) :-
+create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-Exists, [ProofA])) :-
         !,
+	/* copy to make sure bound variable isn't unified */
+	rename_bound_variable(exists(X,N-A), Exists),
         create_pos_proof(A, N, L0, L, ProofA),
         ProofA = rule(_, Gamma, _, _).
 create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
@@ -137,7 +202,9 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
         create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
-	replace_list(A, N, Gamma, N-forall(X,N-A), GammaP).
+	/* rename to make sure bound variable isn't unified */
+	rename_bound_variable(forall(X,N-A), X, _, Forall),
+	replace_list(A, N, Gamma, N-Forall, GammaP).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
 create_neg_subproof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
@@ -148,6 +215,36 @@ create_neg_subproof(p(N-A,N-B), N, L0, L, rule(pr, ProofA, ProofB)) :-
 	create_neg_subproof(B, N, L1, L, ProofB).
 create_neg_subproof(A, N, L, L, rule(ax, [N-A], N-A, [])).
 
+rename_bound_variable(N-F0, X, Y, N-F) :-
+	rename_bound_variable(F0, X, Y, F).
+rename_bound_variable(at(A,C,N,Vars0), X, Y, at(A,C,N,Vars)) :-
+	rename_bound_var_list(Vars0, X, Y, Vars).
+rename_bound_variable(forall(Z,A0), X, Y, forall(V,A)) :-
+	rename_bound_var(Z, X, Y, V),
+	rename_bound_variable(A0, X, Y, A).
+rename_bound_variable(exists(Z,A0), X, Y, exists(V,A)) :-
+	rename_bound_var(Z, X, Y, V),
+	rename_bound_variable(A0, X, Y, A).
+rename_bound_variable(impl(A0,B0), X, Y, impl(A,B)) :-
+	rename_bound_variable(A0, X, Y, A),
+	rename_bound_variable(B0, X, Y, B).
+rename_bound_variable(p(A0,B0), X, Y, p(A,B)) :-
+	rename_bound_variable(A0, X, Y, A),
+	rename_bound_variable(B0, X, Y, B).
+
+rename_bound_var_list([], _, _, []).
+rename_bound_var_list([V|Vs], X, Y, [W|Ws]) :-
+	rename_bound_var(V, X, Y, W),
+	rename_bound_var_list(Vs, X, Y, Ws).
+
+rename_bound_var(V, X, Y, W) :-
+   (
+	X == V
+   ->
+	W = Y
+   ;
+	W = V
+   ).
 
 print_list([]).
 print_list([A|As]) :-
