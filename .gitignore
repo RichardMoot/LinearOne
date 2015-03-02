@@ -1,3 +1,5 @@
+# ignore emacs backups
+*~
 # ignore (Lua)LaTeX graph and proof files
 graph.*
 latex_proofs.*

@@ -82,7 +82,13 @@ combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
 	format(user_error, '~n~p - ~p~n', [N0, N1]),
 	!,
 	combine(P0, P1, N0, N1, P2),
-	replace_proof_labels([P2|Ps2], N0, N1, Ps),
+	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
+	combine_proofs(Rest, Ps, Proof).
+combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
+        select(N0-P0, Ps0, Ps1),
+	select(N1-P1, Ps1, Ps2),
+	combine_univ(P0, P1, N0, N1, V, P2),
+	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
@@ -93,7 +99,25 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	replace_proofs_labels([N0-rule(cut, GDP, C, [P1,P2])|Ps2], N1, N0, Ps),
 	combine_proofs(Rest, Ps, Proof).
 
-combine(P1, P2, N0, N1, rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])) :-
+combine_univ(P1, P2, N0, N1, V, N1-rule(cut, GD, C, [P1,rule(el, [N1-exists(var(V),N1-A)|Delta], C, [P2])])) :-
+        P1 = rule(_, Gamma, N0-exists(var(V),N1-A), _),
+	P2 = rule(_, Delta0, C, _),
+	!,
+	select_formula(A, N1, Delta0, Delta),
+	append(Gamma, Delta, GD).
+combine_univ(P1, P2, _N0, N1, V, N1-rule(cut, GD, C, [P1,rule(fr,Gamma,N1-forall(var(V),N1-A), [P2])])) :-
+        P1 = rule(_, Gamma, A, _),
+	P2 = rule(_, Delta0, C, _),
+	select(_-forall(var(V),N1-_A0), Delta0, Delta),
+	append(Gamma, Delta, GD).
+combine(P1, P2, N0, N1, N1-rule(cut, GD, C, [P1,rule(pl, [N1-p(N1-A,N1-B)|Delta], C, [P2])])) :-
+	P1 = rule(_, Gamma, N0-p(N1-A, N1-B), _),
+        P2 = rule(_, Delta0, C, _),
+	!,
+	select_formula(A, N1, Delta0, Delta1),
+	select_formula(B, N1, Delta1, Delta),
+	append(Gamma, Delta, GD).		  
+combine(P1, P2, N0, N1, N1-rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])) :-
 	P1 = rule(_, Gamma0, A, _),
 	P2 = rule(_, Delta0, B, _),
 	format(user_error, '~n~p |- ~p~n~p |- ~p~n', [Gamma0,A,Delta0,B]),
@@ -772,6 +796,10 @@ test(Sem) :-
 	prove([forall(X,exists(Y,at(f,[X,Y])))], exists(V,forall(W,at(f,[W,V]))), Sem).
 test0(Sem) :-
 	prove([exists(X,forall(Y,at(f,[X,Y])))], forall(V,exists(W,at(f,[W,V]))), Sem).
+
+test1(Sem) :-
+        translate_lambek(p(dr(at(np),at(n)),at(n)), [0,1], F),
+        prove([F], at(np, [0,1]), Sem).
 
 test2(Sem) :-
 	prove([at(np,[0,1]),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2]), Sem).

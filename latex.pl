@@ -23,6 +23,8 @@ proof_footer :-
 latex_proof(Proof) :-
 	latex_proof(Proof, 0).
 
+latex_proof(_-Proof, Tab) :-
+        latex_proof(Proof, Tab).
 latex_proof(rule(Name, Ant, Suc, SubProofs), Tab0) :-
 	format('\\infer[~@]{~@}{', [latex_rule_name(Name),latex_sequent(Ant,Suc)]),
 	Tab is Tab0 + 6,
