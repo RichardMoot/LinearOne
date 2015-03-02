@@ -76,13 +76,68 @@ generate_proof(Vs, Trace) :-
 	tell(Stream).
 
 combine_proofs([], [Proof], Proof).
-combine_proofs([ax(_N1,AtV1,AtO1,_N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
+combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
+	select(N0-P0, Ps0, Ps1),
+	select(N1-P1, Ps1, Ps2),
+	format(user_error, '~n~p - ~p~n', [N0, N1]),
+	!,
+	combine(P0, P1, N0, N1, P2),
+	replace_proof_labels([P2|Ps2], N0, N1, Ps),
+	combine_proofs(Rest, Ps, Proof).
+combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
-	select_neg_proof(Ps1, Ps, AtV0, AtO0, Gamma, A1, Delta, C, P1),
+	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
-	combine_proofs(Rest, [rule(cut, GDP, C, [P1,P2])|Ps], Proof).
+	replace_proofs_labels([N0-rule(cut, GDP, C, [P1,P2])|Ps2], N1, N0, Ps),
+	combine_proofs(Rest, Ps, Proof).
+
+combine(P1, P2, N0, N1, rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])) :-
+	P1 = rule(_, Gamma0, A, _),
+	P2 = rule(_, Delta0, B, _),
+	format(user_error, '~n~p |- ~p~n~p |- ~p~n', [Gamma0,A,Delta0,B]),
+	select(_-impl(N1-C,N1-D), Gamma0, Gamma),
+	select_formula(C, N0, Delta0, Delta),
+	append(Gamma, Delta, GD).
+
+/* I don't believe it's necessary to do replacements inside the subproofs Rs here */
+
+replace_proofs_labels([], _, _, []).
+replace_proofs_labels([R0|Rs0], X, Y, [R|Rs]) :-
+	replace_proof_labels(R0, X, Y, R),
+	replace_proofs_labels(Rs0, X, Y, Rs).
+
+replace_proof_labels(N0-R0, X, Y, N-R) :-
+	replace_item(N0, X, Y, N),
+	replace_proof_labels(R0, X, Y, R).
+replace_proof_labels(rule(N, As0, F0, Rs), X, Y, rule(N, As, F, Rs)) :-
+	replace_antecedent_labels(As0, X, Y, As),
+	replace_formula_labels(F0, X, Y, F).
+
+replace_antecedent_labels([], _, _, []).
+replace_antecedent_labels([A|As], X, Y, [B|Bs]) :-
+	replace_formula_labels(A, X, Y, B),
+	replace_antecedent_labels(As, X, Y, Bs).
+
+
+replace_formula_labels(N0-F0, X, Y, N-F) :-
+	replace_item(N0, X, Y, N),
+	replace_formula_labels(F0, X, Y, F).
+replace_formula_labels(at(A,B,C,D), _, _, at(A,B,C,D)).
+replace_formula_labels(impl(A0,B0), X, Y, impl(A,B)) :-
+	replace_formula_labels(A0, X, Y, A),
+	replace_formula_labels(B0, X, Y, B).
+replace_formula_labels(p(A0,B0), X, Y, p(A,B)) :-
+	replace_formula_labels(A0, X, Y, A),
+	replace_formula_labels(B0, X, Y, B).
+replace_formula_labels(forall(V,A0), X, Y, forall(V,A)) :-
+	replace_formula_labels(A0, X, Y, A).
+replace_formula_labels(exists(V,A0), X, Y, exists(V,A)) :-
+	replace_formula_labels(A0, X, Y, A).
+
+
+
 
 unify_atoms(at(A, _, _, Vs), at(A, _, _, Vs)).
 
