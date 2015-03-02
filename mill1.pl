@@ -1,5 +1,5 @@
 :- use_module(ordset, [ord_union/3,ord_delete/3]).
-:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1]).
+:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0]).
 
@@ -18,10 +18,10 @@ portray(at(X, Vs)) :-
 	atom(X),
 	Term =.. [X|Vs],
 	print(Term).
-portray(at(X, _, _, Vs)) :-
+portray(at(X, I1, I2, Vs)) :-
 	atom(X),
 	Term =.. [X|Vs],
-	print(Term).
+	format('~w{~w,~w}', [Term,I1,I2]).
 portray(impl(A,B)) :-
 	format('(~p -o ~p)', [A,B]).
 portray(rule(N,A,B,Ps)) :-
@@ -86,18 +86,23 @@ combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
 combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
         select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
+	!,
 	combine_univ(P0, P1, N0, N1, V, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
+	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
 	trivial_cut_elimination(P1, P2, GDP, C, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	combine_proofs(Rest, Ps, Proof).
+combine_proofs([Next|_], CurrentProofs, _) :-
+	format(user_error, '~NError generating proofs!~nNext:~p~n~@~n', [Next,print_list(CurrentProofs)]),
+	fail.
 
 trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
         is_axiom(P1),
@@ -145,14 +150,14 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, A, _),
 	P1 = rule(Nm, Delta, C, _),
 	copy_term(A, AA),
-	append(Delta0, [_-forall(var(V),N1-AA)|Delta1], Delta),
+	append(Delta0, [_-forall(var(V),AA)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
 	/* don't create trivial cuts */
    (
 	Nm = ax
    ->
-        Rule = rule(fr,GD,N1-forall(var(V),N1-A), [P2])
+        Rule = rule(fr,GD,N1-forall(var(V),N1-AA), [P2])
    ;		  
         Rule = rule(cut, GD, C, [P1,rule(fr,Gamma,N1-forall(var(V),N1-A), [P2])])
    ).
@@ -330,7 +335,7 @@ create_neg_proof(N-A, L0, L, Neg, Proof) :-
 	create_neg_proof(A, N, L0, L, Neg, Proof).
 create_neg_proof(at(A,C,N,Vars), _, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
         !.
-create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, B, [ProofA,ProofB])) :-
+create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, Neg, [ProofA,ProofB])) :-
         !,
         create_neg_subproof(A, N, L0, L1, ProofA),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
@@ -691,14 +696,14 @@ number_subformulas_neg(at(A,Vars), C, N, N, M0, M, C-at(A,C,M0,Vars)) :-
         M is M0 + 1.
 number_subformulas_neg(forall(X,A), C, N0, N, M0, M, C-forall(X,NA)) :-
 	number_subformulas_neg(A, C, N0, N, M0, M, NA).
-number_subformulas_neg(exists(X,A), C, N0, N, M0, M, C-exists(X,NA)) :-
+number_subformulas_neg(exists(X,A), C, N0, N, M, M, C-exists(X,NA)) :-
 	N1 is N0 + 1,
-	number_subformulas_neg(A, N0, N1, N, M0, M, NA).
-number_subformulas_neg(p(A,B), C, N0, N, M0, M, C-p(NA,NB)) :-
+	number_subformulas_neg(A, N0, N1, N, 1, _, NA).
+number_subformulas_neg(p(A,B), C, N0, N, M, M, C-p(NA,NB)) :-
 	N1 is N0 + 1,
 	N2 is N1 + 1,
-	number_subformulas_neg(A, N0, N2, N3, M0, M1, NA),
-	number_subformulas_neg(B, N1, N3, N, M1, M, NB).
+	number_subformulas_neg(A, N0, N2, N3, 1, _, NA),
+	number_subformulas_neg(B, N1, N3, N, 1, _, NB).
 number_subformulas_neg(impl(A,B), C, N0, N, M0, M, C-impl(NA,NB)) :-
 	number_subformulas_pos(A, C, N0, N1, M0, M1, NA),
 	number_subformulas_neg(B, C, N1, N, M1, M, NB).
@@ -708,19 +713,19 @@ number_subformulas_pos(F, C, N0, N, NF) :-
 
 number_subformulas_pos(at(A,Vars), C, N, N, M0, M, C-at(A,C,M0,Vars)) :-
 	M is M0 + 1.
-number_subformulas_pos(forall(X,A), C, N0, N, M0, M, C-forall(X,NA)) :-
+number_subformulas_pos(forall(X,A), C, N0, N, M, M, C-forall(X,NA)) :-
 	N1 is N0 + 1,
-	number_subformulas_pos(A, N0, N1, N, M0, M, NA).
+	number_subformulas_pos(A, N0, N1, N, 1, _, NA).
 number_subformulas_pos(exists(X,A), C, N0, N, M0, M, C-exists(X,NA)) :-
 	number_subformulas_pos(A, C, N0, N, M0, M, NA).
 number_subformulas_pos(p(A,B), C, N0, N, M0, M, C-p(NA,NB)) :-
 	number_subformulas_pos(A, C, N0, N1, M0, M1, NA),
 	number_subformulas_pos(B, C, N1, N, M1, M, NB).
-number_subformulas_pos(impl(A,B), C, N0, N, M0, M, C-impl(NA,NB)) :-
+number_subformulas_pos(impl(A,B), C, N0, N, M, M, C-impl(NA,NB)) :-
 	N1 is N0 + 1,
 	N2 is N1 + 1,	
-	number_subformulas_neg(A, N0, N2, N3, M0, M1, NA),
-	number_subformulas_pos(B, N1, N3, N, M1, M, NB).
+	number_subformulas_neg(A, N0, N2, N3, 1, _, NA),
+	number_subformulas_pos(B, N1, N3, N, 1, _, NB).
 
 %= unfold(+Formula, Sem, VertexNo, VarNo, AtomsDL, EdgesDL, VerticesDL)
 
@@ -883,10 +888,17 @@ test3(Sem) :-
 
 test4(Sem) :-
         translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
+	translate_hybrid(h(h(at(s),at(np)),at(np)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(believes,appl(P,Z)))))), loves, 1, 2, Loves),
+        translate_hybrid(at(np), lambda(V,appl(mary,V)), mary, 2, 3, Mary),
+	prove([John, Loves, Mary], at(s, [0,3]), Sem).
+
+test5(Sem) :-
+        translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
 	translate_hybrid(h(h(at(s),at(np)),at(s)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(believes,appl(P,Z)))))), believes, 1, 2, Believes),
 	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(VP,lambda(Z,appl(appl(VP,someone),Z))), someone, 2, 3, Someone),
-	translate_hybrid(h(at(s),at(np)), lambda(S,lambda(Z,appl(S,appl(left,Z)))), left, 3, 4, Left),
+	translate_hybrid(h(at(s),at(np)), lambda(S,lambda(Z1,appl(S,appl(left,Z1)))), left, 3, 4, Left),
 	prove([John, Believes, Someone, Left], at(s, [0,4]), Sem).
+
 
 % = test translations
 

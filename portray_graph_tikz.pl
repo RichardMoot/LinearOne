@@ -2,7 +2,7 @@
 %
 % GraphViz output
 
-:- module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1]).
+:- module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 
 :- dynamic '$GRAPH_NO'/1.
 
@@ -64,28 +64,47 @@ write_graphs(N) :-
        format('~p graphs output.~n', [N])
    ).
 
+latex_graph(G0) :-
+	copy_term(G0, G),
+ 	graph_header,
+ 	graph_numbervars(G, 0, _),
+        format('{\\tikz \\graph [multi, layered layout, level distance=1.3cm] {~n', []),
+        portray_vertices(G),
+        portray_edges(G),
+        format('};~2n', []),
+	format('\\end{center}~n', []),
+	format('\\end{document}~n', []),
+	told,
+    (
+	access_file('graph.tex', read)
+    ->
+	shell('lualatex graph.tex > /dev/null'),
+	format('LaTeX graphs ready~n', [])
+     ;
+        format('LaTeX graph output failed~n', [])
+     ).
 
 portray_graph(G) :-
-       '$GRAPH_NO'(N0),
-       retractall('$GRAPH_NO'(_)),
-       N is N0 + 1,
-       assert('$GRAPH_NO'(N)),
-      /* do temporary numbervars */
-\+ \+ (graph_numbervars(G, 0, _),
-       format('{\\flushleft ~p\\hfill}~2n\\tikz \\graph [multi, layered layout, level distance=1.3cm] {~n', [N]),
-       portray_vertices(G),
-       portray_edges(G),
-       format('};~2n', [])).
+        '$GRAPH_NO'(N0),
+	retractall('$GRAPH_NO'(_)),
+	N is N0 + 1,
+	assert('$GRAPH_NO'(N)),
+        /* do temporary numbervars */
+\+ \+ ( graph_numbervars(G, 0, _),
+        format('{\\flushleft ~p\\hfill}~2n\\tikz \\graph [multi, layered layout, level distance=1.3cm] {~n', [N]),
+        portray_vertices(G),
+        portray_edges(G),
+        format('};~2n', [])).
 
 graph_numbervars([], N, N).
 graph_numbervars([vertex(_,As,_,_)|Rest], N0, N) :-
-    atoms_numbervars(As, N0, N1),
-    graph_numbervars(Rest, N1, N).
+	atoms_numbervars(As, N0, N1),
+	graph_numbervars(Rest, N1, N).
 
 atoms_numbervars([], N, N).
 atoms_numbervars([A|As], N0, N) :-
-    atom_numbervars(A, N0, N1),
-    atoms_numbervars(As, N1, N).
+	atom_numbervars(A, N0, N1),
+	atoms_numbervars(As, N1, N).
 
 atom_numbervars(neg(_, _, Vars), N0, N) :-
     numbervars(Vars, N0, N).
