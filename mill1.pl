@@ -1,4 +1,4 @@
-:- use_module(ordset, [ord_union/3,ord_delete/3]).
+:- use_module(ordset, [ord_union/3,ord_delete/3,ord_key_member/3,ord_key_insert/4]).
 :- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0]).
@@ -134,7 +134,8 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	copy_term(A, AA),
+	%	copy_term(A, AA),
+	A = AA,
 	select_formula(AA, N1, Delta0, Delta),
 	replace_formula(AA, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
 	append(Gamma, Delta, GD),
@@ -149,7 +150,8 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, A, _),
 	P1 = rule(Nm, Delta, C, _),
-	copy_term(A, AA),
+	%	copy_term(A, AA),
+	A = AA,
 	append(Delta0, [_-forall(var(V),AA)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
@@ -165,8 +167,10 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
-	copy_term(A, AA),
-	copy_term(B, BB),
+%	copy_term(A, AA),
+	%	copy_term(B, BB),
+	A = AA,
+	B = BB,
 	select_formula(BB, N1, Delta0, Delta1),
 	select_formula(AA, N1, Delta1, Delta),
 	replace_formula(AA, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
@@ -183,7 +187,8 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, A, _),
 	P2 = rule(_, Delta0, _B, _),
 	append(Gamma0, [_-impl(N1-C,N1-D)|Gamma1], Gamma),
-	copy_term(C, CC),
+	%	copy_term(C, CC),
+	C = CC,
 	select_formula(CC, N0, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
@@ -318,7 +323,7 @@ create_pos_proof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax,[at(A,C,N,
 create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-Exists, [ProofA])) :-
         !,
 	/* rename to make sure bound variable isn't unified */
-	rename_bound_variable(exists(X,N-A), X, _, Exists),
+	rename_bound_variables(exists(X,N-A), Exists),
         create_pos_proof(A, N, L0, L, ProofA),
         ProofA = rule(_, Gamma, _, _).
 create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
@@ -349,7 +354,7 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
 	/* rename to make sure bound variable isn't unified */
-	rename_bound_variable(forall(X,N-A), X, _, Forall),
+	rename_bound_variables(forall(X,N-A), Forall),
 	replace_list(A, N, Gamma, N-Forall, GammaP).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
@@ -361,33 +366,35 @@ create_neg_subproof(p(N-A,N-B), N, L0, L, rule(pr, ProofA, ProofB)) :-
 	create_neg_subproof(B, N, L1, L, ProofB).
 create_neg_subproof(A, N, L, L, rule(ax, [N-A], N-A, [])).
 
-rename_bound_variable(N-F0, X, Y, N-F) :-
-	rename_bound_variable(F0, X, Y, F).
-rename_bound_variable(at(A,C,N,Vars0), X, Y, at(A,C,N,Vars)) :-
-	rename_bound_var_list(Vars0, X, Y, Vars).
-rename_bound_variable(forall(Z,A0), X, Y, forall(V,A)) :-
-	rename_bound_var(Z, X, Y, V),
-	rename_bound_variable(A0, X, Y, A).
-rename_bound_variable(exists(Z,A0), X, Y, exists(V,A)) :-
-	rename_bound_var(Z, X, Y, V),
-	rename_bound_variable(A0, X, Y, A).
-rename_bound_variable(impl(A0,B0), X, Y, impl(A,B)) :-
-	rename_bound_variable(A0, X, Y, A),
-	rename_bound_variable(B0, X, Y, B).
-rename_bound_variable(p(A0,B0), X, Y, p(A,B)) :-
-	rename_bound_variable(A0, X, Y, A),
-	rename_bound_variable(B0, X, Y, B).
+rename_bound_variables(F0, F) :-
+	rename_bound_variables(F0, [], F).
+rename_bound_variables(N-F0, Map, N-F) :-
+	rename_bound_variables(F0, Map, F).
+rename_bound_variables(at(A,C,N,Vars0), Map, at(A,C,N,Vars)) :-
+	rename_bound_var_list(Vars0, Map, Vars).
+rename_bound_variables(forall(Z,A0), Map0, forall(V,A)) :-
+	ord_key_insert(Map0, Z, V, Map),
+	rename_bound_variables(A0, Map, A).
+rename_bound_variables(exists(Z,A0), Map0, exists(V,A)) :-
+	ord_key_insert(Map0, Z, V, Map),
+	rename_bound_variables(A0, Map, A).
+rename_bound_variables(impl(A0,B0), Map, impl(A,B)) :-
+	rename_bound_variables(A0, Map, A),
+	rename_bound_variables(B0, Map, B).
+rename_bound_variables(p(A0,B0), Map, p(A,B)) :-
+	rename_bound_variables(A0, Map, A),
+	rename_bound_variables(B0, Map, B).
 
-rename_bound_var_list([], _, _, []).
-rename_bound_var_list([V|Vs], X, Y, [W|Ws]) :-
-	rename_bound_var(V, X, Y, W),
-	rename_bound_var_list(Vs, X, Y, Ws).
+rename_bound_var_list([], _, []).
+rename_bound_var_list([V|Vs], Map, [W|Ws]) :-
+	rename_bound_var(V, Map, W),
+	rename_bound_var_list(Vs, Map, Ws).
 
-rename_bound_var(V, X, Y, W) :-
+rename_bound_var(V, Map, W) :-
    (
-	X == V
+	ord_key_member(V, Map, W) 
    ->
-	W = Y
+	true
    ;
 	W = V
    ).
