@@ -1,4 +1,11 @@
-:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
+:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3]).
+
+translate(F0, [X,Y], F) :-
+	translate_lambek(F0, [X,Y], F),
+	!.
+translate(F0, [X,Y], F) :-
+	translate_displacement(F0, [X,Y], F),
+	!.
 
 % =======================
 % =   Lambek calculus   =

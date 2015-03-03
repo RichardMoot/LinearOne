@@ -28,7 +28,7 @@ portray(rule(N,A,B,Ps)) :-
 	Ps \== [],
 	format('rule(~p,~p,~p,...)', [N,A,B]).
 
-prove(List, Goal, Sem) :-
+prove(List, Goal) :-
 	/* LaTeX output */
 	graph_header,
 	telling(Stream),
@@ -41,19 +41,25 @@ prove(List, Goal, Sem) :-
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)),
 	/* end initialisation */
-        unfold_sequent(List, Goal, Vs0, W, Sem0),
+        unfold_sequent(List, Goal, Vs0, W, Sem),
+	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
         prove1(Vs0, Trace),
-	generate_proof(Vs, Trace),
-	numbervars(Sem0, W, _),
-	Sem = Sem0,
-	print_trace(user_output, Trace),
+	/* proof found */
+	/* update proof statistics */
 	'$PROOFS'(N0),
 	N is N0 + 1,
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(N)),
+	numbervars(Sem, W, _),
+	format(user_output, '~NSemantics ~w: ~p~n', [N,Sem]),
+	/* generate a LaTeX proof */
+	generate_proof(Vs, Trace),
+	print_trace(user_output, Trace),
+	/* find alternatives using failure driven loop */
 	fail.
-prove(_, _, _) :-
+prove(_, _) :-
+	/* print final statistics and generate pdf files */
 	'$AXIOMS'(A),
 	'$PROOFS'(N),
 	write_axioms(A),
@@ -927,48 +933,48 @@ print_trace([B|Bs], A, Stream) :-
 
 % = some test predicates
 
-test(Sem) :-
+test :-
         /* this should fail ! */
-	prove([forall(X,exists(Y,at(f,[X,Y])))], exists(V,forall(W,at(f,[W,V]))), Sem).
-test0(Sem) :-
-	prove([exists(X,forall(Y,at(f,[X,Y])))], forall(V,exists(W,at(f,[W,V]))), Sem).
+	prove([forall(X,exists(Y,at(f,[X,Y])))], exists(V,forall(W,at(f,[W,V])))).
+test0 :-
+	prove([exists(X,forall(Y,at(f,[X,Y])))], forall(V,exists(W,at(f,[W,V])))).
 
-test1(Sem) :-
+test1 :-
         translate_lambek(p(dr(at(np),at(n)),at(n)), [0,1], F),
-        prove([F], at(np, [0,1]), Sem).
+        prove([F], at(np, [0,1])).
 
-test2(Sem) :-
-	prove([at(np,[0,1]),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2]), Sem).
+test2 :-
+	prove([at(np,[0,1]),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2])).
 
-test3(Sem) :-
-	prove([forall(Y,forall(Z,impl(impl(at(np,[0,1]),at(s,[Y,Z])),at(s,[Y,Z])))),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2]), Sem).
+test3 :-
+	prove([forall(Y,forall(Z,impl(impl(at(np,[0,1]),at(s,[Y,Z])),at(s,[Y,Z])))),forall(X,impl(at(np,[X,1]),at(s,[X,2])))], at(s,[0,2])).
 
-test4(Sem) :-
+test4 :-
         translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
 	translate_hybrid(h(h(at(s),at(np)),at(np)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(loves,appl(P,Z)))))), loves, 1, 2, Loves),
         translate_hybrid(at(np), lambda(V,appl(mary,V)), mary, 2, 3, Mary),
-	prove([John, Loves, Mary], at(s, [0,3]), Sem).
+	prove([John, Loves, Mary], at(s, [0,3])).
 
-test5(Sem) :-
+test5 :-
         translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
 	translate_hybrid(h(h(at(s),at(np)),at(s)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(believes,appl(P,Z)))))), believes, 1, 2, Believes),
 	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(VP,lambda(Z,appl(appl(VP,someone),Z))), someone, 2, 3, Someone),
 	translate_hybrid(h(at(s),at(np)), lambda(S,lambda(Z1,appl(S,appl(left,Z1)))), left, 3, 4, Left),
-	prove([John, Believes, Someone, Left], at(s, [0,4]), Sem).
+	prove([John, Believes, Someone, Left], at(s, [0,4])).
 
 % = I need a better axiom selection strategy
 
 % succeeds, but proof generation fails
-test6(Sem) :-
+test6 :-
 	translate_displacement(at(np), [0,1], John),
 	translate_displacement(dl(at(np),at(s)), [1,2], Left),
 	translate_displacement(dr(dl(dl(at(np),at(s)),dl(at(np),at(s))),at(s)), [2,3], Before),
 	translate_displacement(at(np), [3,4], Mary),
 	translate_displacement(dl(dr(dr(>,dl(at(np),at(s)),dl(at(np),at(s))),dl(at(np),at(s))),dr(>,dl(at(np),at(s)),dl(at(np),at(s)))), [4,5], Did),
-	prove([John,Left,Before,Mary,Did], at(s,[0,5]), Sem).
+	prove([John,Left,Before,Mary,Did], at(s,[0,5])).
 
 % fails (verify!)
-test7(Sem) :-
+test7 :-
         translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
 	translate_hybrid(dr(dl(at(np),at(s)),at(np)), lambda(Y,appl(studies,Y)), studies, 1, 2, Studies),
         translate_hybrid(at(np), lambda(Z,appl(logic,Z)), logic, 2, 3, Logic),
@@ -976,7 +982,7 @@ test7(Sem) :-
 			 lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), and, 3, 4, And),
         translate_hybrid(at(np), lambda(X1,appl(charles,X1)), charles, 4, 5, Charles),
         translate_hybrid(at(np), lambda(Z1,appl(phonetics,Z1)), phonetics, 5, 6, Phonetics),
-	prove([John, Studies, Logic, And, Charles, Phonetics], at(s,[0,6]), Sem).
+	prove([John, Studies, Logic, And, Charles, Phonetics], at(s,[0,6])).
 
 % = test translations
 
