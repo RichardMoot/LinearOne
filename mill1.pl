@@ -469,6 +469,9 @@ prove1(G0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
         portray_graph(G0),
         select(vertex(N0, [A|As0], FVs0, []), G0, G1),
         select(neg(At,AtV0,AtO0,X,Vars), [A|As0], As),
+	/* forced choice for negative atom */
+	/* TODO: replace with choice of atom with the */
+        /* least possible links */
 	!,
 	select(vertex(N1, [B|Bs0], FVs1, Ps), G1, G2),
 	select(pos(At,AtV1,AtO1,X,Vars), [B|Bs0], Bs),
@@ -487,6 +490,7 @@ prove1(G0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	connected(G),
 	prove1(G, Rest).
 prove1(G1, _) :-
+        format(user_error, '~nFailed!~n', []),
         format('~nFailed!~n', []),
         portray_graph(G1),
         fail.
@@ -888,7 +892,7 @@ test3(Sem) :-
 
 test4(Sem) :-
         translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
-	translate_hybrid(h(h(at(s),at(np)),at(np)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(believes,appl(P,Z)))))), loves, 1, 2, Loves),
+	translate_hybrid(h(h(at(s),at(np)),at(np)), lambda(P,lambda(Q,lambda(Z,appl(Q,appl(loves,appl(P,Z)))))), loves, 1, 2, Loves),
         translate_hybrid(at(np), lambda(V,appl(mary,V)), mary, 2, 3, Mary),
 	prove([John, Loves, Mary], at(s, [0,3]), Sem).
 
@@ -899,6 +903,27 @@ test5(Sem) :-
 	translate_hybrid(h(at(s),at(np)), lambda(S,lambda(Z1,appl(S,appl(left,Z1)))), left, 3, 4, Left),
 	prove([John, Believes, Someone, Left], at(s, [0,4]), Sem).
 
+% = I need a better axiom selection strategy
+
+% succeeds, but proof generation fails
+test6(Sem) :-
+	translate_displacement(at(np), [0,1], John),
+	translate_displacement(dl(at(np),at(s)), [1,2], Left),
+	translate_displacement(dr(dl(dl(at(np),at(s)),dl(at(np),at(s))),at(s)), [2,3], Before),
+	translate_displacement(at(np), [3,4], Mary),
+	translate_displacement(dl(dr(dr(>,dl(at(np),at(s)),dl(at(np),at(s))),dl(at(np),at(s))),dr(>,dl(at(np),at(s)),dl(at(np),at(s)))), [4,5], Did),
+	prove([John,Left,Before,Mary,Did], at(s,[0,5]), Sem).
+
+% fails (verify!)
+test7(Sem) :-
+        translate_hybrid(at(np), lambda(X,appl(john,X)), john, 0, 1, John),
+	translate_hybrid(dr(dl(at(np),at(s)),at(np)), lambda(Y,appl(studies,Y)), studies, 1, 2, Studies),
+        translate_hybrid(at(np), lambda(Z,appl(logic,Z)), logic, 2, 3, Logic),
+	translate_hybrid(h(h(h(at(s),dr(dl(at(np),at(s)),at(np))),h(at(s),dr(dl(at(np),at(s)),at(np)))),h(at(s),dr(dl(at(np),at(s)),at(np)))),
+			 lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), and, 3, 4, And),
+        translate_hybrid(at(np), lambda(X1,appl(charles,X1)), charles, 4, 5, Charles),
+        translate_hybrid(at(np), lambda(Z1,appl(phonetics,Z1)), phonetics, 5, 6, Phonetics),
+	prove([John, Studies, Logic, And, Charles, Phonetics], at(s,[0,6]), Sem).
 
 % = test translations
 
@@ -917,13 +942,4 @@ test_h1(F) :-
 test_h2(F) :-
 	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), everyone, 0, 1, F).
 
-% = I need a better axiom selection strategy
-
-test_jlbmd(Sem) :-
-	translate_displacement(at(np), [0,1], John),
-	translate_displacement(dl(at(np),at(s)), [1,2], Left),
-	translate_displacement(dr(dl(dl(at(np),at(s)),dl(at(np),at(s))),at(s)), [2,3], Before),
-	translate_displacement(at(np), [3,4], Mary),
-	translate_displacement(dl(dr(dr(>,dl(at(np),at(s)),dl(at(np),at(s))),dl(at(np),at(s))),dr(>,dl(at(np),at(s)),dl(at(np),at(s)))), [4,5], Did),
-	prove([John,Left,Before,Mary,Did], at(s,[0,5]), Sem).
 	
