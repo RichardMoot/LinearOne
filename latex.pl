@@ -1,15 +1,16 @@
 :- module(latex, [latex_proof/1,proof_header/0,proof_footer/0]).
 
 proof_header :-
-	format('\\documentclass{article}~2n', []),
-	format('\\usepackage[a2paper]{geometry}~n', []),
-	format('\\usepackage{proof}~n', []),
-	format('\\usepackage{amssymb}~2n', []),
-	format('\\begin{document}~n', []).
+	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
+	format(latex, '\\documentclass{article}~2n', []),
+	format(latex, '\\usepackage[a2paper]{geometry}~n', []),
+	format(latex, '\\usepackage{proof}~n', []),
+	format(latex, '\\usepackage{amssymb}~2n', []),
+	format(latex, '\\begin{document}~2n', []).
 
 proof_footer :-
-	format('\\end{document}~n', []),
-	told,
+	format(latex, '~n\\end{document}~n', []),
+	close(latex),
     (
 	access_file('latex_proofs.tex', read)
     ->
@@ -21,32 +22,33 @@ proof_footer :-
 
 
 latex_proof(Proof) :-
-	latex_proof(Proof, 0).
+	latex_proof(Proof, 0),
+        write(latex, '\\bigskip').
 
 latex_proof(_-Proof, Tab) :-
         latex_proof(Proof, Tab).
 latex_proof(rule(Name, Ant, Suc, SubProofs), Tab0) :-
-	format('\\infer[~@]{~@}{', [latex_rule_name(Name),latex_sequent(Ant,Suc)]),
+	format(latex, '\\infer[~@]{~@}{', [latex_rule_name(Name),latex_sequent(Ant,Suc)]),
 	Tab is Tab0 + 6,
 	latex_proofs(SubProofs, Tab),
-%	nl,
-%	tab(Tab0),
-        format('}~n', []).
+	(SubProofs = [] -> true ; tab(Tab0)),
+        format(latex, '}~n', []).
 
 
 latex_proofs([], _Tab).
 latex_proofs([P|Ps], Tab) :-
-	nl,
-	tab(Tab),
+	/* newline and tab only when there is at least one premiss */
+	nl(latex),
+	tab(latex, Tab),
 	latex_proofs1(Ps, P, Tab).
 
 latex_proofs1([], P, Tab) :-
-	tab(Tab),
-	latex_proof(P).
+	latex_proof(P, Tab).
 latex_proofs1([P|Ps], Q, Tab) :-
-	latex_proof(Q),
-	tab(Tab),
-	format('&~n', []),
+	latex_proof(Q, Tab),
+	tab(latex, Tab),
+	format(latex, '&~n', []),
+	tab(latex, Tab),
 	latex_proofs1(Ps, P, Tab).
 
 
@@ -54,26 +56,26 @@ latex_proofs1([P|Ps], Q, Tab) :-
 %	write('Axiom').
 latex_rule_name(ax).
 latex_rule_name(cut) :-
-	write('Cut').
+	write(latex, 'Cut').
 latex_rule_name(fl) :-
-	write('L\\forall').
+	write(latex, 'L\\forall').
 latex_rule_name(fr) :-
-	write('R\\forall').
+	write(latex, 'R\\forall').
 latex_rule_name(el) :-
-	write('L\\exists').
+	write(latex, 'L\\exists').
 latex_rule_name(er) :-
-	write('R\\exists').
+	write(latex, 'R\\exists').
 latex_rule_name(il) :-
-	write('L\\multimap').
+	write(latex, 'L\\multimap').
 latex_rule_name(ir) :-
-	write('R\\multimap').
+	write(latex, 'R\\multimap').
 latex_rule_name(pl) :-
-	write('L\\otimes').
+	write(latex, 'L\\otimes').
 latex_rule_name(pr) :-
-	write('R\\otimes').
+	write(latex, 'R\\otimes').
 
 latex_sequent(Ant, Suc) :-
-	format('~@ \\vdash ~@', [latex_antecedent(Ant),latex_formula(Suc)]).
+	format(latex, '~@ \\vdash ~@', [latex_antecedent(Ant),latex_formula(Suc)]).
 
 latex_antecedent([]).
 latex_antecedent([A|As]) :-
@@ -83,7 +85,7 @@ latex_antecedent([], A) :-
 	latex_formula(A).
 latex_antecedent([A|As], B) :-
 	latex_formula(B),
-	write(','),
+	write(latex, ','),
 	latex_antecedent(As, A).
 
 latex_formula(F) :-
@@ -94,20 +96,20 @@ latex_formula(_-F, N) :-
 latex_formula(at(F,Vs0), _) :-
 	update_vars(Vs0, Vs),
 	Term =.. [F|Vs],
-	print(Term).
+	print(latex, Term).
 latex_formula(at(F,_,_,Vs0), _) :-
 	update_vars(Vs0, Vs),
 	Term =.. [F|Vs],
-	print(Term).
+	print(latex, Term).
 latex_formula(forall(X,F), _) :-
 	!,
 	update_var(X, Y),
    (
 	is_quantified(F)
    ->
-	format('\\forall ~w. ~@', [Y,latex_formula(F, 1)])
+	format(latex, '\\forall ~w. ~@', [Y,latex_formula(F, 1)])
    ;
-	format('\\forall ~w. [~@]', [Y,latex_formula(F, 0)])
+	format(latex, '\\forall ~w. [~@]', [Y,latex_formula(F, 0)])
    ).
 latex_formula(exists(X,F), _) :-
 	!,
@@ -115,27 +117,27 @@ latex_formula(exists(X,F), _) :-
    (
 	is_quantified(F)
    ->
-	format('\\exists ~w. ~@', [Y,latex_formula(F, 1)])
+	format(latex, '\\exists ~w. ~@', [Y,latex_formula(F, 1)])
    ;
-	format('\\exists ~w. [~@]', [Y,latex_formula(F, 0)])
+	format(latex, '\\exists ~w. [~@]', [Y,latex_formula(F, 0)])
    ).
 latex_formula(p(A,B), NB) :-
 	!,
    (
         NB =:= 0
    ->
-	format('~@ \\otimes ~@', [latex_formula(A, 1),latex_formula(B, 1)])
+	format(latex, '~@ \\otimes ~@', [latex_formula(A, 1),latex_formula(B, 1)])
    ;
-	format('(~@ \\otimes ~@)', [latex_formula(A, 1),latex_formula(B, 1)])
+	format(latex, '(~@ \\otimes ~@)', [latex_formula(A, 1),latex_formula(B, 1)])
    ).
 latex_formula(impl(A,B), NB) :-
 	!,
    (
         NB =:= 0
    ->
-	format('~@ \\multimap ~@', [latex_formula(A, 1),latex_formula(B, 0)])
+	format(latex, '~@ \\multimap ~@', [latex_formula(A, 1),latex_formula(B, 0)])
    ;
-	format('(~@ \\multimap ~@)', [latex_formula(A, 1),latex_formula(B, 1)])
+	format(latex, '(~@ \\multimap ~@)', [latex_formula(A, 1),latex_formula(B, 1)])
    ).
 
 is_quantified(_-F) :-

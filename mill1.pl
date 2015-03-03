@@ -31,10 +31,7 @@ portray(rule(N,A,B,Ps)) :-
 prove(List, Goal) :-
 	/* LaTeX output */
 	graph_header,
-	telling(Stream),
-	tell('latex_proofs.tex'),
 	proof_header,
-	tell(Stream),
 	/* reset counters */
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(0)),
@@ -55,7 +52,6 @@ prove(List, Goal) :-
 	format(user_output, '~NSemantics ~w: ~p~n', [N,Sem]),
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace),
-	print_trace(user_output, Trace),
 	/* find alternatives using failure driven loop */
 	fail.
 prove(_, _) :-
@@ -64,51 +60,50 @@ prove(_, _) :-
 	'$PROOFS'(N),
 	write_axioms(A),
 	write_proofs(N),
+	/* LaTeX graphs */
 	graph_footer(N),
-	telling(Stream),
-	tell('latex_proofs.tex'),
-	proof_footer,
-	told,
-	tell(Stream).
+	/* LaTeX proofs */
+	proof_footer.
+
 
 generate_proof(Vs, Trace) :-
-	telling(Stream),
-	tell('latex_proofs.tex'),
 	node_proofs(Vs, Ps),
 	combine_proofs(Trace, Ps, Proof),
 	numbervars(Proof, 0, _),
-	latex_proof(Proof),
-        write('\\bigskip'),
-	tell(Stream).
+	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
 combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
 	select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-	!,
+%	!,
 	combine(P0, P1, N0, N1, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
+	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
         select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-	!,
+%	!,
 	combine_univ(P0, P1, N0, N1, V, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
+	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
-	!,
+%	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
 	trivial_cut_elimination(P1, P2, GDP, C, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
+	!,
 	combine_proofs(Rest, Ps, Proof).
-combine_proofs([Next|_], CurrentProofs, _) :-
-	format(user_error, '~NError generating proofs!~nNext:~p~n~@~n', [Next,print_list(CurrentProofs)]),
-	fail.
+combine_proofs([Next|_], CurrentProofs, Proof) :-
+	/* dump all partial proofs in case of failure (useful for inspection) */
+	format(user_error, '~N{Error: proof generation failed!}~nNext:~p~2n', [Next]),
+	member(Proof, CurrentProofs).
 
 trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
         is_axiom(P1),
@@ -136,20 +131,11 @@ is_axiom(_-R) :-
         is_axiom(R).
 is_axiom(rule(ax,_,_,_)).
 
-%% create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
-%%         !,
-%% 	/* rename to make sure bound variable isn't unified */
-%% 	rename_bound_variables(A, A2),
-%% 	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
-%%         create_pos_proof(A, N, L0, L, ProofA),
-%%         ProofA = rule(_, Gamma, A2, _).
-
 
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	%	copy_term(A, AA),
 	%rename_bound_variables(A, AA),
 	A = AA,
 	select_formula(AA, N1, Delta0, Delta),
@@ -166,7 +152,6 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, A, _),
 	P1 = rule(Nm, Delta, C, _),
-	%	copy_term(A, AA),
 	%rename_bound_variables(A, AA),
 	A = AA,
 	append(Delta0, [_-forall(var(V),AA)|Delta1], Delta),
@@ -280,28 +265,6 @@ select_ant_formula([at(At,V,O,Vars)|Delta], V, O, Gamma, Gamma, at(At,V,O,Vars),
 select_ant_formula([G|Gs], V, O, [G|Gamma0], Gamma, A, Delta) :-
 	select_ant_formula(Gs, V, O, Gamma0, Gamma, A, Delta).
 
-
-node_proofs(Vs) :-
-        nl(user_output),
-        print(user_output, Vs),
-	nl(user_output),
-	telling(Stream),
-        shell('rm latex_proofs.tex', _),
-        tell('latex_proofs.tex'),
-	proof_header,
-    (
-        node_proofs(Vs, Ps),
-        numbervars(Ps, 0, _),
-	member(_-P, Ps),
-	latex_proof(P),
-        write('\\bigskip'),
-        nl,
-	fail
-    ;
-        proof_footer,
-        tell(Stream)
-    ).
-     
 	
 
 node_proofs([V|Vs], [P|Ps]) :-
@@ -550,7 +513,6 @@ prove1(G0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	prove1(G, Rest).
 prove1(G1, _) :-
         format(user_error, '~nFailed!~n', []),
-        format('~nFailed!~n', []),
         portray_graph(G1),
         fail.
 
