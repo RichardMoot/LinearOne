@@ -130,11 +130,21 @@ is_axiom(_-R) :-
         is_axiom(R).
 is_axiom(rule(ax,_,_,_)).
 
+%% create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
+%%         !,
+%% 	/* rename to make sure bound variable isn't unified */
+%% 	rename_bound_variables(A, A2),
+%% 	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
+%%         create_pos_proof(A, N, L0, L, ProofA),
+%%         ProofA = rule(_, Gamma, A2, _).
+
+
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
 	%	copy_term(A, AA),
+	%rename_bound_variables(A, AA),
 	A = AA,
 	select_formula(AA, N1, Delta0, Delta),
 	replace_formula(AA, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
@@ -151,6 +161,7 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, A, _),
 	P1 = rule(Nm, Delta, C, _),
 	%	copy_term(A, AA),
+	%rename_bound_variables(A, AA),
 	A = AA,
 	append(Delta0, [_-forall(var(V),AA)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
@@ -320,12 +331,13 @@ create_pos_proof(N-A, L0, L, Proof) :-
 
 create_pos_proof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax,[at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
 	!.
-create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-Exists, [ProofA])) :-
+create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
         !,
 	/* rename to make sure bound variable isn't unified */
-	rename_bound_variables(exists(X,N-A), Exists),
+	rename_bound_variables(A, A2),
+	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
         create_pos_proof(A, N, L0, L, ProofA),
-        ProofA = rule(_, Gamma, _, _).
+        ProofA = rule(_, Gamma, A2, _).
 create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
         !,
         create_pos_proof(A, N, L0, L1, P1),
@@ -348,14 +360,14 @@ create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, Neg, [ProofA,ProofB]
 	ProofB = rule(_, Delta, _, _),
 	select_formula(B, N, Delta, Delta_B),
 	append(Gamma, [N-impl(N-A,N-B)|Delta_B], GD).
-	
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
         create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
-	/* rename to make sure bound variable isn't unified */
-	rename_bound_variables(forall(X,N-A), Forall),
-	replace_list(A, N, Gamma, N-Forall, GammaP).
+	/* rename to make sure bound variables aren't unified */
+	rename_bound_variables(A, A2),
+	replace_list(A2, N, Gamma, N-forall(Y,N-A3), GammaP),
+	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
 create_neg_subproof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
@@ -366,6 +378,40 @@ create_neg_subproof(p(N-A,N-B), N, L0, L, rule(pr, ProofA, ProofB)) :-
 	create_neg_subproof(B, N, L1, L, ProofB).
 create_neg_subproof(A, N, L, L, rule(ax, [N-A], N-A, [])).
 
+
+rename_bound_variable(N-F0, X, Y, N-F) :-
+	rename_bound_variable(F0, X, Y, F).
+rename_bound_variable(at(A,C,N,Vars0), X, Y, at(A,C,N,Vars)) :-
+	rename_bound_var_list(Vars0, X, Y, Vars).
+rename_bound_variable(forall(Z,A0), X, Y, forall(V,A)) :-
+	rename_bound_var(Z, X, Y, V),
+	rename_bound_variable(A0, X, Y, A).
+rename_bound_variable(exists(Z,A0), X, Y, exists(V,A)) :-
+	rename_bound_var(Z, X, Y, V),
+	rename_bound_variable(A0, X, Y, A).
+rename_bound_variable(impl(A0,B0), X, Y, impl(A,B)) :-
+	rename_bound_variable(A0, X, Y, A),
+	rename_bound_variable(B0, X, Y, B).
+rename_bound_variable(p(A0,B0), X, Y, p(A,B)) :-
+	rename_bound_variable(A0, X, Y, A),
+	rename_bound_variable(B0, X, Y, B).
+
+
+rename_bound_var_list([], _, _, []).
+rename_bound_var_list([V|Vs], X, Y, [W|Ws]) :-
+	rename_bound_var(V, X, Y, W),
+	rename_bound_var_list(Vs, X, Y, Ws).
+
+rename_bound_var(V, X, Y, W) :-
+   (
+	V == X 
+   ->
+	W = Y
+   ;
+	W = V
+   ).
+
+    
 rename_bound_variables(F0, F) :-
 	rename_bound_variables(F0, [], F).
 rename_bound_variables(N-F0, Map, N-F) :-
@@ -420,7 +466,7 @@ replace_formula(F0, N, F, L0, L) :-
    ->
 	select(F0, L0, F, L)
    ;
-        select(N-_, L0, F, L)
+        select(N-F0, L0, F, L)
    ),
         !.
 
