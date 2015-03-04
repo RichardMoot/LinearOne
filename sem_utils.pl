@@ -3,12 +3,9 @@
 :- module(sem_utils,  [reduce_sem/2,
 		       substitute_sem/3,
 		       replace_sem/4,
-		       sem_to_prolog/3,
 		       get_variable_types/3,
-		       sem_to_prolog_query/2,
-		       sem_to_prolog_query/3,
 		       check_lexicon_typing/0,
-		       free_vars/2,
+		       free_var_indices/2,
 		       freeze/2,
 		       melt/2,
 		       replace_sem/4,
@@ -185,33 +182,33 @@ max_key_list([K-_|Ss], M0, M) :-
        max_key_list(Ss, M0, M)
     ).
 
-% = free_vars(+Term, -ListOfVariableIndices)
+% = free_var_indices(+Term, -ListOfVariableIndices)
 %
-% given a Term representing a lambda term (or lambda-DRS) return
-% all indices of variables occurring freely in this lambda term.
+% given a Term representing a lambda term return all
+% indices of variables occurring freely in this lambda term.
 
-free_vars('$VAR'(N), [N]) :-
+free_var_indices('$VAR'(N), [N]) :-
 	!.
-free_vars(A, []) :-
+free_var_indices(A, []) :-
 	atomic(A),
 	!.
-free_vars(lambda('$VAR'(X),Y), F) :-
+free_var_indices(lambda('$VAR'(X),Y), F) :-
 	!,
-	free_vars(Y, F0),
+	free_var_indices(Y, F0),
 	ord_delete(F0, X, F).
-free_vars(quant(_,'$VAR'(X),Y), F) :-
+free_var_indices(quant(_,'$VAR'(X),Y), F) :-
 	!,
-	free_vars(Y, F0),
+	free_var_indices(Y, F0),
 	ord_delete(F0, X, F).
-free_vars(T, F) :-
+free_var_indices(T, F) :-
 	T =.. [Fun|Args],
-	free_vars_list([Fun|Args], [], F).
+	free_var_indices_list([Fun|Args], [], F).
 
-free_vars_list([], F, F).
-free_vars_list([A|As], F0, F) :-
-	free_vars(A, V),
+free_var_indices_list([], F, F).
+free_var_indices_list([A|As], F0, F) :-
+	free_var_indices(A, V),
 	ord_union(F0, V, F1),
-	free_vars_list(As, F1, F).
+	free_var_indices_list(As, F1, F).
 
 bound_variables(Var, []) :-
 	var(Var),

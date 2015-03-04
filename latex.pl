@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,proof_header/0,proof_footer/0]).
+:- module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 
 proof_header :-
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
@@ -175,3 +175,57 @@ print_var1(1, y).
 print_var1(2, z).
 print_var1(3, v).
 print_var1(4, w).
+
+latex_semantics(Sem) :-
+	format(latex, '~2n$$~n', []),	
+	latex_semantics(Sem, 0),
+	format(latex, '~n$$~2n', []).
+
+latex_semantics(A, _) :-
+	atomic(A),
+	!,
+	format(latex, '\\textrm{~w}', [A]).
+latex_semantics('$VAR'(N), _) :-
+	!,
+	variable_atom(N, At),
+	write(latex, At).
+latex_semantics(lambda(X,M), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '\\lambda ~@. ~@', [latex_semantics(X, 1), latex_semantics(M, 1)])
+   ;
+	format(latex, '(\\lambda ~@. ~@)', [latex_semantics(X, 1), latex_semantics(M, 1)])
+   ).
+latex_semantics(appl(N,M), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@\\, ~@', [latex_semantics(N, 1), latex_semantics(M, 1)])
+   ;
+	format(latex, '(~@\\, ~@)', [latex_semantics(N, 1), latex_semantics(M, 1)])
+   ).
+latex_semantics(quant(Q,X,F), _NB) :-
+	format(latex, '~@~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
+latex_semantics(bool(P,B,Q), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ ~@ ~@', [latex_semantics(P, 1), latex_bool(B), latex_semantics(Q, 1)])
+   ;
+	format(latex, '(~@ ~@ ~@)', [latex_semantics(P, 1), latex_bool(B), latex_semantics(Q, 1)])
+   ).
+
+latex_bool(&) :-
+	write(latex, '\\wedge').
+latex_bool(\/) :-
+	write(latex, '\\vee').
+
+latex_quantifier(forall) :-
+	write(latex, '\\forall').
+latex_quantifier(exists) :-
+	write(latex, '\\exists').
+

@@ -1,12 +1,18 @@
+:- module(lexicon, [lookup/4,lookup/5,macro_expand/2]).
 
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-
+	lookup(Words, Formulas, _, Goal, ExpandedGoal).
+
+lookup(Words, Formulas, Semantics, Goal0, ExpandedGoal) :-
 	lexical_lookup(Words, Formulas, Semantics, 0, N),
-	translate(Goal, [0, N]).
+	macro_expand(Goal0, Goal),
+	translate(Goal, [0, N], ExpandedGoal).
 
 lexical_lookup([], [], [], N, N).
 lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
     (
+	current_predicate(lex/3),	
 	lex(W, _, _)
     ->	     
         /* Lambek/Displacement entry */
@@ -16,6 +22,7 @@ lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
 	translate(F1, [N0,N1], F),
 	lexical_lookup(Ws, Fs, Ss, N1, N)
     ;
+	current_predicate(lex/4),	
         lex(W, _, _, _)
     ->
         /* hybrid entry */
@@ -26,6 +33,7 @@ lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
 	lexical_lookup(Ws, Fs, Ss, N1, N)
     ;
         /* first-order linear logic entry */
+	current_predicate(lex/5),	
         lex(W, _, _, _, _)
     ->
         N1 is N0 + 1,
@@ -35,6 +43,10 @@ lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
         format(user_error, '~N{Error: No lexical entry for "~w"}~n', [W])
     ).
 
+macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
+	!.
+macro_expand(vp, dl(at(np),at(s))) :-
+	!.
 macro_expand(A0, A) :-
 	atom(A0),
 	!,
@@ -68,7 +80,7 @@ macro_expand(p(A0,B0), p(A,B)) :-
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
-macro_expand((A0\\B0), dl(A,B)) :-
+macro_expand((A0\B0), dl(A,B)) :-
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dl(A0,B0), dl(A,B)) :-

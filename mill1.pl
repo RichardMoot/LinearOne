@@ -1,12 +1,15 @@
 :- use_module(ordset, [ord_union/3,ord_delete/3,ord_key_member/3,ord_key_insert/4]).
 :- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
-:- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0]).
+:- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
+:- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
 
-generate_diagnostics(true).
+:- op(400, xfy, \).
+
+generate_diagnostics(false).
 
 portray(neg(F, X, L)) :-
 	atom(F),
@@ -29,6 +32,22 @@ portray(impl(A,B)) :-
 portray(rule(N,A,B,Ps)) :-
 	Ps \== [],
 	format('rule(~p,~p,~p,...)', [N,A,B]).
+portray(appl(appl(F,Y),X)) :-
+	atom(F),
+	!,
+	Term =.. [F,X,Y],
+	write(Term).
+portray(appl(F,X)) :-
+	atom(F),
+	!,
+	Term =.. [F,X],
+	write(Term).
+portray(appl(M,N)) :-
+	format('(~p ~p)', [M,N]).
+portray(lambda(X,M)) :-
+        format('(~p^~p)', [X,M]).
+portray(bool(P,B,Q)) :-
+	format('(~p ~p ~p)', [P,B,Q]).
 
 prove(List, Goal) :-
 	/* LaTeX output */
@@ -67,11 +86,54 @@ prove(_, _) :-
 	/* LaTeX proofs */
 	proof_footer.
 
+prove(List, Goal, LexSem) :-
+	/* LaTeX output */
+	graph_header,
+	proof_header,
+	/* reset counters */
+	retractall('$PROOFS'(_)),
+	assert('$PROOFS'(0)),
+	retractall('$AXIOMS'(_)),
+	assert('$AXIOMS'(0)),
+	/* end initialisation */
+        unfold_sequent(List, Goal, Vs0, W, Sem0),
+	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
+	copy_term(Vs0, Vs),
+        prove1(Vs0, Trace),
+	/* proof found */
+	/* update proof statistics */
+	'$PROOFS'(N0),
+	N is N0 + 1,
+	retractall('$PROOFS'(_)),
+	assert('$PROOFS'(N)),
+	numbervars(Sem0, W, _),
+	substitute_sem(LexSem, Sem0, Sem1),
+	reduce_sem(Sem1, Sem),
+	format(user_error, '~NSemantics ~w: ~p~n', [N,Sem]),
+	latex_semantics(Sem),
+	/* generate a LaTeX proof */
+	generate_proof(Vs, Trace),
+	/* find alternatives using failure driven loop */
+	fail.
+prove(_, _, _) :-
+	/* print final statistics and generate pdf files */
+	'$AXIOMS'(A),
+	'$PROOFS'(N),
+	write_axioms(A),
+	write_proofs(N),
+	/* LaTeX graphs */
+	graph_footer(N),
+	/* LaTeX proofs */
+	proof_footer.
+
+
 proof_diagnostics(Msg, P) :-
+	proof_diagnostics(Msg, [], P).
+proof_diagnostics(Msg, Vs, P) :-
    (
 	generate_diagnostics(true)
     ->
-	format(latex, Msg, []),
+	format(latex, Msg, Vs),
 	latex_proof(P)
     ;
         true
@@ -287,7 +349,7 @@ node_proofs([], []).
 node_proof1(vertex(N0, As, _, _), N0-Proof) :-
         node_formula(N0, Pol, F),
         node_proof2(As, F, N0, Pol, Proof),
-	format(latex, '~w. ~@~n', [N0,latex_proof(Proof)]),
+	proof_diagnostics('~w. ', [N0], Proof),	
 	!.
 
 node_proof2([], F, N, _, rule(ax, [N-F], N-F, [])).
