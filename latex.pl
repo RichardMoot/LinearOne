@@ -21,9 +21,11 @@ proof_footer :-
      ).
 
 
-latex_proof(Proof) :-
+latex_proof(Proof0) :-
+	copy_term(Proof0, Proof),
+	numbervars(Proof, 0, _),
 	latex_proof(Proof, 0),
-        write(latex, '\\bigskip').
+        format(latex, '~n\\bigskip~n', []).
 
 latex_proof(_-Proof, Tab) :-
         latex_proof(Proof, Tab).
@@ -31,7 +33,7 @@ latex_proof(rule(Name, Ant, Suc, SubProofs), Tab0) :-
 	format(latex, '\\infer[~@]{~@}{', [latex_rule_name(Name),latex_sequent(Ant,Suc)]),
 	Tab is Tab0 + 6,
 	latex_proofs(SubProofs, Tab),
-	(SubProofs = [] -> true ; tab(Tab0)),
+	(SubProofs = [] -> true ; tab(latex,Tab0)),
         format(latex, '}~n', []).
 
 

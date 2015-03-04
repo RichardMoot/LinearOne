@@ -69,7 +69,6 @@ prove(_, _) :-
 generate_proof(Vs, Trace) :-
 	node_proofs(Vs, Ps),
 	combine_proofs(Trace, Ps, Proof),
-	numbervars(Proof, 0, _),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -93,14 +92,10 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
 	/* diagnostics */
 	format(latex, '~NPos:~2n', []),
-	copy_term(P2, Pr2),
-	numbervars(Pr2, 0, _),
-	latex_proof(Pr2),
+	latex_proof(P2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
 	format(latex, '~NNeg:~2n', []),
-	copy_term(P1, Pr1),
-	numbervars(Pr1, 0, _),
-	latex_proof(Pr1),
+	latex_proof(P1),
 %	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
@@ -245,7 +240,7 @@ replace_formula_labels(forall(V,A0), X, Y, forall(V,A)) :-
 replace_formula_labels(exists(V,A0), X, Y, exists(V,A)) :-
 	replace_formula_labels(A0, X, Y, A).
 
-unify_atoms(at(A, _, _, Vs), at(A, _, _, Vs)).
+unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
 
 select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
@@ -266,9 +261,9 @@ select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
 
 select_pos_proof1(_-P, V, O, Delta, A, R) :-
 	select_pos_proof1(P, V, O, Delta, A, R).
-select_pos_proof1(rule(Nm, Delta, at(At,V,O,Vars), Rs), V, O, Delta, at(At,V,O,Vars), rule(Nm, Delta, at(At,V,O,Vars), Rs)).
+select_pos_proof1(rule(Nm, Delta, N-at(At,V,O,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)).
 
-select_ant_formula([at(At,V,O,Vars)|Delta], V, O, Gamma, Gamma, at(At,V,O,Vars), Delta) :-
+select_ant_formula([N-at(At,V,O,Vars)|Delta], V, O, Gamma, Gamma, N-at(At,V,O,Vars), Delta) :-
 	!.
 select_ant_formula([G|Gs], V, O, [G|Gamma0], Gamma, A, Delta) :-
 	select_ant_formula(Gs, V, O, Gamma0, Gamma, A, Delta).
@@ -283,6 +278,7 @@ node_proofs([], []).
 node_proof1(vertex(N0, As, _, _), N0-Proof) :-
         node_formula(N0, Pol, F),
         node_proof2(As, F, N0, Pol, Proof),
+	format(latex, '~w. ~@~n', [N0,latex_proof(Proof)]),
 	!.
 
 node_proof2([], F, N, _, rule(ax, [N-F], N-F, [])).
@@ -307,7 +303,7 @@ max_neg(F, F).
 create_pos_proof(N-A, L0, L, Proof) :-
 	create_pos_proof(A, N, L0, L, Proof).
 
-create_pos_proof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax,[at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
+create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
 	!.
 create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
         !,
@@ -315,7 +311,7 @@ create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [Pro
 	rename_bound_variables(A, A2),
 	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
         create_pos_proof(A, N, L0, L, ProofA),
-        ProofA = rule(_, Gamma, A2, _).
+        ProofA = rule(_, Gamma, N-A2, _).
 create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
         !,
         create_pos_proof(A, N, L0, L1, P1),
@@ -328,9 +324,9 @@ create_pos_proof(F, N, L, L, rule(ax, [N-F], N-F, [])).
 
 create_neg_proof(N-A, L0, L, Neg, Proof) :-
 	create_neg_proof(A, N, L0, L, Neg, Proof).
-create_neg_proof(at(A,C,N,Vars), _, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
+create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
         !.
-create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, Neg, [ProofA,ProofB])) :-
+create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
 	rename_bound_variables(A, A2),
 	rename_bound_variables(B, B2),
@@ -338,9 +334,9 @@ create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, Neg, [ProofA,ProofB]
         create_neg_subproof(A2, N, L0, L1, ProofA),
 	create_neg_proof(B2, N, L1, L, Neg, ProofB),
 %	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
-	ProofA = rule(_, Gamma, A3, _),
-	ProofB = rule(_, Delta0, _, _),
-	replace_list(B3, N, Delta0, _, Delta),
+	ProofA = rule(_, Gamma, N-A3, _),
+	ProofB = rule(_, Delta, _, _),
+%	replace_list(B3, N, Delta0, _, Delta),
 	select_formula(B3, N, Delta, Delta_B),
 	%	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
 	% B2 can have instantiated forall, so use B3
@@ -355,7 +351,7 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
-create_neg_subproof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
+create_neg_subproof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
         !.
 create_neg_subproof(p(N-A0,N-B0), N, L0, L, rule(pr, ProofA, ProofB)) :-
 	!,
@@ -439,13 +435,13 @@ print_list([A|As]) :-
 	print_list(As).
 
 select_formula(F, N, L0, L) :-
-   (
-        F = at(_,_,_,_)
-   ->
-	select(F, L0, L)
-   ;
-        select(N-F, L0, L)
-   ),
+%   (
+%        F = at(_,_,_,_)
+%   ->
+%	select(F, L0, L)
+%   ;
+        select(N-F, L0, L),
+%   ),
         !.
 
 replace_formula(F0, N, F, L0, L) :-
@@ -459,9 +455,9 @@ replace_formula(F0, N, F, L0, L) :-
         !.
 
 
-replace_list(at(A,C,N,Vars), _, List0, R, List) :-
-	!,
-	replace_list(List0, at(A,C,N,Vars), R, List).
+%replace_list(at(A,C,N,Vars), _, List0, R, List) :-
+%	!,
+%	replace_list(List0, at(A,C,N,Vars), R, List).
 replace_list(F, N, List0, R, List) :-
 	replace_list(List0, N-F, R, List). 
 replace_list([], _, _, []).
@@ -505,8 +501,6 @@ write_axioms(A) :-
 prove1([vertex(_, [], _, [])], []) :-
         !.
 prove1(G0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
-        nl,
-        nl,
         portray_graph(G0),
         select(vertex(N0, [A|As0], FVs0, []), G0, G1),
         select(neg(At,AtV0,AtO0,X,Vars), [A|As0], As),
@@ -624,8 +618,6 @@ reduce_fvs([V|Vs], Ws) :-
 
 contract(G0, G, L0, L) :-
         contract1(G0, G1, L0, L1),
-        nl,
-        nl,
         portray_graph(G1),
         !,
         contract(G1, G, L1, L).
