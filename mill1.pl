@@ -91,7 +91,16 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
+	/* diagnostics */
+	format(latex, '~NPos:~2n', []),
+	copy_term(P2, Pr2),
+	numbervars(Pr2, 0, _),
+	latex_proof(Pr2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
+	format(latex, '~NNeg:~2n', []),
+	copy_term(P1, Pr1),
+	numbervars(Pr1, 0, _),
+	latex_proof(Pr1),
 %	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
@@ -136,10 +145,10 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	%rename_bound_variables(A, AA),
+	%	rename_bound_variables(A, AA),
 	A = AA,
 	select_formula(AA, N1, Delta0, Delta),
-	replace_formula(AA, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
+	replace_formula(AA, N1, N1-exists(var(V),N1-AA), Delta0, Delta1),
 	append(Gamma, Delta, GD),
 	/* don't create trivial cuts */
    (
@@ -152,7 +161,7 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, A, _),
 	P1 = rule(Nm, Delta, C, _),
-	%rename_bound_variables(A, AA),
+%	rename_bound_variables(A, AA),
 	A = AA,
 	append(Delta0, [_-forall(var(V),AA)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
@@ -169,13 +178,13 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
-%	copy_term(A, AA),
-	%	copy_term(B, BB),
+%        rename_bound_variables(A, AA),
+%	rename_bound_variables(B, BB),
 	A = AA,
 	B = BB,
 	select_formula(BB, N1, Delta0, Delta1),
 	select_formula(AA, N1, Delta1, Delta),
-	replace_formula(AA, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
+	replace_formula(AA, N1, N1-p(N1-AA,N1-BB), Delta1, Delta2),
 	append(Gamma, Delta, GD),		  
 	/* don't create trivial cuts */
    (
@@ -189,8 +198,7 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, A, _),
 	P2 = rule(_, Delta0, _B, _),
 	append(Gamma0, [_-impl(N1-C,N1-D)|Gamma1], Gamma),
-	%	copy_term(C, CC),
-	C = CC,
+	rename_bound_variables(C, CC),
 	select_formula(CC, N0, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
@@ -284,7 +292,8 @@ node_proof2([A|As], F, N, Pol, Proof) :-
 node_proof3(pos, L, F, N, Proof) :-
         create_pos_proof(F, N, L, [], Proof).
 node_proof3(neg, L, F, N, Proof) :-
-        max_neg(F, MN),
+        max_neg(F, MN0),
+	rename_bound_variables(MN0, MN),
         create_neg_proof(F, N, L, [], MN, Proof).
 
 max_neg(impl(_,_-F0), F) :-
@@ -323,29 +332,39 @@ create_neg_proof(at(A,C,N,Vars), _, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), ru
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, Neg, [ProofA,ProofB])) :-
         !,
-        create_neg_subproof(A, N, L0, L1, ProofA),
-	create_neg_proof(B, N, L1, L, Neg, ProofB),
-	ProofA = rule(_, Gamma, _, _),
-	ProofB = rule(_, Delta, _, _),
-	select_formula(B, N, Delta, Delta_B),
-	append(Gamma, [N-impl(N-A,N-B)|Delta_B], GD).
+	rename_bound_variables(A, A2),
+	rename_bound_variables(B, B2),
+	copy_term(B2, B3),
+        create_neg_subproof(A2, N, L0, L1, ProofA),
+	create_neg_proof(B2, N, L1, L, Neg, ProofB),
+%	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
+	ProofA = rule(_, Gamma, A3, _),
+	ProofB = rule(_, Delta0, _, _),
+	replace_list(B3, N, Delta0, _, Delta),
+	select_formula(B3, N, Delta, Delta_B),
+	%	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
+	% B2 can have instantiated forall, so use B3
+	append(Gamma, [N-impl(N-A3,N-B3)|Delta_B], GD).
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
-        create_neg_proof(A, N, L0, L, Neg, ProofA),
+	rename_bound_variables(A, A2),
+        create_neg_proof(A2, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
 	/* rename to make sure bound variables aren't unified */
-	rename_bound_variables(A, A2),
 	replace_list(A2, N, Gamma, N-forall(Y,N-A3), GammaP),
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
 create_neg_subproof(at(A,C,N,Vars), _, [pos(A,C,N,_,Vars)|L], L, rule(ax, [at(A,C,N,Vars)], at(A,C,N,Vars), [])) :-
         !.
-create_neg_subproof(p(N-A,N-B), N, L0, L, rule(pr, ProofA, ProofB)) :-
+create_neg_subproof(p(N-A0,N-B0), N, L0, L, rule(pr, ProofA, ProofB)) :-
 	!,
+	rename_bound_variables(A0, A),
+	rename_bound_variables(B0, B),
 	create_neg_subproof(A, N, L0, L1, ProofA),
 	create_neg_subproof(B, N, L1, L, ProofB).
-create_neg_subproof(A, N, L, L, rule(ax, [N-A], N-A, [])).
+create_neg_subproof(A0, N, L, L, rule(ax, [N-A], N-A, [])) :-
+	rename_bound_variables(A0, A).
 
 
 rename_bound_variable(N-F0, X, Y, N-F) :-
@@ -425,7 +444,7 @@ select_formula(F, N, L0, L) :-
    ->
 	select(F, L0, L)
    ;
-        select(N-_, L0, L)
+        select(N-F, L0, L)
    ),
         !.
 
