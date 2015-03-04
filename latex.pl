@@ -207,6 +207,15 @@ latex_semantics(appl(N,M), NB) :-
    ;
 	format(latex, '(~@\\, ~@)', [latex_semantics(N, 1), latex_semantics(M, 1)])
    ).
+latex_semantics(pair(N,M), _NB) :-
+	!,
+	format(latex, '\\langle~@,~@\\rangle', [latex_semantics(N, 0), latex_semantics(M, 0)]).
+latex_semantics(pi1(N), NB) :-
+	!,
+	format(latex, '\\pi_1(~@)', [latex_semantics(N, 0)]).
+latex_semantics(pi2(N), NB) :-
+	!,
+	format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)]).
 latex_semantics(quant(Q,X,F), _NB) :-
 	format(latex, '~@~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
 latex_semantics(bool(P,B,Q), NB) :-
