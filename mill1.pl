@@ -6,6 +6,8 @@
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
 
+generate_diagnostics(true).
+
 portray(neg(F, X, L)) :-
 	atom(F),
 	Term =.. [F|L],
@@ -65,6 +67,15 @@ prove(_, _) :-
 	/* LaTeX proofs */
 	proof_footer.
 
+proof_diagnostics(Msg, P) :-
+   (
+	generate_diagnostics(true)
+    ->
+	format(latex, Msg, []),
+	latex_proof(P)
+    ;
+        true
+    ).
 
 generate_proof(Vs, Trace) :-
 	node_proofs(Vs, Ps),
@@ -91,11 +102,9 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
 	/* diagnostics */
-	format(latex, '~NPos:~2n', []),
-	latex_proof(P2),
+	proof_diagnostics('~NPos:~2n', P2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
-	format(latex, '~NNeg:~2n', []),
-	latex_proof(P1),
+	proof_diagnostics('~NNeg:~2n', P1),
 %	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
@@ -192,9 +201,9 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, A, _),
 	P2 = rule(_, Delta0, _B, _),
-	append(Gamma0, [_-impl(N1-C,N1-D)|Gamma1], Gamma),
+	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
 	rename_bound_variables(C, CC),
-	select_formula(CC, N0, Delta0, Delta),
+	select_formula(CC, N1, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
 	/* don't create trivial cuts */
@@ -328,23 +337,23 @@ create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), ru
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
-	rename_bound_variables(A, A2),
+        create_neg_subproof(A, N, L0, L1, ProofA),
+	create_neg_proof(B, N, L1, L, Neg, ProofB),
+%	rename_bound_variables(A, A2),
 	rename_bound_variables(B, B2),
 	copy_term(B2, B3),
-        create_neg_subproof(A2, N, L0, L1, ProofA),
-	create_neg_proof(B2, N, L1, L, Neg, ProofB),
 %	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
 	ProofA = rule(_, Gamma, N-A3, _),
 	ProofB = rule(_, Delta, _, _),
 %	replace_list(B3, N, Delta0, _, Delta),
-	select_formula(B3, N, Delta, Delta_B),
+	select_formula(B, N, Delta, Delta_B),
 	%	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
 	% B2 can have instantiated forall, so use B3
 	append(Gamma, [N-impl(N-A3,N-B3)|Delta_B], GD).
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
 	rename_bound_variables(A, A2),
-        create_neg_proof(A2, N, L0, L, Neg, ProofA),
+        create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
 	/* rename to make sure bound variables aren't unified */
 	replace_list(A2, N, Gamma, N-forall(Y,N-A3), GammaP),
