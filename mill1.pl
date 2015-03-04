@@ -49,44 +49,12 @@ portray(lambda(X,M)) :-
 portray(bool(P,B,Q)) :-
 	format('(~p ~p ~p)', [P,B,Q]).
 
-prove(List, Goal) :-
-	/* LaTeX output */
-	graph_header,
-	proof_header,
-	/* reset counters */
-	retractall('$PROOFS'(_)),
-	assert('$PROOFS'(0)),
-	retractall('$AXIOMS'(_)),
-	assert('$AXIOMS'(0)),
-	/* end initialisation */
-        unfold_sequent(List, Goal, Vs0, W, Sem),
-	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
-	copy_term(Vs0, Vs),
-        prove1(Vs0, Trace),
-	/* proof found */
-	/* update proof statistics */
-	'$PROOFS'(N0),
-	N is N0 + 1,
-	retractall('$PROOFS'(_)),
-	assert('$PROOFS'(N)),
-	numbervars(Sem, W, _),
-	format(user_output, '~NSemantics ~w: ~p~n', [N,Sem]),
-	/* generate a LaTeX proof */
-	generate_proof(Vs, Trace),
-	/* find alternatives using failure driven loop */
-	fail.
-prove(_, _) :-
-	/* print final statistics and generate pdf files */
-	'$AXIOMS'(A),
-	'$PROOFS'(N),
-	write_axioms(A),
-	write_proofs(N),
-	/* LaTeX graphs */
-	graph_footer(N),
-	/* LaTeX proofs */
-	proof_footer.
 
-prove(List, Goal, LexSem) :-
+
+prove(Antecedent, Goal) :-
+	prove(Antecedent, Goal, []).
+
+prove(Antecedent, Goal, LexSem) :-
 	/* LaTeX output */
 	graph_header,
 	proof_header,
@@ -96,7 +64,7 @@ prove(List, Goal, LexSem) :-
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)),
 	/* end initialisation */
-        unfold_sequent(List, Goal, Vs0, W, Sem0),
+        unfold_sequent(Antecedent, Goal, Vs0, W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
         prove1(Vs0, Trace),
@@ -148,26 +116,24 @@ combine_proofs([], [Proof], Proof).
 combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
 	select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-%	!,
+	!,
 	combine(P0, P1, N0, N1, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
-	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
         select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-%	!,
+	!,
 	combine_univ(P0, P1, N0, N1, V, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
-	/* diagnostics */
 	proof_diagnostics('~NPos:~2n', P2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
 	proof_diagnostics('~NNeg:~2n', P1),
-%	!,
+	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
