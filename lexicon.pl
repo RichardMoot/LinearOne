@@ -146,6 +146,12 @@ macro_expand((A0*>B0), p(>,A,B)) :-
 	macro_expand(B0, B).
 macro_expand(^A0, bridge(A)) :-
 	macro_expand(A0, A).
+macro_expand(bridge(A0), bridge(A)) :-
+	macro_expand(A0, A).
+macro_expand(lproj(A0), lproj(A)) :-
+	macro_expand(A0, A).
+macro_expand(rproj(A0), rproj(A)) :-
+	macro_expand(A0, A).
 
 macro_expand((A0|B0), h(A,B)) :-
 	!,

@@ -44,6 +44,19 @@ test(8) :-
 	parse([john,who,jogs,sneezed], s).
 test(9) :-
 	parse([john,studies,logic,and,charles,phonetics], s).
+test(10) :-
+	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
+test(11) :-
+	parse([dat,jan,boeken,las], cs).
+test(12) :-
+	parse([dat,jan,boeken,kan,lezen], cs).
+test(13) :-
+	parse([dat,jan,boeken,wil,kunnen,lezen], cs).
+test(14) :-
+	parse([dat,jan,alles,las], cs).
+test(15) :-
+	parse([dat,jan,alles,kan,lezen], cs).
+	
 
 lex(john, n, j).
 lex(mary, n, m).
@@ -84,3 +97,20 @@ lex(that, (cn\cn)/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,
 lex(which, (n/<n)\<((cn\cn)/(^(s/<n))), lambda(X,lambda(Y,lambda(Z,lambda(W,bool(appl(Z,W),&,appl(Y,appl(X,W)))))))).
 lex(who, (n\((s/>n)\<s))/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Y),&,appl(Z,Y)))))).
 lex(and, ((s/<((n\s)/n))\(s/<((n\s)/n)))/(^(s/<(n\s)/n)), lambda(X,lambda(Y,lambda(Z,bool(appl(Y,Z),&,appl(X,Z)))))).
+
+%
+
+lex(dat, cs/s, lambda(X,X)).
+lex(jan, n, j).
+lex(henk, n, h).
+lex(cecilia, n, c).
+lex(nijlpaarden, n, hippos).
+lex(de, n/cn, '\\iota').
+lex(boeken, n, b).
+lex(las, n\(n\s), read).
+lex(kan, (n\inf)\<(n\s), can).
+lex(wil, (n\inf)\<(n\s), want).
+lex(kunnen, rproj((n\inf)\<(n\inf)), can).
+lex(lezen, rproj(n\(n\inf)), read).
+lex(alles, (s/<n)\<s, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
+lex(alles, (inf/<n)\<inf, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).

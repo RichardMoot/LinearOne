@@ -87,7 +87,7 @@ d_atom_sort(s, 0).
 d_atom_sort(pp, 0).
 d_atom_sort(vp, 0).
 d_atom_sort(tcs, 0).
-
+d_atom_sort(cs, 0).
 
 % = translate_displacement(+DFormula, +ListOfVars, -LinearFormula)
 %
