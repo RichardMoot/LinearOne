@@ -7,8 +7,6 @@
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
 
-:- op(400, xfy, \).
-
 generate_diagnostics(false).
 
 portray(neg(F, X, L)) :-

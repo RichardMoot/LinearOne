@@ -210,10 +210,10 @@ latex_semantics(appl(N,M), NB) :-
 latex_semantics(pair(N,M), _NB) :-
 	!,
 	format(latex, '\\langle~@,~@\\rangle', [latex_semantics(N, 0), latex_semantics(M, 0)]).
-latex_semantics(pi1(N), NB) :-
+latex_semantics(pi1(N), _NB) :-
 	!,
 	format(latex, '\\pi_1(~@)', [latex_semantics(N, 0)]).
-latex_semantics(pi2(N), NB) :-
+latex_semantics(pi2(N), _NB) :-
 	!,
 	format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)]).
 latex_semantics(quant(Q,X,F), _NB) :-

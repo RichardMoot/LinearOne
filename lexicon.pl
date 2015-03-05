@@ -1,5 +1,5 @@
 :- module(lexicon, [lookup/4,lookup/5,macro_expand/2]).
-
+:- op(400, xfy, \).
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-
 	lookup(Words, Formulas, _, Goal, ExpandedGoal).

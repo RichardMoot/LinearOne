@@ -1,4 +1,4 @@
-
+:- op(400, xfy, \).
 
 test(1) :-
 	lookup([john,studies,logic,and,charles,phonetics], Formulas, LexSem, s, Goal),
