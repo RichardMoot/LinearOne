@@ -3,6 +3,7 @@
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
+:- use_module(lexicon, [parse/2]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
@@ -34,12 +35,12 @@ portray(appl(appl(F,Y),X)) :-
 	atom(F),
 	!,
 	Term =.. [F,X,Y],
-	write(Term).
+	print(Term).
 portray(appl(F,X)) :-
 	atom(F),
 	!,
 	Term =.. [F,X],
-	write(Term).
+	print(Term).
 portray(appl(M,N)) :-
 	format('(~p ~p)', [M,N]).
 portray(lambda(X,M)) :-
@@ -62,7 +63,7 @@ prove(Antecedent, Goal, LexSem) :-
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)),
 	/* end initialisation */
-        unfold_sequent(Antecedent, Goal, Vs0, W, Sem0),
+        unfold_sequent(Antecedent, Goal, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
         prove1(Vs0, Trace),
@@ -72,7 +73,6 @@ prove(Antecedent, Goal, LexSem) :-
 	N is N0 + 1,
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(N)),
-	numbervars(Sem0, W, _),
 	substitute_sem(LexSem, Sem0, Sem1),
 	reduce_sem(Sem1, Sem),
 	format(user_error, '~NSemantics ~w: ~p~n', [N,Sem]),
@@ -114,14 +114,13 @@ combine_proofs([], [Proof], Proof).
 combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
 	select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-	!,
 	combine(P0, P1, N0, N1, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
+	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
         select(N0-P0, Ps0, Ps1),
 	select(N1-P1, Ps1, Ps2),
-	!,
 	combine_univ(P0, P1, N0, N1, V, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
 	!,
@@ -131,7 +130,6 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	proof_diagnostics('~NPos:~2n', P2),
 	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
 	proof_diagnostics('~NNeg:~2n', P1),
-	!,
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),

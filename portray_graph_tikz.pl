@@ -7,7 +7,7 @@
 :- dynamic '$GRAPH_NO'/1.
 
 graph_header :-
-        shell('rm graph.tex', _),
+      ( exists_file('graph.tex') -> delete_file('graph.tex') ; true),
 	open('graph.tex', write, _, [alias(graph)]),
 	format(graph, '\\documentclass{article}~2n', []),
 	format(graph, '\\usepackage[a3paper]{geometry}~n', []),

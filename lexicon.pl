@@ -1,5 +1,35 @@
-:- module(lexicon, [lookup/4,lookup/5,macro_expand/2]).
+:- module(lexicon, [parse/2, lookup/4, lookup/5, macro_expand/2]).
+
+:- use_module(translations, [translate/3, translate_hybrid/6]).
+
+% define operators to allow for easier specification of
+% hybrid and displacement lexical entries.
+%
+% WARNING: in case of doubt, use parentheses to disambiguate!
+% I have deliberately not changed the definitions of standard
+% mathematical and logical operations of Prolog, notably |
+% (alternative of ; for use in DCG), \ and *.
+%
+% This means for example that:
+% c/d*b/c = ((c/d)*b)/c
+% which corresponds to a left-to-right evaluation of the
+% mathematical functions of division and multiplication.
+% However, we do have the familiar a/b/c = (a/b)/c and
+% c\b\a = (c\(b\a) and even a\b/c = (a\b)/c.
+
 :- op(400, xfy, \).
+:- op(400, xfy, \>).  % = \downarrow_>
+:- op(400, yfx, />).  % = \uparrow_>
+:- op(400, xfy, \<).  % = \downarrow_<
+:- op(400, yfx, /<).  % = \uparrow_>
+:- op(400, yfx, *<).  % = \odot_<
+:- op(400, yfx, *>).  % = \odot_>
+:- op(400, fx, ^).
+
+parse(ListOfWords, Goal0) :-
+	lookup(ListOfWords, Formulas, LexSem, Goal0, Goal),
+	prove(Formulas, Goal, LexSem).
+
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-
 	lookup(Words, Formulas, _, Goal, ExpandedGoal).
@@ -40,7 +70,8 @@ lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
 	lex(W, F, N0, N1, S),
 	lexical_lookup(Ws, Fs, Ss, N1, N)
     ;
-        format(user_error, '~N{Error: No lexical entry for "~w"}~n', [W])
+        format(user_error, '~N{Error: No lexical entry for "~w"}~n', [W]),
+        fail
     ).
 
 macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
@@ -94,6 +125,27 @@ macro_expand(dr(A0,B0), dr(A,B)) :-
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
+
+macro_expand((A0\<B0), dl(<,A,B)) :-
+	macro_expand(A0, A),
+	macro_expand(B0, B).
+macro_expand((A0\>B0), dl(>,A,B)) :-
+	macro_expand(A0, A),
+	macro_expand(B0, B).
+macro_expand((A0/<B0), dr(<,A,B)) :-
+	macro_expand(A0, A),
+	macro_expand(B0, B).
+macro_expand((A0/>B0), dr(>,A,B)) :-
+	macro_expand(A0, A),
+	macro_expand(B0, B).
+macro_expand((A0*<B0), p(<,A,B)) :-
+	macro_expand(A0, A),
+	macro_expand(B0, B).
+macro_expand((A0*>B0), p(>,A,B)) :-
+	macro_expand(A0, A),
+	macro_expand(B0, B).
+macro_expand(^A0, bridge(A)) :-
+	macro_expand(A0, A).
 
 macro_expand((A0|B0), h(A,B)) :-
 	!,

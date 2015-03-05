@@ -1,6 +1,7 @@
 :- module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 
 proof_header :-
+      ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
 	format(latex, '\\documentclass{article}~2n', []),
 	format(latex, '\\usepackage[a2paper]{geometry}~n', []),
@@ -209,7 +210,7 @@ latex_semantics(appl(N,M), NB) :-
    ).
 latex_semantics(pair(N,M), _NB) :-
 	!,
-	format(latex, '\\langle~@,~@\\rangle', [latex_semantics(N, 0), latex_semantics(M, 0)]).
+	format(latex, '\\langle ~@,~@\\rangle', [latex_semantics(N, 0), latex_semantics(M, 0)]).
 latex_semantics(pi1(N), _NB) :-
 	!,
 	format(latex, '\\pi_1(~@)', [latex_semantics(N, 0)]).
@@ -217,7 +218,7 @@ latex_semantics(pi2(N), _NB) :-
 	!,
 	format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)]).
 latex_semantics(quant(Q,X,F), _NB) :-
-	format(latex, '~@~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
+	format(latex, '~@ ~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
 latex_semantics(bool(P,B,Q), NB) :-
 	!,
    (
@@ -232,6 +233,8 @@ latex_bool(&) :-
 	write(latex, '\\wedge').
 latex_bool(\/) :-
 	write(latex, '\\vee').
+latex_bool(->) :-
+	write(latex, '\\rightarrow').
 
 latex_quantifier(forall) :-
 	write(latex, '\\forall').

@@ -65,6 +65,15 @@ displacement_sort(dr(_K,C,B), S) :-
 	displacement_sort(C, SC),
 	displacement_sort(B, SB),
 	S is SC + 1 - SB.
+displacement_sort(bridge(A), S) :-
+	displacement_sort(A, SA),
+	S is SA - 1.
+displacement_sort(rproj(A), S) :-
+	displacement_sort(A, SA),
+	S is SA - 1.
+displacement_sort(lproj(A), S) :-
+	displacement_sort(A, SA),
+	S is SA - 1.
 
 % = d_atom_sort(?AtomName, ?Sort)
 %
@@ -73,9 +82,11 @@ displacement_sort(dr(_K,C,B), S) :-
 d_atom_sort(inf, 1).
 d_atom_sort(np, 0).
 d_atom_sort(n, 0).
+d_atom_sort(cn, 0).
 d_atom_sort(s, 0).
 d_atom_sort(pp, 0).
 d_atom_sort(vp, 0).
+d_atom_sort(tcs, 0).
 
 
 % = translate_displacement(+DFormula, +ListOfVars, -LinearFormula)
@@ -228,6 +239,18 @@ translate_displacement(dl(<,A0,C0), [XN|Vars], F0) :-
 	translate_displacement(A0, VarsA, A),
 	translate_displacement(C0, VarsC, C).
 
+% bridge, right projection and left projection
+% NOTE: only leftmost bridge is provided (though it would be
+% simple to add rightmost bridge if desired. Translations of
+% split and the injections are not provided at the moment.
+ 
+translate_displacement(bridge(A0), [V|Vars], exists(X,F0)) :-
+	translate_displacement(A0, [V,X,X|Vars], F0).
+translate_displacement(rproj(A0), Vars, forall(X,F0)) :-
+	translate_displacement(A0, [X,X|Vars], F0).
+translate_displacement(lproj(A0), Vars0, forall(X,F0)) :-
+	append(Vars0, [X,X], Vars),
+	translate_displacement(A0, Vars, F0).
 
 forall_prefix([], F, F).
 forall_prefix([X|Xs], forall(X,F0), F) :-
@@ -305,6 +328,7 @@ formula_type(at(At), Type) :-
 
 atom_type(s, impl(s,s)).
 atom_type(n, impl(s,s)).
+atom_type(cn, impl(s,s)).
 atom_type(np, impl(s,s)).
 atom_type(pp, impl(s,s)).
 atom_type(inf, impl(impl(s,s),impl(s,s))).
