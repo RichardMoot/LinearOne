@@ -64,9 +64,13 @@ test(18) :-
 test(19) :-
 	parse([jan,wil2,boeken,lezen], n*(^(q/<n))).
 test(20) :-
-	parse([mary,talked,to,john,about,himself], s).
+	parse([john,bought,himself,coffee], s).
 test(21) :-
-	parse([mary,talked,about,himself,to,john], s).
+	parse([every,man,loves,himself], s).
+test(22) :-
+	parse([mary,talked,to,john,about,himself2], s).
+test(22) :-
+	parse([mary,talked,about,himself2,to,john], s).
 
 lex(john, n, j).
 lex(mary, n, m).
@@ -74,6 +78,7 @@ lex(charles, n, c).
 lex(logic, n, l).
 lex(phonetics, n, p).
 lex(cezanne, n, cezanne).
+lex(coffee, n, coffee).
 lex(the, n/cn, iota).
 lex(ten_million_dollars, n, '\\$10.000.000').
 lex(thinks, (n\s)/s, think).
@@ -85,7 +90,7 @@ lex(loves, (n\s)/n, love).
 lex(saw, (n\s)/n, see).
 lex(studies, (n\s)/n, study).
 lex(ate, d_tv, eat).
-lex(bought, d_tv, buy).
+lex(bought, (d_tv)/n, buy).
 lex(talked, ((n\s)/pp)/pp, talk).
 lex(today, (n\s)\(n\s), lambda(VP,lambda(N,appl(today,appl(VP,N))))).
 lex(gave, (n\s)/(n*pp), lambda(Pair,lambda(X,appl(appl(appl(g,pi2(Pair)),pi1(Pair)),X)))).
@@ -95,6 +100,7 @@ lex(gave2, ((n\s)/pp)/n, give).
 lex(sold, ((n\s)/pp)/n, 'sell\\_for').
 lex(book, cn, b).
 lex(dog, cn, dog).
+lex(man, cn, man).
 lex(donuts, cn, donuts).
 lex(bagels, cn, bagels).
 lex(mountain, cn, mountain).
@@ -115,7 +121,8 @@ lex(who, (n\((s/>n)\<s))/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Y),&,
 lex(and, ((s/<((n\s)/n))\(s/<((n\s)/n)))/(^(s/<(n\s)/n)), lambda(X,lambda(Y,lambda(Z,bool(appl(Y,Z),&,appl(X,Z)))))).
 lex(than, cp/s, lambda(X,X)).
 lex(more, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
-lex(himself, ((d_vp/<n)/<n)\<(d_vp/<n), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
+lex(himself, (d_vp/<n)\<d_vp, lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
+lex(himself2, ((d_vp/<n)/<n)\<(d_vp/<n), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
 
 % = Dutch
 
