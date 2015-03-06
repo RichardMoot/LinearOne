@@ -182,6 +182,9 @@ latex_semantics(Sem) :-
 	latex_semantics(Sem, 0),
 	format(latex, '~n$$~2n', []).
 
+latex_semantics(iota, _) :-
+	!,
+	format(latex, '\\iota ', []).
 latex_semantics(A, _) :-
 	atomic(A),
 	!,
