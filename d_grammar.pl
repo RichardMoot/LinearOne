@@ -23,7 +23,7 @@
 :- op(400, xfy, \).
 
 test(0) :-
-	parse([mary,gave3,john,the_cold_shoulder], s).
+	parse([mary,gave,john,the_cold_shoulder], s).
 test(1) :-
 	parse([john,gave,every,book,to,mary], s).
 test(2) :-
@@ -94,7 +94,7 @@ lex(bought, (d_tv)/n, buy).
 lex(talked, ((n\s)/pp)/pp, talk).
 lex(today, (n\s)\(n\s), lambda(VP,lambda(N,appl(today,appl(VP,N))))).
 lex(gave, (n\s)/(n*pp), lambda(Pair,lambda(X,appl(appl(appl(g,pi2(Pair)),pi1(Pair)),X)))).
-lex(gave3, lproj(((n\s)/<n)/tcs), lambda(_TCS,shun)).
+lex(gave, lproj(((n\s)/<n)/tcs), lambda(_TCS,shun)).
 lex(the_cold_shoulder, tcs, tcs).
 lex(gave2, ((n\s)/pp)/n, give).
 lex(sold, ((n\s)/pp)/n, 'sell\\_for').
