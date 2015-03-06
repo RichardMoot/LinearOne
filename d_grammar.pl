@@ -56,7 +56,10 @@ test(14) :-
 	parse([dat,jan,alles,las], cs).
 test(15) :-
 	parse([dat,jan,alles,kan,lezen], cs).
-	
+test(16) :-
+	parse([dat,jan,cecilia,de,nijlpaarden,zag,voeren], cs).
+test(17) :-
+	parse([dat,jan,cecilia,henk,de,nijlpaarden,zag,helpen,voeren], cs).
 
 lex(john, n, j).
 lex(mary, n, m).
@@ -64,7 +67,7 @@ lex(charles, n, c).
 lex(logic, n, l).
 lex(phonetics, n, p).
 lex(cezanne, n, cezanne).
-lex(the, cn/n, '\\iota').
+lex(the, cn/n, iota).
 lex(ten_million_dollars, n, '\\$10.000.000').
 lex(thinks, (n\s)/s, think).
 lex(left, n\s, leave).
@@ -104,13 +107,16 @@ lex(dat, cs/s, lambda(X,X)).
 lex(jan, n, j).
 lex(henk, n, h).
 lex(cecilia, n, c).
-lex(nijlpaarden, n, hippos).
-lex(de, n/cn, '\\iota').
+lex(nijlpaarden, cn, hippos).
+lex(de, n/cn, iota).
 lex(boeken, n, b).
 lex(las, n\(n\s), read).
 lex(kan, (n\inf)\<(n\s), can).
 lex(wil, (n\inf)\<(n\s), want).
 lex(kunnen, rproj((n\inf)\<(n\inf)), can).
 lex(lezen, rproj(n\(n\inf)), read).
+lex(voeren, rproj(n\(n\inf)), feed).
 lex(alles, (s/<n)\<s, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
 lex(alles, (inf/<n)\<inf, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
+lex(zag, (n\inf)\<(n\(n\s)), see).
+lex(helpen, rproj((n\inf)\<(n\(n\inf))), help).
