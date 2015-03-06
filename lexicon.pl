@@ -74,6 +74,15 @@ lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
         fail
     ).
 
+macro_expand(d_q, F) :-
+	!,
+	macro_expand(((s/<n)\<s)/cn, F).
+macro_expand(d_tv, F) :-
+	!,
+	macro_expand((n\s)/n, F).
+macro_expand(d_vp, F) :-
+	!,
+	macro_expand(n\s, F).
 macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
 	!.
 macro_expand(vp, dl(at(np),at(s))) :-

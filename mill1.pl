@@ -31,6 +31,12 @@ portray(impl(A,B)) :-
 portray(rule(N,A,B,Ps)) :-
 	Ps \== [],
 	format('rule(~p,~p,~p,...)', [N,A,B]).
+portray(appl(appl(appl(F,Z),Y),X)) :-
+	!,
+	atom(F),
+	!,
+	Term =.. [F,X,Y,Z],
+	print(Term).
 portray(appl(appl(F,Y),X)) :-
 	atom(F),
 	!,

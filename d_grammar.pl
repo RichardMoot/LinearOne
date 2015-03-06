@@ -38,7 +38,6 @@ test(6) :-
 	/* check proof generation */
 	parse([dog,that,mary,saw,today], cn).
 test(7) :-
-	/* ??? check this */
 	parse([mountain,the,painting,of,which,by,cezanne,john,sold,for,ten_million_dollars], cn).
 test(8) :-
 	parse([john,who,jogs,sneezed], s).
@@ -60,6 +59,14 @@ test(16) :-
 	parse([dat,jan,cecilia,de,nijlpaarden,zag,voeren], cs).
 test(17) :-
 	parse([dat,jan,cecilia,henk,de,nijlpaarden,zag,helpen,voeren], cs).
+test(18) :-
+	parse([wil2,jan,boeken,lezen], q).
+test(19) :-
+	parse([jan,wil2,boeken,lezen], n*(^(q/<n))).
+test(20) :-
+	parse([mary,talked,to,john,about,himself], s).
+test(21) :-
+	parse([mary,talked,about,himself,to,john], s).
 
 lex(john, n, j).
 lex(mary, n, m).
@@ -67,7 +74,7 @@ lex(charles, n, c).
 lex(logic, n, l).
 lex(phonetics, n, p).
 lex(cezanne, n, cezanne).
-lex(the, cn/n, iota).
+lex(the, n/cn, iota).
 lex(ten_million_dollars, n, '\\$10.000.000').
 lex(thinks, (n\s)/s, think).
 lex(left, n\s, leave).
@@ -77,20 +84,26 @@ lex(sneezed, n\s, sneeze).
 lex(loves, (n\s)/n, love).
 lex(saw, (n\s)/n, see).
 lex(studies, (n\s)/n, study).
+lex(ate, d_tv, eat).
+lex(bought, d_tv, buy).
+lex(talked, ((n\s)/pp)/pp, talk).
 lex(today, (n\s)\(n\s), lambda(VP,lambda(N,appl(today,appl(VP,N))))).
 lex(gave, (n\s)/(n*pp), lambda(Pair,lambda(X,appl(appl(appl(g,pi2(Pair)),pi1(Pair)),X)))).
 lex(gave3, lproj(((n\s)/<n)/tcs), lambda(_TCS,shun)).
 lex(the_cold_shoulder, tcs, tcs).
 lex(gave2, ((n\s)/pp)/n, give).
-lex(sold, ((n\s)/pp)/n, sell).
+lex(sold, ((n\s)/pp)/n, 'sell\\_for').
 lex(book, cn, b).
 lex(dog, cn, dog).
+lex(donuts, cn, donuts).
+lex(bagels, cn, bagels).
 lex(mountain, cn, mountain).
-lex(painting, cn/pp, painting).
+lex(painting, cn/pp, 'painting\\_of').
 lex(of, pp/n, lambda(X,X)).
 lex(by, (cn\cn)/n, by).
 lex(for, pp/n, lambda(X,X)).
 lex(to, pp/n, lambda(X,X)).
+lex(about, pp/n, lambda(X,X)).
 lex(every, ((s/>n)\<s)/cn, lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Y),->,appl(Y,Z)))))).
 lex(someone, (s/>n)\<s, lambda(P,quant(exists,X,appl(P,X)))).
 lex(everyone, (s/>n)\<s, lambda(P,quant(forall,X,appl(P,X)))).
@@ -100,8 +113,11 @@ lex(that, (cn\cn)/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,
 lex(which, (n/<n)\<((cn\cn)/(^(s/<n))), lambda(X,lambda(Y,lambda(Z,lambda(W,bool(appl(Z,W),&,appl(Y,appl(X,W)))))))).
 lex(who, (n\((s/>n)\<s))/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Y),&,appl(Z,Y)))))).
 lex(and, ((s/<((n\s)/n))\(s/<((n\s)/n)))/(^(s/<(n\s)/n)), lambda(X,lambda(Y,lambda(Z,bool(appl(Y,Z),&,appl(X,Z)))))).
+lex(than, cp/s, lambda(X,X)).
+lex(more, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
+lex(himself, ((d_vp/<n)/<n)\<(d_vp/<n), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
 
-%
+% = Dutch
 
 lex(dat, cs/s, lambda(X,X)).
 lex(jan, n, j).
@@ -111,12 +127,13 @@ lex(nijlpaarden, cn, hippos).
 lex(de, n/cn, iota).
 lex(boeken, n, b).
 lex(las, n\(n\s), read).
-lex(kan, (n\inf)\<(n\s), can).
-lex(wil, (n\inf)\<(n\s), want).
-lex(kunnen, rproj((n\inf)\<(n\inf)), can).
-lex(lezen, rproj(n\(n\inf)), read).
-lex(voeren, rproj(n\(n\inf)), feed).
+lex(kan, (n\si)\<(n\s), lambda(VP,lambda(S,appl(appl(can,appl(VP,S)),S)))).
+lex(wil, (n\si)\<(n\s), lambda(VP,lambda(S,appl(appl(want,appl(VP,S)),S)))).
+lex(kunnen, rproj((n\si)\<(n\si)), lambda(VP,lambda(S,appl(appl(can,appl(VP,S)),S)))).
+lex(lezen, rproj(n\(n\si)), read).
+lex(voeren, rproj(n\(n\si)), feed).
 lex(alles, (s/<n)\<s, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
-lex(alles, (inf/<n)\<inf, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
-lex(zag, (n\inf)\<(n\(n\s)), see).
-lex(helpen, rproj((n\inf)\<(n\(n\inf))), help).
+lex(alles, (si/<n)\<si, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
+lex(zag, (n\si)\<(n\(n\s)), lambda(VP,lambda(X,lambda(Y,appl(appl(appl(see,appl(VP,X)),X),Y))))).
+lex(helpen, rproj((n\si)\<(n\(n\si))), lambda(VP,lambda(X,lambda(Y,appl(appl(appl(help,appl(VP,X)),X),Y))))).
+lex(wil2, q/(^(s/<((n\si)\<(n\s)))), lambda(P,appl(P,lambda(Q,lambda(X,appl(appl(want,appl(Q,X)),X)))))).

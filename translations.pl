@@ -79,15 +79,15 @@ displacement_sort(lproj(A), S) :-
 %
 % true if Sort is the sort of atom AtomName.
 
-d_atom_sort(inf, 1).
-d_atom_sort(np, 0).
-d_atom_sort(n, 0).
-d_atom_sort(cn, 0).
-d_atom_sort(s, 0).
-d_atom_sort(pp, 0).
-d_atom_sort(vp, 0).
-d_atom_sort(tcs, 0).
-d_atom_sort(cs, 0).
+% Dutch infinitives (inf or si) are of sort 1
+d_atom_sort(inf, 1) :-
+	!.
+d_atom_sort(si, 1) :-
+	!.
+d_atom_sort(vpi, 1) :-
+	!.
+% Atom sort defaults to zero
+d_atom_sort(_, 0).
 
 % = translate_displacement(+DFormula, +ListOfVars, -LinearFormula)
 %

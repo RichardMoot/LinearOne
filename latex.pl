@@ -182,9 +182,33 @@ latex_semantics(Sem) :-
 	latex_semantics(Sem, 0),
 	format(latex, '~n$$~2n', []).
 
+latex_semantics(true, _) :-
+	!,
+	format(latex, '\\top ', []).
+latex_semantics(false, _) :-
+	!,
+	format(latex, '\\bot ', []).
+latex_semantics(empty_set, _) :-
+	!,
+	format(latex, '\\emptyset ', []).
+latex_semantics(forall, _) :-
+	!,
+	format(latex, '\\forall ', []).
+latex_semantics(exists, _) :-
+	!,
+	format(latex, '\\exists ', []).
 latex_semantics(iota, _) :-
 	!,
 	format(latex, '\\iota ', []).
+latex_semantics(epsilon, _) :-
+	!,
+	format(latex, '\\epsilon ', []).
+latex_semantics(tau, _) :-
+	!,
+	format(latex, '\\tau ', []).
+latex_semantics(number_of(A), _) :-
+	!,
+	format(latex, '\\| ~@ \\|', [latex_semantics(A, 0)]).
 latex_semantics(A, _) :-
 	atomic(A),
 	!,
@@ -238,6 +262,18 @@ latex_bool(\/) :-
 	write(latex, '\\vee').
 latex_bool(->) :-
 	write(latex, '\\rightarrow').
+latex_bool(leq) :-
+	write(latex, '\\leq').
+latex_bool(lneq) :-
+	write(latex, '\\lneq').
+latex_bool(geq) :-
+	write(latex, '\\geq').
+latex_bool(gneq) :-
+	write(latex, '\\gneq').
+
+
+latex_bool(set_member) :-
+	write(latex, '\\in').
 
 latex_quantifier(forall) :-
 	write(latex, '\\forall').
