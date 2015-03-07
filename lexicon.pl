@@ -45,7 +45,10 @@ parse(ListOfWords, Goal0) :-
 parse(_, _) :-
 	'$LOOKUP'(L),
 	write_lookups(L),
-        final_statistics.
+        final_statistics,
+	/* succeed only if at least one proof was found */
+        user:'$PROOFS'(N),
+        N > 0.
 
 write_lookups(P) :-
    (

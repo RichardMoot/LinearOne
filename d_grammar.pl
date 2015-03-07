@@ -90,6 +90,7 @@ lex(loves, (n\s)/n, love).
 lex(saw, (n\s)/n, see).
 lex(studies, (n\s)/n, study).
 lex(ate, d_tv, eat).
+lex(bought, d_tv, buy).
 lex(bought, (d_tv)/n, buy).
 lex(talked, ((n\s)/pp)/pp, talk).
 lex(today, (n\s)\(n\s), lambda(VP,lambda(N,appl(today,appl(VP,N))))).
@@ -110,7 +111,7 @@ lex(by, (cn\cn)/n, by).
 lex(for, pp/n, lambda(X,X)).
 lex(to, pp/n, lambda(X,X)).
 lex(about, pp/n, lambda(X,X)).
-lex(every, ((s/>n)\<s)/cn, lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
+lex(every, d_q, lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
 lex(someone, (s/>n)\<s, lambda(P,quant(exists,X,appl(P,X)))).
 lex(everyone, (s/>n)\<s, lambda(P,quant(forall,X,appl(P,X)))).
 lex(before, ((n\s)\(n\s))/s, lambda(S,lambda(VP,lambda(NP, appl(appl(before,S),appl(VP,NP)))))).
@@ -118,7 +119,7 @@ lex(did, (((n\s)/>(n\s))/(n\s))\((n\s)/>(n\s)), lambda(X,lambda(Y,appl(appl(X,Y)
 lex(that, (cn\cn)/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(which, (n/<n)\<((cn\cn)/(^(s/<n))), lambda(X,lambda(Y,lambda(Z,lambda(W,bool(appl(Z,W),&,appl(Y,appl(X,W)))))))).
 lex(who, (n\((s/>n)\<s))/(^(s/<n)), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Y),&,appl(Z,Y)))))).
-lex(and, ((s/<((n\s)/n))\(s/<((n\s)/n)))/(^(s/<(n\s)/n)), lambda(X,lambda(Y,lambda(Z,bool(appl(Y,Z),&,appl(X,Z)))))).
+lex(and, ((s/<((n\s)/n))\(s/<((n\s)/n)))/(^(s/<((n\s)/n))), lambda(X,lambda(Y,lambda(Z,bool(appl(Y,Z),&,appl(X,Z)))))).
 lex(than, cp/s, lambda(X,X)).
 lex(more, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
 lex(himself, (d_vp/<n)\<d_vp, lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
