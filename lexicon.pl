@@ -25,10 +25,40 @@
 :- op(400, yfx, *<).  % = \odot_<
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
+	
+parse_all :-
+	findall(., test(_), _).
+	
 
 parse(ListOfWords, Goal0) :-
+	initialisation,
+	retractall('$LOOKUP'(_)),
+	assert('$LOOKUP'(0)),
 	lookup(ListOfWords, Formulas, LexSem, Goal0, Goal),
-	prove(Formulas, Goal, LexSem).
+	/* update lookup statistics */
+	'$LOOKUP'(N0),
+	N is N0 + 1,
+	retractall('$LOOKUP'(_)),
+	assert('$LOOKUP'(N)),	
+	multi_prove(Formulas, Goal, LexSem),
+	fail.
+parse(_, _) :-
+	'$LOOKUP'(L),
+	write_lookups(L),
+        final_statistics.
+
+write_lookups(P) :-
+   (
+       P =:= 0
+   ->
+       format(user_output, 'No lexical lookups!~n', [])
+   ;
+       P =:= 1
+   ->
+       format(user_output, '1 lexical lookup.~n', [])
+   ;
+       format(user_output, '~p lexical lookups.~n', [P])
+   ).
 
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-

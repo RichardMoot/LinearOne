@@ -56,19 +56,10 @@ portray(bool(P,B,Q)) :-
 
 
 
-prove(Antecedent, Goal) :-
-	prove(Antecedent, Goal, []).
+multi_prove(Antecedent, Goal) :-
+	multi_prove(Antecedent, Goal, []).
 
-prove(Antecedent, Goal, LexSem) :-
-	/* LaTeX output */
-	graph_header,
-	proof_header,
-	/* reset counters */
-	retractall('$PROOFS'(_)),
-	assert('$PROOFS'(0)),
-	retractall('$AXIOMS'(_)),
-	assert('$AXIOMS'(0)),
-	/* end initialisation */
+multi_prove(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
@@ -79,15 +70,35 @@ prove(Antecedent, Goal, LexSem) :-
 	N is N0 + 1,
 	retractall('$PROOFS'(_)),
 	assert('$PROOFS'(N)),
+	/* generate semantics */
 	substitute_sem(LexSem, Sem0, Sem1),
 	reduce_sem(Sem1, Sem),
 	format(user_error, '~NSemantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* generate a LaTeX proof */
-	generate_proof(Vs, Trace),
-	/* find alternatives using failure driven loop */
+	generate_proof(Vs, Trace).
+
+prove(Antecedent, Goal) :-
+	prove(Antecedent, Goal, []).
+
+prove(Antecedent, Goal, LexSem) :-
+	initialisation,
+	multi_prove(Antecedent, Goal, LexSem),
 	fail.
 prove(_, _, _) :-
+	final_statistics.
+
+initialisation :-
+	/* LaTeX output */
+	graph_header,
+	proof_header,
+	/* reset counters */
+	retractall('$PROOFS'(_)),
+	assert('$PROOFS'(0)),
+	retractall('$AXIOMS'(_)),
+	assert('$AXIOMS'(0)).
+
+final_statistics :-
 	/* print final statistics and generate pdf files */
 	'$AXIOMS'(A),
 	'$PROOFS'(N),
