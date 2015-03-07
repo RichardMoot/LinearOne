@@ -244,6 +244,15 @@ latex_semantics(pi1(N), _NB) :-
 latex_semantics(pi2(N), _NB) :-
 	!,
 	format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)]).
+latex_semantics(neg(N), _NB) :-
+	!,
+	format(latex, '\\neg (~@)', [latex_semantics(N, 0)]).
+latex_semantics(possible(N), _NB) :-
+	!,
+	format(latex, '\\Diamond (~@)', [latex_semantics(N, 0)]).
+latex_semantics(necessary(N), _NB) :-
+	!,
+	format(latex, '\\Box (~@)', [latex_semantics(N, 0)]).
 latex_semantics(quant(Q,X,F), _NB) :-
 	format(latex, '~@ ~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
 latex_semantics(bool(P,B,Q), NB) :-
