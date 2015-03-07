@@ -1,13 +1,63 @@
 :- op(400, xfy, \).
 
 test(1) :-
-	lookup([john,studies,logic,and,charles,phonetics], Formulas, LexSem, s, Goal),
-	prove(Formulas, Goal, LexSem).
+	parse([someone,talked,to,everyone,yesterday], s).
+test(2) :-
+	parse([leslie,bought,a,cd,and,robin,a,book], s).
+test(3) :-
+	parse([robin,must,discover,a,solution], s).
+test(4) :-
+	parse([john,cant,eat,steak,and,mary,pizza], s).
+test(5) :-
+	parse([no,neg,fish,walks], s).
+test(6) :-
+	parse([no,neg,dog,eats,whiskas,or,neg,cat,alpo], s).
+test(7) :-
+	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
 
-lex(john, np, lambda(X,appl(john,X)), j).
-lex(studies, tv, lambda(Y,appl(studies,Y)), s).
-lex(logic, np, lambda(Z,appl(logic,Z)), l).
+lex(leslie, np, leslie, l).
+lex(robin, np, robin, r).
+lex(john, np, john, j).
+lex(mary, np, mary, m).
+lex(bought, tv, bought, buy).
+lex(eats, tv, eats, eat).
+lex(ate, tv, ate, eat).
+lex(talked, (np\s)/pp, talked, talk).
+lex(discover, tv, discover, discover).
+lex(walks, np\s, walks, walk).
+lex(eat, tv, eat, eat).
+lex(a, ((s|(s|np))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(someone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
+lex(everyone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
+lex(yesterday, s\s, yesterday, yesterday).
+lex(fish, n, fish, fish).
+lex(dog, n, dog, dog).
+lex(cat, n, cat, cat).
+lex(cd, n, cd, cd).
+lex(book, n, book, book).
+lex(donuts, n, donuts, donuts).
+lex(bagels, n, bagels, bagels).
+lex(solution, n, solution, solution).
+lex(steak, np, steak, steak).
+lex(pizza, np, pizza, pizza).
+lex(whiskas, np, whiskas, whiskas).
+lex(alpo, np, alpo, alpo).
+lex(to, pp/np, to, lambda(X,X)).
 lex(and, (((s|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
-lex(charles, np, lambda(X1,appl(charles,X1)), c).
-lex(phonetics, np, lambda(Z1,appl(phonetics,Z1)), p).
-
+lex(must, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,must),Z))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
+lex(cant, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,cant),Z))), lambda(F,neg(possible(appl(F,lambda(Y,Y)))))).
+lex(no, (s|sneg), lambda(S,lambda(Z,appl(appl(S,no),Z))), neg).
+lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(Z,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),Z))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+% Sigma1/2 (s->s)->(s->s)->(s->s)
+% Phi1/2,or (s->s)
+% T1: Sigma1 Phi1 Phi1: s->s
+% T2: Sigma2 V^V W^W: s->s
+% T1(or (T2 z))
+lex(or, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V,lambda(W,lambda(TV,bool(appl(W,TV),\/,appl(V,TV)))))).
+lex(than, than, than, lambda(X,X)).
+% hdet (s->s)->(s->s->(s->s))->s->s
+% Rho1 ((s->s)->(s->s->(s->s))->s->s)->s->s
+% Phi: s->s
+% Sigma: (s->s)->s->s
+% l
+lex(more, (((s|(s|h_det))|(s|h_det))|than), lambda(Than,lambda(Rho1,lambda(Rho2,lambda(Z,appl(appl(Rho2,lambda(Phi,lambda(Sigma,appl(Sigma,lambda(V,appl(more,appl(Phi,V))))))),appl(Than,appl(appl(Rho1,lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z))))))), lambda(_,lambda(F,lambda(G,bool(number_of(appl(G,lambda(P,lambda(Q,lambda(X,bool(appl(P,X),&,appl(Q,X)))))),gneq,number_of(appl(F,lambda(P2,lambda(Q2,lambda(Y,bool(appl(P2,Y),&,appl(Q2,Y))))))))))))).
