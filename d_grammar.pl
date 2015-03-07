@@ -69,7 +69,7 @@ test(21) :-
 	parse([every,man,loves,himself], s).
 test(22) :-
 	parse([mary,talked,to,john,about,himself2], s).
-test(22) :-
+test(23) :-
 	parse([mary,talked,about,himself2,to,john], s).
 
 lex(john, n, j).

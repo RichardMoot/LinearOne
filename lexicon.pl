@@ -1,4 +1,4 @@
-:- module(lexicon, [parse/2, lookup/4, lookup/5, macro_expand/2]).
+:- module(lexicon, [parse/2, lookup/4, lookup/5, macro_expand/2, parse_all/0]).
 
 :- use_module(translations, [translate/3, translate_hybrid/6]).
 
@@ -25,10 +25,26 @@
 :- op(400, yfx, *<).  % = \odot_<
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
-	
+
+
+
 parse_all :-
-	findall(., test(_), _).
-	
+	findall(N, clause(test(N),_), List),
+	parse_all(List, Solutions),
+	print_solutions(List, Solutions).
+
+print_solutions([], []) :-
+	nl(user_error).
+print_solutions([N|Ns], [P|Ps]) :-
+	format(user_error, '~w-~w', [N,P]),
+	( P =:= 0 -> format(user_error, ' *~n', []) ; nl(user_error)),
+	print_solutions(Ns, Ps).
+
+parse_all([], []).
+parse_all([N|Ns], [P|Ps]) :-
+        test(N),
+        user:'$PROOFS'(P),
+	parse_all(Ns, Ps).
 
 parse(ListOfWords, Goal0) :-
 	initialisation,
