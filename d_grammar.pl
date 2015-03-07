@@ -110,7 +110,7 @@ lex(by, (cn\cn)/n, by).
 lex(for, pp/n, lambda(X,X)).
 lex(to, pp/n, lambda(X,X)).
 lex(about, pp/n, lambda(X,X)).
-lex(every, ((s/>n)\<s)/cn, lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Y),->,appl(Y,Z)))))).
+lex(every, ((s/>n)\<s)/cn, lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
 lex(someone, (s/>n)\<s, lambda(P,quant(exists,X,appl(P,X)))).
 lex(everyone, (s/>n)\<s, lambda(P,quant(forall,X,appl(P,X)))).
 lex(before, ((n\s)\(n\s))/s, lambda(S,lambda(VP,lambda(NP, appl(appl(before,S),appl(VP,NP)))))).
