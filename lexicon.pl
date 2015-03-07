@@ -146,6 +146,9 @@ macro_expand(d_tv, F) :-
 macro_expand(d_vp, F) :-
 	!,
 	macro_expand(n\s, F).
+macro_expand(h_det, F) :-
+	!,
+	macro_expand(((s|(s|np))|n), F).
 macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
 	!.
 macro_expand(vp, dl(at(np),at(s))) :-
@@ -225,6 +228,10 @@ macro_expand(lproj(A0), lproj(A)) :-
 macro_expand(rproj(A0), rproj(A)) :-
 	macro_expand(A0, A).
 
+macro_expand((B0->A0), h(A,B)) :-
+	!,
+	macro_expand(A0, A),
+	macro_expand(B0, B).
 macro_expand((A0|B0), h(A,B)) :-
 	!,
 	macro_expand(A0, A),

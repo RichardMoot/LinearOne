@@ -289,7 +289,11 @@ translate_hybrid(Formula, Term, Word, L, R, LinearFormula) :-
 	principal_type(lambda(Word,Term), impl(impl(R,L),TypeS)),
 	match(Formula, TypeS, LinearFormula).
 
-match(at(A), impl(TB,TA), at(A, [TA,TB])).
+match(at(sneg), impl(impl(TA,TB),impl(TC,TD)), at(sneg, [TC,TA,TB,TD])) :-
+	!,
+	check_variables([TC,TA,TB,TD], sneg, impl(impl(TA,TB),impl(TC,TD))).
+match(at(A), impl(TB,TA), at(A, [TA,TB])) :-
+	check_variables([TA,TB], A, impl(TB,TA)).
 match(h(B,A), impl(TA,TB), impl(FA,FB)) :-
 	match(A, TA, FA),
 	match(B, TB, FB).
@@ -299,6 +303,22 @@ match(dl(A,B), impl(TB, TA), F) :-
 	translate_lambek(dl(A,B), [TA,TB], F).
 match(p(A,B), impl(TB, TA), F) :-
 	translate_lambek(p(A,B), [TA,TB], F).
+
+check_variables([], _, _).
+check_variables([V|Vs], F, T) :-
+   (
+	var(V)
+   ->
+        true
+   ;		   
+        functor(V,impl,2)
+   ->
+	format(user_error, '~N{Error: type mismatch ~w, ~w, ~w}~n', [V,F,T]),
+        fail
+   ;
+        true
+   ),
+        check_variables(Vs, F, T).	
 
 % = type_skeleton(+InType, -OutType)
 %
@@ -324,14 +344,14 @@ formula_type(at(At), Type) :-
 % gives the Type corresponding to each AtomName; impl(s,s)
 % corresponds to the basic string type.
 %
-% NOTE: you MUST extend this list if you add atomic formulas
+% NOTE: defaults to basic string impl(s,s) when not
+% otherwise specified.
 
-atom_type(s, impl(s,s)).
-atom_type(n, impl(s,s)).
-atom_type(cn, impl(s,s)).
-atom_type(np, impl(s,s)).
-atom_type(pp, impl(s,s)).
-atom_type(inf, impl(impl(s,s),impl(s,s))).
+atom_type(inf, impl(impl(s,s),impl(s,s))) :-
+	!.
+atom_type(sneg, impl(impl(s,s),impl(s,s))) :-
+	!.
+atom_type(_, impl(s,s)).
 
 
 principal_type(Term, Type) :-
