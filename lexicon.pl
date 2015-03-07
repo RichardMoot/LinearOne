@@ -33,12 +33,26 @@ parse_all :-
 	parse_all(List, Solutions),
 	print_solutions(List, Solutions).
 
-print_solutions([], []) :-
-	nl(user_error).
-print_solutions([N|Ns], [P|Ps]) :-
-	format(user_error, '~w-~w', [N,P]),
-	( P =:= 0 -> format(user_error, ' *~n', []) ; nl(user_error)),
-	print_solutions(Ns, Ps).
+print_solutions(L, NS) :-
+	format(user_error, 'SentNo Solutions~n', []),
+	print_solutions(L, 0, 0, NS).
+print_solutions([], S, F, []) :-
+	Total is S + F,
+	format(user_error, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]).
+print_solutions([N|Ns], S0, F0, [P|Ps]) :-
+	format(user_error, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
+    (
+	P =:= 0
+    ->
+        format(user_error, ' *~n', []),
+	F is F0 + 1,
+	S = S0
+    ;
+        nl(user_error), 
+        S is S0 + 1,
+        F = F0
+    ),
+	print_solutions(Ns, S, F, Ps).
 
 parse_all([], []).
 parse_all([N|Ns], [P|Ps]) :-
