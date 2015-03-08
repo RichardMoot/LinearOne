@@ -286,8 +286,17 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 translate_hybrid(Formula, Term, Word, L, R, LinearFormula) :-
 	formula_type(Formula, Type),
 	type_skeleton(Type, TypeS),
-	principal_type(lambda(Word,Term), impl(impl(R,L),TypeS)),
-	match(Formula, TypeS, LinearFormula).
+	principal_type(lambda(Word,Term), impl(WT,TypeS)),
+	format_debug('~N= after principal type computation=~n Term: ~p~n Type: ~p~n', [lambda(Word,Term), impl(WT,TypeS)]), 
+    (
+	WT = impl(R,L)
+    ->
+	true
+    ;
+	format(user_error, '~N{Error: type mismatch ~w should be typable as ~p but is typed as ~p}~n', [Word,impl(R,L),WT]),
+	fail
+    ),
+        match(Formula, TypeS, LinearFormula).
 
 match(at(sneg), impl(impl(TA,TB),impl(TC,TD)), at(sneg, [TC,TA,TB,TD])) :-
 	!,
@@ -355,6 +364,7 @@ atom_type(_, impl(s,s)).
 
 
 principal_type(Term, Type) :-
+	format_debug('~N= before principal type computation=~n Term: ~p~n Type: ~p~n===~n', [Term, Type]), 
 	principal_type(Term, Type, _List).
 
 principal_type(V, Type, [V-Type]) :-
@@ -373,7 +383,8 @@ principal_type(appl(A,B), TypeA, ABlist) :-
 principal_type(lambda(A,B), impl(TypeA,TypeB), AList) :-
         !,
 	principal_type(B, TypeB, BList),
-	get_type(BList, A, TypeA, AList).
+	get_type(BList, A, TypeA, AList),
+	format_debug(' ~p = ~p~n', [A,TypeA]).
 principal_type(Term, Type, _) :-
         /* unknown term, print error message (helps correct typos, such as subterms of the form lambda/3 or appl/1) */
         functor(Term, F, A),
@@ -392,3 +403,11 @@ get_type([A-TypeA|Rest], B, TypeB, New) :-
          New = [A-TypeA|New0],
          get_type(Rest, B, TypeB, New0)
      ).
+
+debug(0).
+
+format_debug(_, _) :-
+	debug(0),
+	!.
+format_debug(X, Y) :-
+	format(user_error, X, Y).
