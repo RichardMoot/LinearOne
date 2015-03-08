@@ -14,12 +14,16 @@ test(6) :-
 	parse([no,neg,dog,eats,whiskas,or,neg,cat,alpo], s).
 test(7) :-
 	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
+test(8) :-
+	/* this example makes the need for a better atom selection strategy evident */
+	parse([no,neg,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,neg,cat,alpo2], s).
 
 lex(leslie, np, leslie, l).
 lex(robin, np, robin, r).
 lex(john, np, john, j).
 lex(mary, np, mary, m).
 lex(bought, tv, bought, buy).
+lex(buys, tv, buys, buy).
 lex(eats, tv, eats, eat).
 lex(ate, tv, ate, eat).
 lex(talked, (np\s)/pp, talked, talk).
@@ -29,7 +33,7 @@ lex(eat, tv, eat, eat).
 lex(a, ((s|(s|np))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(someone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(everyone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
-lex(yesterday, s\s, yesterday, yesterday).
+lex(yesterday, (np\s)\(np\s), yesterday, lambda(X,lambda(Y,appl(yesterday,appl(X,Y))))).
 lex(fish, n, fish, fish).
 lex(dog, n, dog, dog).
 lex(cat, n, cat, cat).
@@ -42,6 +46,8 @@ lex(steak, np, steak, steak).
 lex(pizza, np, pizza, pizza).
 lex(whiskas, np, whiskas, whiskas).
 lex(alpo, np, alpo, alpo).
+lex(whiskas2, n, whiskas2, whiskas).
+lex(alpo2, n, alpo2, alpo).
 lex(to, pp/np, to, lambda(X,X)).
 lex(and, (((s|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
 lex(must, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,must),Z))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
