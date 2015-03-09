@@ -1,5 +1,7 @@
 :- op(400, xfy, \).
 
+:- abolish(lex/3), abolish(lex/4), abolish(test/1).
+
 test(1) :-
 	parse([someone,talked,to,everyone,yesterday], s).
 test(2) :-
