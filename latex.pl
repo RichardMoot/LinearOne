@@ -264,6 +264,10 @@ latex_semantics(bool(P,B,Q), NB) :-
    ;
 	format(latex, '(~@ ~@ ~@)', [latex_semantics(P, 1), latex_bool(B), latex_semantics(Q, 1)])
    ).
+latex_semantics(Term, _) :-
+	functor(Term, F, A),
+	format(user_error, '~N{Warning: unknown LaTeX output form: ~w (with functor ~w/~w)}~n', [Term, F, A]),
+	format(latex, ' ~w ', [Term]).
 
 latex_bool(&) :-
 	write(latex, '\\wedge').
