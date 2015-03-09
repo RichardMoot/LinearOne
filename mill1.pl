@@ -403,12 +403,21 @@ create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
 create_neg_subproof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
         !.
-create_neg_subproof(p(N-A0,N-B0), N, L0, L, rule(pr, ProofA, ProofB)) :-
+create_neg_subproof(p(N-A0,N-B0), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [ProofA, ProofB])) :-
 	!,
 	rename_bound_variables(A0, A),
 	rename_bound_variables(B0, B),
 	create_neg_subproof(A, N, L0, L1, ProofA),
-	create_neg_subproof(B, N, L1, L, ProofB).
+	create_neg_subproof(B, N, L1, L, ProofB),
+	ProofA = rule(_, Gamma, _, _),
+	ProofB = rule(_, Delta, _, _),
+	append(Gamma, Delta, GD).
+create_neg_subproof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
+	!,
+	rename_bound_variables(A, A2),
+	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
+	create_neg_subproof(A, N, L0, L, ProofA),
+	ProofA = rule(_, Gamma, N-A2, _).
 create_neg_subproof(A0, N, L, L, rule(ax, [N-A], N-A, [])) :-
 	rename_bound_variables(A0, A).
 

@@ -37,7 +37,6 @@ test(4) :-
 test(5) :-
 	parse([john,slept,before,mary,did], s).
 test(6) :-
-	/* check proof generation */
 	parse([dog,that,mary,saw,today], cn).
 test(7) :-
 	parse([mountain,the,painting,of,which,by,cezanne,john,sold,for,ten_million_dollars], cn).
