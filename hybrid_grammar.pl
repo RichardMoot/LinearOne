@@ -5,11 +5,11 @@
 test(1) :-
 	parse([someone,talked,to,everyone,yesterday], s).
 test(2) :-
-	parse([leslie,bought,a,cd,and,robin,a,book], s).
+	parse([leslie,bought,a,cd,and,robin,a,book], s1).
 test(3) :-
 	parse([robin,must,discover,a,solution], s).
 test(4) :-
-	parse([john,cant,eat,steak,and,mary,pizza], s).
+	parse([john,cant,eat,steak,and,mary,pizza], s1).
 % split scope
 test(5) :-
 	parse([no2,neg,fish,walks], s).
@@ -38,6 +38,7 @@ lex(eats, tv, eats, eat).
 lex(ate, tv, ate, eat).
 lex(talked, (np\s)/pp, talked, talk).
 lex(discover, tv, discover, discover).
+lex(discovers, tv, discovers, discover).
 lex(walks, np\s, walks, walk).
 lex(eat, tv, eat, eat).
 lex(a, ((s|(s|np))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
@@ -59,7 +60,8 @@ lex(alpo, np, alpo, alpo).
 lex(whiskas2, n, whiskas2, whiskas).
 lex(alpo2, n, alpo2, alpo).
 lex(to, pp/np, to, lambda(X,X)).
-lex(and, (((s|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
+% = uses s1 as final category to avoid quantifier scope outside of the individual conjuncts
+lex(and, (((s1|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
 lex(must, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,must),Z))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
 lex(cant, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,cant),Z))), lambda(F,neg(possible(appl(F,lambda(Y,Y)))))).
 lex(no, (s|(s|h_det)), lambda(Rho,lambda(Z,appl(appl(Rho,lambda(Phi,lambda(Sigma,lambda(V,appl(appl(Sigma,lambda(W,appl(no,appl(Phi,W)))),V))))),Z))), lambda(P,neg(appl(P,lambda(Q,lambda(R,quant(exists,X,bool(appl(Q,X),&,appl(R,X))))))))).

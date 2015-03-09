@@ -1,5 +1,10 @@
 :- module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 
+% set this option to "prolog_like" for a Prolog-like output; this will portray terms like
+% ((f y) x) as f(x,y)
+
+option(prolog_like).
+
 proof_header :-
       ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
@@ -212,7 +217,7 @@ latex_semantics(number_of(A), _) :-
 latex_semantics(A, _) :-
 	atomic(A),
 	!,
-	format(latex, '\\textrm{~w}', [A]).
+	latex_atom(A).
 latex_semantics('$VAR'(N), _) :-
 	!,
 	variable_atom(N, At),
@@ -226,6 +231,21 @@ latex_semantics(lambda(X,M), NB) :-
    ;
 	format(latex, '(\\lambda ~@. ~@)', [latex_semantics(X, 1), latex_semantics(M, 1)])
    ).
+latex_semantics(appl(appl(appl(F,Z),Y),X), _) :-
+	atomic(F),
+	option(prolog_like),
+	!,
+	format(latex, '~@(~@,~@,~@)', [latex_atom(F),latex_semantics(X, 0),latex_semantics(Y, 0),latex_semantics(Z, 0)]).
+latex_semantics(appl(appl(F,Y),X), _) :-
+	atomic(F),
+	option(prolog_like),
+	!,
+	format(latex, '~@(~@,~@)', [latex_atom(F),latex_semantics(X, 0),latex_semantics(Y, 0)]).
+latex_semantics(appl(F,X), _) :-
+	atomic(F),
+	option(prolog_like),
+	!,
+	format(latex, '~@(~@)', [latex_atom(F),latex_semantics(X, 0)]).
 latex_semantics(appl(N,M), NB) :-
 	!,
    (
@@ -308,3 +328,10 @@ latex_quantifier(Q) :-
 	/* unknown: warn but output normally */
 	format(user_error, '~N{Warning: unknown LaTeX output quantifier: ~w}~n', [Q]),
 	format(latex, ' ~w ', [Q]).
+
+
+latex_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textrm{~w}', [A]).
