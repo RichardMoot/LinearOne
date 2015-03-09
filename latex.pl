@@ -254,6 +254,7 @@ latex_semantics(necessary(N), _NB) :-
 	!,
 	format(latex, '\\Box (~@)', [latex_semantics(N, 0)]).
 latex_semantics(quant(Q,X,F), _NB) :-
+	!,
 	format(latex, '~@ ~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
 latex_semantics(bool(P,B,Q), NB) :-
 	!,
@@ -265,31 +266,45 @@ latex_semantics(bool(P,B,Q), NB) :-
 	format(latex, '(~@ ~@ ~@)', [latex_semantics(P, 1), latex_bool(B), latex_semantics(Q, 1)])
    ).
 latex_semantics(Term, _) :-
+	/* unknown: warn but output normally */
 	functor(Term, F, A),
 	format(user_error, '~N{Warning: unknown LaTeX output form: ~w (with functor ~w/~w)}~n', [Term, F, A]),
 	format(latex, ' ~w ', [Term]).
 
 latex_bool(&) :-
+	!,
 	write(latex, '\\wedge').
 latex_bool(\/) :-
+	!,
 	write(latex, '\\vee').
 latex_bool(->) :-
+	!,
 	write(latex, '\\rightarrow').
 latex_bool(leq) :-
+	!,
 	write(latex, '\\leq').
 latex_bool(lneq) :-
+	!,
 	write(latex, '\\lneq').
 latex_bool(geq) :-
+	!,
 	write(latex, '\\geq').
 latex_bool(gneq) :-
+	!,
 	write(latex, '\\gneq').
-
-
 latex_bool(set_member) :-
+	!,
 	write(latex, '\\in').
+latex_bool(B) :-
+	/* unknown: warn but output normally */
+	format(user_error, '~N{Warning: unknown LaTeX output boolean connective: ~w}~n', [B]),
+	format(latex, ' ~w ', [B]).
 
-latex_quantifier(forall) :-
-	write(latex, '\\forall').
-latex_quantifier(exists) :-
-	write(latex, '\\exists').
-
+latex_quantifier(Q) :-
+	atom(Q),
+	!,
+	format(latex, '\\~w ', [Q]).
+latex_quantifier(Q) :-
+	/* unknown: warn but output normally */
+	format(user_error, '~N{Warning: unknown LaTeX output quantifier: ~w}~n', [Q]),
+	format(latex, ' ~w ', [Q]).
