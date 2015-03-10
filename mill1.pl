@@ -64,7 +64,7 @@ multi_prove(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Roots, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
-	compute_ancestors(Roots, Vs0, _Tree, _Neg, _Pos),
+	compute_ancestors(Roots, Vs0, _Tree, _ATree),
         prove1(Vs0, Trace),
 	/* proof found */
 	/* update proof statistics */
@@ -81,26 +81,27 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	generate_proof(Vs, Trace).
 
 % compute for each node in the graph the set of its ancestors.
+% NOTE: we presuppose acyclicity throughout!
 
-compute_ancestors(Root, Graph, Tree, Neg, Pos) :-
+compute_ancestors(Root, Graph, Tree, ATree) :-
 	btree_init(Tree0),
-	compute_ancestors(Root, Graph, Tree0, Tree),
-	sort_atoms(Graph, Neg, Pos).
+	compute_ancestors1(Root, Graph, Tree0, Tree),
+	sort_atoms(Graph, ATree).
 
-compute_ancestors([], _, Tree, Tree).
-compute_ancestors([A|As], Graph, Tree0, Tree) :-
+compute_ancestors1([], _, Tree, Tree).
+compute_ancestors1([A|As], Graph, Tree0, Tree) :-
 	btree_insert(Tree0, A, [A], Tree1),
 	visit(A, Graph, [A], [A], _, Tree1, Tree2),
-        compute_ancestors(As, Graph, Tree2, Tree).
+        compute_ancestors1(As, Graph, Tree2, Tree).
 
 % = visit(+Vertex, +Graph, ?Ancestors, +Visited).
 
 visit(N, Graph, Anc, V0, V, Tree0, Tree) :-
 	graph_get(N, Graph, Edges),
 	next_edges(Edges, Next0, []),
-	/* for forward edges, add the current ancestors */
-	ord_intersect(Next0, V0, Revisited),
-	update_revisited(Revisited, Anc, Tree0, Tree1),
+	/* for cross edges, add the current ancestors */
+	ord_intersect(Next0, V0, Cross),
+	update_cross(Cross, Anc, Tree0, Tree1),
 	/* remove already visited nodes */
 	ord_subtract(Next0, V0, Next),
 	visit_next(Next, Graph, Anc, V0, V, Tree1, Tree).
@@ -113,11 +114,11 @@ visit_next([N|Ns], G, Anc0, V0, V, Tree0, Tree) :-
 	visit(N, G, Anc, V1, V2, Tree1, Tree2),
 	visit_next(Ns, G, Anc0, V2, V, Tree2, Tree).
 
-update_revisited([], _, Tree, Tree).
-update_revisited([R|Rs], Anc, Tree0, Tree) :-
-	btree_get_replace(Tree0, R, As0, As, Tree1),
+update_cross([], _, Tree, Tree).
+update_cross([C|Cs], Anc, Tree0, Tree) :-
+	btree_get_replace(Tree0, C, As0, As, Tree1),
 	ord_union(Anc, As0, As),
-	update_revisited(Rs, Anc, Tree1, Tree).
+	update_forward(Cs, Anc, Tree1, Tree).
 
 next_edges([], N, N).
 next_edges([P|Ps], N0, N) :-
@@ -132,21 +133,36 @@ graph_get(N, Graph, Ps) :-
 
 % get all atomic formulas from the graph
 
-sort_atoms(Graph, Neg, Pos) :-
-	sort_atoms(Graph, Neg, [], Pos, []).
+sort_atoms(Graph, Tree) :-
+	btree_init(Tree0),
+	sort_atoms(Graph, Tree0, Tree).
 
-sort_atoms([], Ns, Ns, Ps, Ps).
-sort_atoms([vertex(N, Atoms, _, _)|Rest], Ns0, Ns, Ps0, Ps) :-
-	sort_atoms1(Atoms, N, Ns0, Ns1, Ps0, Ps1),
-	sort_atoms(Rest, Ns1, Ns, Ps1, Ps).
+sort_atoms([], Tree, Tree).
+sort_atoms([vertex(N, Atoms, _, _)|Rest], Tree0, Tree) :-
+	sort_atoms1(Atoms, N, Tree0, Tree1),
+	sort_atoms(Rest, Tree1, Tree).
 
-sort_atoms1([], _, Ns, Ns, Ps, Ps).
-sort_atoms1([A|As], N, Ns0, Ns, Ps0, Ps) :-
-	sort_atom(A, N, Ns0, Ns1, Ps0, Ps1),
-	sort_atoms1(As, N, Ns1, Ns, Ps1, Ps).
+sort_atoms1([], _, Tree, Tree).
+sort_atoms1([A|As], N, Tree0, Tree) :-
+	sort_atom(A, N, Tree0, Tree1),
+	sort_atoms1(As, N, Tree1, Tree).
 
-sort_atom(neg(A,B,C,D,E), Num, [Num-neg(A,B,C,D,E)|Ns], Ns, Ps, Ps).
-sort_atom(pos(A,B,C,D,E), Num, Ns, Ns, [Num-pos(A,B,C,D,E)|Ps], Ps).
+sort_atom(neg(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
+    (
+	btree_get_replace(Tree0, Atom, atoms(Ps,Ns), atoms(Ps,[tuple(Id1,Id2,Num,Vars)|Ns]), Tree)
+    ->
+	true
+    ;
+	btree_insert(Tree0, Atom, atoms([],[tuple(Id1,Id2,Num,Vars)]), Tree) 		 
+    ).
+sort_atom(pos(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
+    (
+	btree_get_replace(Tree0, Atom, atoms(Ps,Ns), atoms([tuple(Id1,Id2,Num,Vars)|Ps],Ns), Tree)
+    ->
+	true
+    ;
+	btree_insert(Tree0, Atom, atoms([tuple(Id1,Id2,Num,Vars)],[]), Tree) 		 
+    ).
 
 
 % = prove(+Antecedent, +GoalFormula)
