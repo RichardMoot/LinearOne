@@ -1,3 +1,13 @@
+% =================================
+% = Displacement calculus grammar =
+% =================================
+
+% This grammar contains many examples from
+%
+% Glyn Morrill, Oriol Valentin and Mario Fadda (2011),
+% The Displacement Calculus, Journal of Logic, Language
+% and Information 20, p. 1-48.
+
 % define operators to allow for easier specification of
 % displacement calculus lexical entries.
 %
@@ -23,6 +33,11 @@
 :- op(400, xfy, \).
 
 :- abolish(lex/3), abolish(lex/4), abolish(test/1).
+
+% =======================
+% =  Example Sentences  =
+% =======================
+
 
 test(0) :-
 	parse([mary,gave,john,the_cold_shoulder], s).
@@ -73,6 +88,12 @@ test(22) :-
 test(23) :-
 	parse([mary,talked,about,himself2,to,john], s).
 
+% =======================
+% =       Lexicon       =
+% =======================
+
+% = lex(+Word, +Formula, +Semantics)
+
 lex(john, n, j).
 lex(mary, n, m).
 lex(charles, n, c).
@@ -81,7 +102,7 @@ lex(phonetics, n, p).
 lex(cezanne, n, cezanne).
 lex(coffee, n, coffee).
 lex(the, n/cn, iota).
-lex(ten_million_dollars, n, '\\$10.000.000').
+lex(ten_million_dollars, n, '\\$10.000.000'). % double backslash necessary here to ensure correct LaTeX operation
 lex(thinks, (n\s)/s, think).
 lex(left, n\s, leave).
 lex(slept, n\s, sleep).
