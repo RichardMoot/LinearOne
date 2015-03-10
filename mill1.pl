@@ -738,7 +738,7 @@ prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	merge_fvs(FVs0, FVs1, FVs),
 	replace(G2, N0, N1, G3),
 	replace_pars(Ps, N0, N1, Rs),
-	update_roots(Roots0, N0, N1, Roots1),
+	update_roots_axiom(Roots0, N0, N1, Roots1),
 	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
         portray_graph(G4),
 	contract(G4, G, Rest0, Rest, Roots1, Roots),
@@ -751,7 +751,7 @@ prove1(G1, _, _) :-
 
 % update_roots
 
-update_roots(Roots0, N0, N1, Roots) :-
+update_roots_axiom(Roots0, N0, N1, Roots) :-
    (
 	/* delete N0 if it is a root */	
         ord_select(N0, Roots0, Roots1)
@@ -767,7 +767,16 @@ update_roots(Roots0, N0, N1, Roots) :-
    ;		   
         Roots = Roots1
    ).
-			
+
+update_roots_contraction(Roots0, N0, N1, Roots) :-
+   (
+        ord_select(N0, Roots0, Roots1)
+   ->
+        ord_insert(Roots1, N1, Roots)
+   ;
+        Roots = Roots0
+   ).
+
 % test for cyclicity
 % G2 contains unvisited nodes
 % P contains paths from current node
@@ -874,7 +883,7 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest, Roots0, Roots) 
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_pars(Rs0, N0, N1, Rs),
 	replace(G2, N0, N1, G),
-        update_roots(Roots0, N0, N1, Roots).
+        update_roots_contraction(Roots0, N0, N1, Roots).
 % forall contraction
 contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
         select(vertex(N0, As, FVsA, Ps0), G0, G1),
@@ -888,7 +897,7 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Root
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_pars(Rs0, N0, N1, Rs),
 	replace(G2, N0, N1, G),
-        update_roots(Roots0, N0, N1, Roots).
+        update_roots_contraction(Roots0, N0, N1, Roots).
 
 
 % = no_occurrences(+Graph, +VarNum)
