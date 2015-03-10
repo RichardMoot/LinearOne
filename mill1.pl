@@ -308,7 +308,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
 	trivial_cut_elimination(P1, P2, GDP, C, Rule),
-	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
+	replace_proofs_labels([N1-Rule|Ps2], N0, N1, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([Next|_], CurrentProofs, Proof) :-
@@ -716,15 +716,12 @@ write_axioms(A) :-
 
 prove1([vertex(_, [], _, [])], _, []) :-
         !.
-prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
+prove1(G0, Roots0, [ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest0]) :-
         portray_graph(G0),
 	compute_axioms(Roots0, G0, _ATree, [tuple(AtV0,AtO0,N0,Choices)|_Axioms]),
-%	print_list(Axioms),
         select(vertex(N0, [A|As0], FVs0, []), G0, G1),
         select(pos(At,AtV0,AtO0,X,Vars), [A|As0], As),
-	/* forced choice for negative atom */
-	/* TODO: replace with choice of atom with the */
-        /* least possible links */
+	/* forced choice for positive atom */
 	!,
 	member(tuple(AtV1,AtO1,N1), Choices),
 	select(vertex(N1, [B|Bs0], FVs1, Ps), G1, G2),
