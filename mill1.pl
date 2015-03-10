@@ -1,9 +1,9 @@
-:- use_module(ordset, [ord_union/3,ord_insert/3,ord_delete/3,ord_key_member/3,ord_key_insert/4]).
+:- use_module(ordset, [ord_union/3,ord_insert/3,ord_delete/3,ord_member/2,ord_key_member/3,ord_key_insert/4]).
 :- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
-:- use_module(tree234, [btree_init/1,btree_insert/4,btree_get_replace/5]).
+:- use_module(tree234, [btree_init/1,btree_insert/4,btree_get/3,btree_get_replace/5,btree_to_list/2]).
 :- use_module(lexicon, [parse/2]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
@@ -64,7 +64,8 @@ multi_prove(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Roots, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
-	compute_ancestors(Roots, Vs0, _Tree, _ATree),
+	compute_ancestors(Roots, Vs0, _ATree, Axioms),
+	print_list(Axioms),
         prove1(Vs0, Trace),
 	/* proof found */
 	/* update proof statistics */
@@ -83,10 +84,11 @@ multi_prove(Antecedent, Goal, LexSem) :-
 % compute for each node in the graph the set of its ancestors.
 % NOTE: we presuppose acyclicity throughout!
 
-compute_ancestors(Root, Graph, Tree, ATree) :-
+compute_ancestors(Root, Graph, ATree, Axioms) :-
 	btree_init(Tree0),
 	compute_ancestors1(Root, Graph, Tree0, Tree),
-	sort_atoms(Graph, ATree).
+	collect_atoms(Graph, ATree),
+	best_axiom(ATree, Tree, Axioms).
 
 compute_ancestors1([], _, Tree, Tree).
 compute_ancestors1([A|As], Graph, Tree0, Tree) :-
@@ -133,21 +135,21 @@ graph_get(N, Graph, Ps) :-
 
 % get all atomic formulas from the graph
 
-sort_atoms(Graph, Tree) :-
+collect_atoms(Graph, Tree) :-
 	btree_init(Tree0),
-	sort_atoms(Graph, Tree0, Tree).
+	collect_atoms(Graph, Tree0, Tree).
 
-sort_atoms([], Tree, Tree).
-sort_atoms([vertex(N, Atoms, _, _)|Rest], Tree0, Tree) :-
-	sort_atoms1(Atoms, N, Tree0, Tree1),
-	sort_atoms(Rest, Tree1, Tree).
+collect_atoms([], Tree, Tree).
+collect_atoms([vertex(N, Atoms, _, _)|Rest], Tree0, Tree) :-
+	collect_atoms1(Atoms, N, Tree0, Tree1),
+	collect_atoms(Rest, Tree1, Tree).
 
-sort_atoms1([], _, Tree, Tree).
-sort_atoms1([A|As], N, Tree0, Tree) :-
-	sort_atom(A, N, Tree0, Tree1),
-	sort_atoms1(As, N, Tree1, Tree).
+collect_atoms1([], _, Tree, Tree).
+collect_atoms1([A|As], N, Tree0, Tree) :-
+	collect_atom(A, N, Tree0, Tree1),
+	collect_atoms1(As, N, Tree1, Tree).
 
-sort_atom(neg(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
+collect_atom(neg(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
     (
 	btree_get_replace(Tree0, Atom, atoms(Ps,Ns), atoms(Ps,[tuple(Id1,Id2,Num,Vars)|Ns]), Tree)
     ->
@@ -155,7 +157,7 @@ sort_atom(neg(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
     ;
 	btree_insert(Tree0, Atom, atoms([],[tuple(Id1,Id2,Num,Vars)]), Tree) 		 
     ).
-sort_atom(pos(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
+collect_atom(pos(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
     (
 	btree_get_replace(Tree0, Atom, atoms(Ps,Ns), atoms([tuple(Id1,Id2,Num,Vars)|Ps],Ns), Tree)
     ->
@@ -164,6 +166,67 @@ sort_atom(pos(Atom,Id1,Id2,_Sem,Vars), Num, Tree0, Tree) :-
 	btree_insert(Tree0, Atom, atoms([tuple(Id1,Id2,Num,Vars)],[]), Tree) 		 
     ).
 
+
+best_axiom(AtomTree, AncestorTree, Links) :-
+	btree_to_list(AtomTree, List),
+	best_axiom1(List, AncestorTree, Links).
+
+best_axiom1(List, ATree, Links) :-
+	best_axiom1(List, ATree, min, _Min, [], Links).
+
+best_axiom1([], _, Min, Min, Links, Links).
+best_axiom1([_AtName-atoms(Pos, Neg)|Rest], ATree, Min0, Min, Links0, Links) :-
+	/* count check */
+	length(Pos, LP),
+	length(Neg, LN),
+	LN == LP,
+	try_link_atoms(Pos, Neg, ATree, Min0, Min1, Links0, Links1),
+	best_axiom1(Rest, ATree, Min1, Min, Links1, Links).
+
+try_link_atoms(Ps, Ns, ATree, Min0, Min, Links) :-
+	try_link_atoms(Ps, Ns, ATree, Min0, Min, [], Links).
+
+try_link_atoms([], _, _, Min, Min, Links, Links).
+try_link_atoms([P|Ps], Ns, ATree, Min0, Min, Links0, Links) :-
+	try_link_atom(Ns, [], 0, P, ATree, Min0, Min1, Links0, Links1),
+	try_link_atoms(Ps, Ns, ATree, Min1, Min, Links1, Links).
+
+% we only need to keep track of the atoms with the *minimum* number of possible connections
+% (all of them, to allow for addition and evaluation of tie-breakers later).
+try_link_atom([], Options, NO, tuple(IdP1,IdP2,NumP,_), _, Min0, Min, Links0, Links) :-
+  (	
+	NO @< Min0
+  ->
+        /* new best choice, forget Min0 and Links0 */
+        Min = NO,
+	Links = [tuple(IdP1,IdP2,NumP,Options)] 
+  ;		  
+	NO == Min0
+  ->
+        /* same as best choice, remember for future tie-breaker */
+        Min = Min0,
+	Links = [tuple(IdP1,IdP2,NumP,Options)|Links0]  
+  ;
+        /* worse than other choices, forget Options */
+        Min = Min0,
+        Links = Links0
+  ).			 
+try_link_atom([tuple(IdN1,IdN2,NumN,VarsN)|Ns], Options0, NO0, tuple(IdP1,IdP2,NumP,VarsP), ATree, Min0, Min, Links0, Links) :-
+	btree_get(ATree, NumN, AncN),
+	btree_get(ATree, NumP, AncP),
+  (
+	unifiable(VarsN, VarsP, _Unifier),
+        \+ ord_member(NumP, AncN),
+        \+ ord_member(NumN, AncP)
+  ->
+        /* possible axiom link, add to options */
+	Options = [tuple(IdN1,IdN2,NumN)|Options0],
+        NO is NO0 + 1
+  ;	  
+        Options = Options0,
+        NO = NO0
+  ),
+        try_link_atom(Ns, Options, NO, tuple(IdP1,IdP2,NumP,VarsP), ATree, Min0, Min, Links0, Links).
 
 % = prove(+Antecedent, +GoalFormula)
 
