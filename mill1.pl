@@ -1,5 +1,6 @@
 :- use_module(ordset, [ord_union/3,ord_delete/3,ord_key_member/3,ord_key_insert/4]).
-:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+:- use_module(portray_graph_none, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+%:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
