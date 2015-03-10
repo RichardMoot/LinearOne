@@ -1,9 +1,9 @@
-:- use_module(ordset, [ord_union/3,ord_delete/3,ord_key_member/3,ord_key_insert/4]).
-:- use_module(portray_graph_none, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
-%:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+:- use_module(ordset, [ord_union/3,ord_insert/3,ord_delete/3,ord_key_member/3,ord_key_insert/4]).
+:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
+:- use_module(tree234, [btree_init/1,btree_insert/4,btree_get_replace/5]).
 :- use_module(lexicon, [parse/2]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
@@ -61,9 +61,10 @@ multi_prove(Antecedent, Goal) :-
 	multi_prove(Antecedent, Goal, []).
 
 multi_prove(Antecedent, Goal, LexSem) :-
-        unfold_sequent(Antecedent, Goal, Vs0, _W, Sem0),
+        unfold_sequent(Antecedent, Goal, Roots, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
+	compute_ancestors(Roots, Vs0, _Tree, _Neg, _Pos),
         prove1(Vs0, Trace),
 	/* proof found */
 	/* update proof statistics */
@@ -78,6 +79,70 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	latex_semantics(Sem),
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace).
+
+compute_ancestors(Root, Graph, Tree, Neg, Pos) :-
+	btree_init(Tree0),
+	compute_ancestors(Root, Graph, Tree0, Tree),
+	sort_atoms(Graph, Neg, Pos).
+
+compute_ancestors([], _, T, T).
+compute_ancestors([A|As], G, T0, T) :-
+	btree_insert(T0, A, [A], T1),
+	visit(A, G, [A], [A], _, T1, T2),
+        compute_ancestors(As, G, T2, T).
+
+sort_atoms(Graph, Neg, Pos) :-
+	sort_atoms(Graph, Neg, [], Pos, []).
+
+sort_atoms([], Ns, Ns, Ps, Ps).
+sort_atoms([vertex(N, Atoms, _, _)|Rest], Ns0, Ns, Ps0, Ps) :-
+	sort_atoms1(Atoms, N, Ns0, Ns1, Ps0, Ps1),
+	sort_atoms(Rest, Ns1, Ns, Ps1, Ps).
+
+sort_atoms1([], _, Ns, Ns, Ps, Ps).
+sort_atoms1([A|As], N, Ns0, Ns, Ps0, Ps) :-
+	sort_atom(A, N, Ns0, Ns1, Ps0, Ps1),
+	sort_atoms1(As, N, Ns1, Ns, Ps1, Ps).
+
+sort_atom(neg(A,B,C,D,E), Num, [Num-neg(A,B,C,D,E)|Ns], Ns, Ps, Ps).
+sort_atom(pos(A,B,C,D,E), Num, Ns, Ns, [Num-pos(A,B,C,D,E)|Ps], Ps).
+
+
+
+% = visit(+Vertex, +Graph, ?Ancestors, +Visited).
+
+visit(N, G, Anc, V0, V, T0, T) :-
+	graph_get(N, G, Edges),
+	next_edges(Edges, Next0, []),
+	ord_intersect(Next0, V0, Revisited),
+	update_revisited(Revisited, Anc, T0, T1),
+	ord_subtract(Next0, V0, Next),
+	visit_next(Next, G, Anc, V0, V, T1, T).
+
+visit_next([], _, _, V, V, T, T).
+visit_next([N|Ns], G, Anc0, V0, V, T0, T) :-
+	ord_insert(Anc0, N, Anc),
+	ord_insert(V0, N, V1),
+	btree_insert(T0, N, Anc, T1),
+	visit(N, G, Anc, V1, V2, T1, T2),
+	visit_next(Ns, G, Anc0, V2, V, T2, T).
+
+update_revisited([], _, Tree, Tree).
+update_revisited([R|Rs], Anc, Tree0, Tree) :-
+	btree_get_replace(Tree0, R, As0, As, Tree1),
+	ord_union(Anc, As0, As),
+	update_revisited(Rs, Anc, Tree1, Tree).
+
+next_edges([], N, N).
+next_edges([P|Ps], N0, N) :-
+	next_par(P, N0, N1),
+	next_edges(Ps, N1, N).
+
+next_par(par(X,Y), [X,Y|Ns], Ns).
+next_par(univ(_,X), [X|Ns], Ns).
+
+graph_get(N, Graph, Ps) :-
+	  memberchk(vertex(N, _, _, Ps), Graph).
 
 prove(Antecedent, Goal) :-
 	prove(Antecedent, Goal, []).
@@ -759,24 +824,24 @@ replace_item(X, N0, N1, Y) :-
 %
 % transforms sequents, antecedents and (polarized) formulas into graphs
 
-unfold_sequent(List, Goal, Vs0, W, Sem) :-
+unfold_sequent(List, Goal, [N0|Roots], Vs0, W, Sem) :-
         retractall(node_formula(_,_,_)),
-	unfold_antecedent(List, 0, W, 0, N0, 0, M, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
+	unfold_antecedent(List, 0, W, 0, N0, 0, M, Roots, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
 	N is N0 + 1,
 	number_subformulas_pos(Goal, N0, N, _, _-NGoal),
         assert(node_formula(N0, pos, NGoal)),
 	free_vars_p(Goal, FVsG),
 	unfold_pos(NGoal, Sem, M, _, As, [], Es, [], Vs1, []).
 
-unfold_antecedent([], W, W, N, N, M, M, Vs, Vs).
-unfold_antecedent([F|Fs], W0, W, N0, N, M0, M, [vertex(N0,As,FVsF,Es)|Vs0], Vs) :-
+unfold_antecedent([], W, W, N, N, M, M, [], Vs, Vs).
+unfold_antecedent([F|Fs], W0, W, N0, N, M0, M, [N0|Rs], [vertex(N0,As,FVsF,Es)|Vs0], Vs) :-
         N1 is N0 + 1,
         W1 is W0 + 1,
 	free_vars_n(F, FVsF),
 	number_subformulas_neg(F, N0, N1, N2, _-NF),
         assert(node_formula(N0, neg, NF)),
 	unfold_neg(NF, '$VAR'(W0), M0, M1, As, [], Es, [], Vs0, Vs1),
-	unfold_antecedent(Fs, W1, W, N2, N, M1, M, Vs1, Vs).
+	unfold_antecedent(Fs, W1, W, N2, N, M1, M, Rs, Vs1, Vs).
 
 % = number_subformulas_neg(+Formula, +CurrentNodeNumber, +NextNodeNumberIn, -NextNodeNumberOut, -NumberFormula)
 %
