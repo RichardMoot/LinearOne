@@ -117,15 +117,23 @@ visit_next([], _, _, V, V, Tree, Tree).
 visit_next([N|Ns], G, Anc0, V0, V, Tree0, Tree) :-
 	ord_insert(Anc0, N, Anc),
 	ord_insert(V0, N, V1),
-	btree_insert(Tree0, N, Anc, Tree1),
+   (
+	ord_member(N, V0)
+   ->
+	update_cross1(N, Anc, Tree0, Tree1)
+   ;			
+        btree_insert(Tree0, N, Anc, Tree1)
+   ),
 	visit(N, G, Anc, V1, V2, Tree1, Tree2),
 	visit_next(Ns, G, Anc0, V2, V, Tree2, Tree).
 
 update_cross([], _, Tree, Tree).
 update_cross([C|Cs], Anc, Tree0, Tree) :-
-	btree_get_replace(Tree0, C, As0, As, Tree1),
-	ord_union(Anc, As0, As),
+	update_cross1(C, Anc, Tree0, Tree1),
 	update_cross(Cs, Anc, Tree1, Tree).
+update_cross1(C, Anc, Tree0, Tree) :-
+	btree_get_replace(Tree0, C, As0, As, Tree),
+	ord_union(Anc, As0, As).	
 
 next_edges([], N, N).
 next_edges([P|Ps], N0, N) :-
@@ -308,7 +316,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
 	trivial_cut_elimination(P1, P2, GDP, C, Rule),
-	replace_proofs_labels([N1-Rule|Ps2], N0, N1, Ps),
+	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([Next|_], CurrentProofs, Proof) :-
@@ -715,17 +723,18 @@ write_axioms(A) :-
 
 
 prove1([vertex(_, [], _, [])], _, []) :-
+        format(user_error, '~N= Sequent proved!~n', []),
         !.
-prove1(G0, Roots0, [ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest0]) :-
+prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
         portray_graph(G0),
-	compute_axioms(Roots0, G0, _ATree, [tuple(AtV0,AtO0,N0,Choices)|_Axioms]),
-        select(vertex(N0, [A|As0], FVs0, []), G0, G1),
-        select(pos(At,AtV0,AtO0,X,Vars), [A|As0], As),
+	compute_axioms(Roots0, G0, _ATree, [tuple(AtV1,AtO1,N1,Choices)|_Axioms]),
+        select(vertex(N1, [A|As0], FVs0, []), G0, G1),
+        select(pos(At,AtV1,AtO1,X,Vars), [A|As0], As),
 	/* forced choice for positive atom */
 	!,
-	member(tuple(AtV1,AtO1,N1), Choices),
-	select(vertex(N1, [B|Bs0], FVs1, Ps), G1, G2),
-	select(neg(At,AtV1,AtO1,X,Vars), [B|Bs0], Bs),
+	member(tuple(AtV0,AtO0,N0), Choices),
+	select(vertex(N0, [B|Bs0], FVs1, Ps), G1, G2),
+	select(neg(At,AtV0,AtO0,X,Vars), [B|Bs0], Bs),
         \+ cyclic(Ps, G2, N0),
 	'$AXIOMS'(Ax0),
 	Ax is Ax0 + 1,
@@ -742,7 +751,7 @@ prove1(G0, Roots0, [ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest0]) :-
 	connected(G),
 	prove1(G, Roots, Rest).
 prove1(G1, _, _) :-
-        format(user_error, '~nFailed!~n', []),
+        format(user_error, '~N= Done!~n', []),
         portray_graph(G1),
         fail.
 
