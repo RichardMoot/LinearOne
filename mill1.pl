@@ -1,4 +1,4 @@
-:- use_module(ordset, [ord_union/3,ord_insert/3,ord_delete/3,ord_member/2,ord_key_member/3,ord_key_insert/4]).
+:- use_module(ordset, [ord_union/3,ord_insert/3,ord_delete/3,ord_member/2,ord_key_member/3,ord_key_insert/4,ord_select/3]).
 :- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
@@ -64,9 +64,7 @@ multi_prove(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Roots, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
-	compute_ancestors(Roots, Vs0, _ATree, Axioms),
-	print_list(Axioms),
-        prove1(Vs0, Trace),
+        prove1(Vs0, Roots, Trace),
 	/* proof found */
 	/* update proof statistics */
 	'$PROOFS'(N0),
@@ -81,31 +79,38 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace).
 
-% compute for each node in the graph the set of its ancestors.
-% NOTE: we presuppose acyclicity throughout!
+% = compute most restricted axioms.
 
-compute_ancestors(Root, Graph, ATree, Axioms) :-
+compute_axioms(Root, Graph, ATree, Axioms) :-
 	btree_init(Tree0),
-	compute_ancestors1(Root, Graph, Tree0, Tree),
+	compute_ancestors(Root, Graph, Tree0, Tree),
 	collect_atoms(Graph, ATree),
 	best_axiom(ATree, Tree, Axioms).
 
-compute_ancestors1([], _, Tree, Tree).
-compute_ancestors1([A|As], Graph, Tree0, Tree) :-
+% compute for each node in the graph the set of its ancestors.
+% NOTE: we presuppose acyclicity throughout!
+
+compute_ancestors(Roots, Graph, Tree0, Tree) :-
+	compute_ancestors(Roots, Graph, [], _, Tree0, Tree).
+
+compute_ancestors([], _, Visited, Visited, Tree, Tree).
+compute_ancestors([A|As], Graph, Visited0, Visited, Tree0, Tree) :-
 	btree_insert(Tree0, A, [A], Tree1),
-	visit(A, Graph, [A], [A], _, Tree1, Tree2),
-        compute_ancestors1(As, Graph, Tree2, Tree).
+	ord_insert(Visited0, A, Visited1),
+	visit(A, Graph, [A], Visited1, Visited2, Tree1, Tree2),
+        compute_ancestors(As, Graph, Visited2, Visited, Tree2, Tree).
 
 % = visit(+Vertex, +Graph, ?Ancestors, +Visited).
 
 visit(N, Graph, Anc, V0, V, Tree0, Tree) :-
 	graph_get(N, Graph, Edges),
 	next_edges(Edges, Next0, []),
+	sort(Next0, Next1),
 	/* for cross edges, add the current ancestors */
-	ord_intersect(Next0, V0, Cross),
+	ord_intersect(Next1, V0, Cross),
 	update_cross(Cross, Anc, Tree0, Tree1),
 	/* remove already visited nodes */
-	ord_subtract(Next0, V0, Next),
+	ord_subtract(Next1, V0, Next),
 	visit_next(Next, Graph, Anc, V0, V, Tree1, Tree).
 
 visit_next([], _, _, V, V, Tree, Tree).
@@ -120,7 +125,7 @@ update_cross([], _, Tree, Tree).
 update_cross([C|Cs], Anc, Tree0, Tree) :-
 	btree_get_replace(Tree0, C, As0, As, Tree1),
 	ord_union(Anc, As0, As),
-	update_forward(Cs, Anc, Tree1, Tree).
+	update_cross(Cs, Anc, Tree1, Tree).
 
 next_edges([], N, N).
 next_edges([P|Ps], N0, N) :-
@@ -709,18 +714,21 @@ write_axioms(A) :-
    ).
 
 
-prove1([vertex(_, [], _, [])], []) :-
+prove1([vertex(_, [], _, [])], _, []) :-
         !.
-prove1(G0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
+prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
         portray_graph(G0),
+	compute_axioms(Roots0, G0, _ATree, [tuple(AtV0,AtO0,N0,Choices)|_Axioms]),
+%	print_list(Axioms),
         select(vertex(N0, [A|As0], FVs0, []), G0, G1),
-        select(neg(At,AtV0,AtO0,X,Vars), [A|As0], As),
+        select(pos(At,AtV0,AtO0,X,Vars), [A|As0], As),
 	/* forced choice for negative atom */
 	/* TODO: replace with choice of atom with the */
         /* least possible links */
 	!,
+	member(tuple(AtV1,AtO1,N1), Choices),
 	select(vertex(N1, [B|Bs0], FVs1, Ps), G1, G2),
-	select(pos(At,AtV1,AtO1,X,Vars), [B|Bs0], Bs),
+	select(neg(At,AtV1,AtO1,X,Vars), [B|Bs0], Bs),
         \+ cyclic(Ps, G2, N0),
 	'$AXIOMS'(Ax0),
 	Ax is Ax0 + 1,
@@ -730,16 +738,36 @@ prove1(G0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	merge_fvs(FVs0, FVs1, FVs),
 	replace(G2, N0, N1, G3),
 	replace_pars(Ps, N0, N1, Rs),
+	update_roots(Roots0, N0, N1, Roots1),
 	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
         portray_graph(G4),
-	contract(G4, G, Rest0, Rest),
+	contract(G4, G, Rest0, Rest, Roots1, Roots),
 	connected(G),
-	prove1(G, Rest).
-prove1(G1, _) :-
+	prove1(G, Roots, Rest).
+prove1(G1, _, _) :-
         format(user_error, '~nFailed!~n', []),
         portray_graph(G1),
         fail.
 
+% update_roots
+
+update_roots(Roots0, N0, N1, Roots) :-
+   (
+	/* delete N0 if it is a root */	
+        ord_select(N0, Roots0, Roots1)
+   ->
+        Bool = 1
+   ;
+        Roots1 = Roots0, Bool = 0
+   ),
+         /* delete N1 only when N0 wasn't a root */
+   (     Bool =:= 0, ord_select(N1, Roots1, Roots)
+   ->
+	true
+   ;		   
+        Roots = Roots1
+   ).
+			
 % test for cyclicity
 % G2 contains unvisited nodes
 % P contains paths from current node
@@ -827,15 +855,15 @@ reduce_fvs([V|Vs], Ws) :-
 % these are Danos-style contractions, performed in a first-found
 % search.
 
-contract(G0, G, L0, L) :-
-        contract1(G0, G1, L0, L1),
+contract(G0, G, L0, L, R0, R) :-
+        contract1(G0, G1, L0, L1, R0, R1),
         portray_graph(G1),
         !,
-        contract(G1, G, L1, L).
-contract(G, G, L, L).
+        contract(G1, G, L1, L, R1, R).
+contract(G, G, L, L, R, R).
 
 % par contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest) :-
+contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest, Roots0, Roots) :-
         select(vertex(N0, As, FVsA, Ps0), G0, G1),
         select(par(N1, N1), Ps0, Ps),
 	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
@@ -845,9 +873,10 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest) :-
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_pars(Rs0, N0, N1, Rs),
-	replace(G2, N0, N1, G).
+	replace(G2, N0, N1, G),
+        update_roots(Roots0, N0, N1, Roots).
 % forall contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest) :-
+contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
         select(vertex(N0, As, FVsA, Ps0), G0, G1),
         select(univ(U, N1), Ps0, Ps),
 	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
@@ -858,7 +887,8 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest) :-
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_pars(Rs0, N0, N1, Rs),
-	replace(G2, N0, N1, G).
+	replace(G2, N0, N1, G),
+        update_roots(Roots0, N0, N1, Roots).
 
 
 % = no_occurrences(+Graph, +VarNum)
@@ -910,10 +940,11 @@ replace_item(X, N0, N1, Y) :-
 %
 % transforms sequents, antecedents and (polarized) formulas into graphs
 
-unfold_sequent(List, Goal, [N0|Roots], Vs0, W, Sem) :-
+unfold_sequent(List, Goal, Roots, Vs0, W, Sem) :-
         retractall(node_formula(_,_,_)),
-	unfold_antecedent(List, 0, W, 0, N0, 0, M, Roots, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
+	unfold_antecedent(List, 0, W, 0, N0, 0, M, Roots0, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
 	N is N0 + 1,
+	append(Roots0, [N0], Roots),
 	number_subformulas_pos(Goal, N0, N, _, _-NGoal),
         assert(node_formula(N0, pos, NGoal)),
 	free_vars_p(Goal, FVsG),
