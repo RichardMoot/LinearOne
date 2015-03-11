@@ -5,6 +5,7 @@
 :- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6]).
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
+:- use_module(replace, [replace_graph/6,replace_proofs_labels/4,replace_formula/5]).
 :- use_module(tree234, [btree_init/1,btree_insert/4,btree_get/3,btree_get_replace/5,btree_to_list/2]).
 :- use_module(lexicon, [parse/2,parse_all/0]).
 
@@ -12,6 +13,8 @@
 :- dynamic node_formula/3.
 
 generate_diagnostics(false).
+
+% = some definitions for pretty-printing
 
 portray(neg(F, X, L)) :-
 	atom(F),
@@ -57,6 +60,46 @@ portray(lambda(X,M)) :-
 portray(bool(P,B,Q)) :-
 	format('(~p ~p ~p)', [P,B,Q]).
 
+% =======================================
+% = Top-level theorem prover predicates =
+% =======================================
+
+% = prove(+Antecedent, +GoalFormula)
+
+prove(Antecedent, Goal) :-
+	prove(Antecedent, Goal, []).
+
+% = prove(+Antecedent, +GoalFormula, +LexicalSubstitutions)
+
+prove(Antecedent, Goal, LexSem) :-
+	initialisation,
+	multi_prove(Antecedent, Goal, LexSem),
+	fail.
+prove(_, _, _) :-
+        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
+	final_statistics.
+
+initialisation :-
+	/* LaTeX output */
+	graph_header,
+	proof_header,
+	/* reset counters */
+	retractall('$PROOFS'(_)),
+	assert('$PROOFS'(0)),
+	retractall('$AXIOMS'(_)),
+	assert('$AXIOMS'(0)).
+
+final_statistics :-
+	/* print final statistics and generate pdf files */
+	'$AXIOMS'(A),
+	'$PROOFS'(N),
+	write_proofs(N),
+	write_axioms(A),
+	/* LaTeX graphs */
+	graph_footer(N),
+	/* LaTeX proofs */
+	proof_footer.
+
 
 
 multi_prove(Antecedent, Goal) :-
@@ -80,6 +123,44 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	latex_semantics(Sem),
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace).
+
+
+prove1([vertex(_, [], _, [])], _, []) :-
+        format(user_error, '~N= Proof found!~n', []),
+        !.
+prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
+        portray_graph(G0),
+	compute_axioms(Roots0, G0, _ATree, [tuple(AtV1,AtO1,N1,Choices)|_Axioms]),
+        select(vertex(N1, [A|As0], FVs0, Ps0), G0, G1),
+        select(pos(At,AtV1,AtO1,X,Vars), [A|As0], As),
+	/* forced choice for positive atom */
+	!,
+	member(tuple(AtV0,AtO0,N0), Choices),
+	select(vertex(N0, [B|Bs0], FVs1, Ps1), G1, G2),
+	select(neg(At,AtV0,AtO0,X,Vars), [B|Bs0], Bs),
+        \+ cyclic(Ps0, G2, N0),
+        \+ cyclic(Ps1, G2, N1),
+	'$AXIOMS'(Ax0),
+	Ax is Ax0 + 1,
+	retractall('$AXIOMS'(_)),
+	assert('$AXIOMS'(Ax)),
+	append(As, Bs, Cs),
+	append(Ps0, Ps1, Ps),
+	merge_fvs(FVs0, FVs1, FVs),
+	replace_graph(G2, Ps, N0, N1, G3, Rs),
+%	replace(G2, N0, N1, G3),
+%	replace_pars(Ps, N0, N1, Rs),
+	update_roots_axiom(Roots0, N0, N1, Roots1),
+	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
+        portray_graph(G4),
+	contract(G4, G, Rest0, Rest, Roots1, Roots),
+	connected(G),
+	prove1(G, Roots, Rest).
+
+% =======================================
+% =            Dancing links            =
+% =======================================
+
 
 
 % = compute most restricted axioms.
@@ -271,53 +352,6 @@ try_link_atom([tuple(IdN1,IdN2,NumN,VarsN)|Ns], Options0, NO0, tuple(IdP1,IdP2,N
   ),
         try_link_atom(Ns, Options, NO, tuple(IdP1,IdP2,NumP,VarsP), ATree, Min0, Min, Links0, Links).
 
-% = prove(+Antecedent, +GoalFormula)
-
-prove(Antecedent, Goal) :-
-	prove(Antecedent, Goal, []).
-
-prove(Antecedent, Goal, LexSem) :-
-	initialisation,
-	multi_prove(Antecedent, Goal, LexSem),
-	fail.
-prove(_, _, _) :-
-        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
-	final_statistics.
-
-initialisation :-
-	/* LaTeX output */
-	graph_header,
-	proof_header,
-	/* reset counters */
-	retractall('$PROOFS'(_)),
-	assert('$PROOFS'(0)),
-	retractall('$AXIOMS'(_)),
-	assert('$AXIOMS'(0)).
-
-final_statistics :-
-	/* print final statistics and generate pdf files */
-	'$AXIOMS'(A),
-	'$PROOFS'(N),
-	write_proofs(N),
-	write_axioms(A),
-	/* LaTeX graphs */
-	graph_footer(N),
-	/* LaTeX proofs */
-	proof_footer.
-
-
-proof_diagnostics(Msg, P) :-
-	proof_diagnostics(Msg, [], P).
-proof_diagnostics(Msg, Vs, P) :-
-   (
-	generate_diagnostics(true)
-    ->
-	format(latex, Msg, Vs),
-	latex_proof(P)
-    ;
-        true
-    ).
-
 generate_proof(Vs, Trace) :-
 	node_proofs(Vs, Ps),
 	combine_proofs(Trace, Ps, Proof),
@@ -452,39 +486,10 @@ combine(P1, P2, N0, N1, N1-Rule) :-
         Rule = rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])
    ).
 
-/* I don't believe it's necessary to do replacements inside the subproofs Rs here */
-
-replace_proofs_labels([], _, _, []).
-replace_proofs_labels([R0|Rs0], X, Y, [R|Rs]) :-
-	replace_proof_labels(R0, X, Y, R),
-	replace_proofs_labels(Rs0, X, Y, Rs).
-
-replace_proof_labels(N0-R0, X, Y, N-R) :-
-	replace_item(N0, X, Y, N),
-	replace_proof_labels(R0, X, Y, R).
-replace_proof_labels(rule(N, As0, F0, Rs), X, Y, rule(N, As, F, Rs)) :-
-	replace_antecedent_labels(As0, X, Y, As),
-	replace_formula_labels(F0, X, Y, F).
-
-replace_antecedent_labels([], _, _, []).
-replace_antecedent_labels([A|As], X, Y, [B|Bs]) :-
-	replace_formula_labels(A, X, Y, B),
-	replace_antecedent_labels(As, X, Y, Bs).
-
-replace_formula_labels(N0-F0, X, Y, N-F) :-
-	replace_item(N0, X, Y, N),
-	replace_formula_labels(F0, X, Y, F).
-replace_formula_labels(at(A,B,C,D), _, _, at(A,B,C,D)).
-replace_formula_labels(impl(A0,B0), X, Y, impl(A,B)) :-
-	replace_formula_labels(A0, X, Y, A),
-	replace_formula_labels(B0, X, Y, B).
-replace_formula_labels(p(A0,B0), X, Y, p(A,B)) :-
-	replace_formula_labels(A0, X, Y, A),
-	replace_formula_labels(B0, X, Y, B).
-replace_formula_labels(forall(V,A0), X, Y, forall(V,A)) :-
-	replace_formula_labels(A0, X, Y, A).
-replace_formula_labels(exists(V,A0), X, Y, exists(V,A)) :-
-	replace_formula_labels(A0, X, Y, A).
+% = unify_atoms(Atom1, Atom2)
+%
+% true if Atom1 and Atom2 unify when disregarding the unique two-integer
+% identifiers
 
 unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
 
@@ -576,16 +581,11 @@ create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,Proof
         !,
         create_neg_subproof(A, N, L0, L1, ProofA),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
-%	rename_bound_variables(A, A2),
 	rename_bound_variables(B, B2),
 	copy_term(B2, B3),
-%	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
 	ProofA = rule(_, Gamma, N-A3, _),
 	ProofB = rule(_, Delta, _, _),
-%	replace_list(B3, N, Delta0, _, Delta),
 	select_formula(B, N, Delta, Delta_B),
-	%	format(user_error, '~NB :~w~nB2: ~w~n', [B,B2]),
-	% B2 can have instantiated forall, so use B3
 	append(Gamma, [N-impl(N-A3,N-B3)|Delta_B], GD).
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
@@ -593,7 +593,7 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
 	/* rename to make sure bound variables aren't unified */
-	replace_list(A2, N, Gamma, N-forall(Y,N-A3), GammaP),
+	replace_formula(A2, N, N-forall(Y,N-A3), Gamma, GammaP),
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
@@ -617,6 +617,11 @@ create_neg_subproof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [
 create_neg_subproof(A0, N, L, L, rule(ax, [N-A], N-A, [])) :-
 	rename_bound_variables(A0, A).
 
+
+% = rename_bound_variable(+LabeledFormulaIn, +InVariable, ?OutVariable, ?LabeldFormulaOut)
+%
+% true if LabeledFormulaOut is identical to LabeledFormulaIn except that all bound
+% occurrences of InVariable have been renamed to OutVariable.
 
 rename_bound_variable(N-F0, X, Y, N-F) :-
 	rename_bound_variable(F0, X, Y, F).
@@ -684,105 +689,14 @@ rename_bound_var(V, Map, W) :-
 	W = V
    ).
 
-print_list([]).
-print_list([A|As]) :-
-	format(user_error, '~p~n', [A]),
-	print_list(As).
+% = select(+Formula, +Index, +List, -Rest)
+%
+% selects Index-Formula pair from list, using forced-choice
+% determinism
 
 select_formula(F, N, L0, L) :-
-%   (
-%        F = at(_,_,_,_)
-%   ->
-%	select(F, L0, L)
-%   ;
         select(N-F, L0, L),
-%   ),
         !.
-
-replace_formula(F0, N, F, L0, L) :-
-   (
-        F0 = at(_,_,_,_)
-   ->
-	select(F0, L0, F, L)
-   ;
-        select(N-F0, L0, F, L)
-   ),
-        !.
-
-
-%replace_list(at(A,C,N,Vars), _, List0, R, List) :-
-%	!,
-%	replace_list(List0, at(A,C,N,Vars), R, List).
-replace_list(F, N, List0, R, List) :-
-	replace_list(List0, N-F, R, List). 
-replace_list([], _, _, []).
-replace_list([A|As], C, D, [B|Bs]) :-
-    (
-       A = C
-    ->
-       B = D
-    ;
-       B = A
-    ),
-       replace_list(As, C, D, Bs).
-
-
-write_proofs(P) :-
-   (
-       P =:= 0
-   ->
-       format(user_output, 'No proofs found!~n', [])
-   ;
-       P =:= 1
-   ->
-       format(user_output, '1 proof found.~n', [])
-   ;
-       format(user_output, '~D proofs found.~n', [P])
-   ).
-write_axioms(A) :-
-   (
-       A =:= 0
-   ->
-       format(user_output, 'No axioms performed!~n', [])
-   ;
-       A =:= 1
-   ->
-       format(user_output, '1 axiom performed.~n', [])
-   ;
-       format(user_output, '~D axioms performed.~n', [A])
-   ).
-
-
-prove1([vertex(_, [], _, [])], _, []) :-
-        format(user_error, '~N= Proof found!~n', []),
-        !.
-prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
-        portray_graph(G0),
-	compute_axioms(Roots0, G0, _ATree, [tuple(AtV1,AtO1,N1,Choices)|_Axioms]),
-        select(vertex(N1, [A|As0], FVs0, Ps0), G0, G1),
-        select(pos(At,AtV1,AtO1,X,Vars), [A|As0], As),
-	/* forced choice for positive atom */
-	!,
-	member(tuple(AtV0,AtO0,N0), Choices),
-	select(vertex(N0, [B|Bs0], FVs1, Ps1), G1, G2),
-	select(neg(At,AtV0,AtO0,X,Vars), [B|Bs0], Bs),
-        \+ cyclic(Ps0, G2, N0),
-        \+ cyclic(Ps1, G2, N1),
-	'$AXIOMS'(Ax0),
-	Ax is Ax0 + 1,
-	retractall('$AXIOMS'(_)),
-	assert('$AXIOMS'(Ax)),
-	append(As, Bs, Cs),
-	append(Ps0, Ps1, Ps),
-	merge_fvs(FVs0, FVs1, FVs),
-	replace(G2, N0, N1, G3),
-	replace_pars(Ps, N0, N1, Rs),
-	update_roots_axiom(Roots0, N0, N1, Roots1),
-	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
-        portray_graph(G4),
-	contract(G4, G, Rest0, Rest, Roots1, Roots),
-	connected(G),
-	prove1(G, Roots, Rest).
 
 % update_roots
 
@@ -916,8 +830,9 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest, Roots0, Roots) 
 	append(As, Bs, Cs),
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
-	replace_pars(Rs0, N0, N1, Rs),
-	replace(G2, N0, N1, G),
+	replace_graph(G2, Rs0, N0, N1, G, Rs),
+%	replace_pars(Rs0, N0, N1, Rs),
+%	replace(G2, N0, N1, G),
         update_roots_contraction(Roots0, N0, N1, Roots).
 % forall contraction
 contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
@@ -930,8 +845,9 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Root
 	append(As, Bs, Cs),
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
-	replace_pars(Rs0, N0, N1, Rs),
-	replace(G2, N0, N1, G),
+	replace_graph(G2, Rs0, N0, N1, G, Rs),
+%	replace_pars(Rs0, N0, N1, Rs),
+%	replace(G2, N0, N1, G),
         update_roots_contraction(Roots0, N0, N1, Roots).
 
 
@@ -949,36 +865,6 @@ no_occurrences1([], _).
 no_occurrences1([V|Vs], U) :-
         var(U) \== V,
         no_occurrences1(Vs, U).
-
-
-% = replace(+InGraph,+InNodeNum,+OutNodeNum,+Outgraph)
-%
-% renumbers InNode for OutNode throughout Graph.
-
-replace([], _, _, []).
-replace([vertex(N,As,FVs,Ps0)|Rest0], N0, N1, [vertex(N,As,FVs,Ps)|Rest]) :-
-        replace_pars(Ps0, N0, N1, Ps),
-        replace(Rest0, N0, N1, Rest).
-
-replace_pars([], _, _, []).
-replace_pars([P0|Ps0], N0, N1, [P|Ps]) :-
-        replace_par(P0, N0, N1, P),
-        replace_pars(Ps0, N0, N1, Ps).
-
-replace_par(par(X,Y), N0, N1, par(V,W)) :-
-        replace_item(X, N0, N1, V),
-        replace_item(Y, N0, N1, W).
-replace_par(univ(M,X), N0, N1, univ(M,Y)) :-
-        replace_item(X, N0, N1, Y).
-
-replace_item(X, N0, N1, Y) :-
-    (
-	X = N0
-    ->
-	Y = N1
-    ;
-        Y = X
-    ).
 
 % = unfolding
 %
@@ -1177,6 +1063,15 @@ free_vars(forall(X,A), Vars) :-
         free_vars(A, Vars0),
         ord_delete(Vars0, X, Vars).
 
+% =======================================
+% =   Auxiliary replacement predicates  =
+% =======================================
+
+
+% =======================================
+% =             Input/output            =
+% =======================================
+
 % = print_trace(+Stream, +List).
 
 print_trace(Stream, [A|As]) :-
@@ -1188,6 +1083,51 @@ print_trace([], A, Stream) :-
 print_trace([B|Bs], A, Stream) :-
         format(Stream, '~p~n', [A]),
         print_trace(Bs, B, Stream).
+
+
+proof_diagnostics(Msg, P) :-
+	proof_diagnostics(Msg, [], P).
+proof_diagnostics(Msg, Vs, P) :-
+   (
+	generate_diagnostics(true)
+    ->
+	format(latex, Msg, Vs),
+	latex_proof(P)
+    ;
+        true
+    ).
+
+print_list([]).
+print_list([A|As]) :-
+	format(user_error, '~p~n', [A]),
+	print_list(As).
+
+write_proofs(P) :-
+   (
+       P =:= 0
+   ->
+       format(user_output, 'No proofs found!~n', [])
+   ;
+       P =:= 1
+   ->
+       format(user_output, '1 proof found.~n', [])
+   ;
+       format(user_output, '~D proofs found.~n', [P])
+   ).
+
+write_axioms(A) :-
+   (
+       A =:= 0
+   ->
+       format(user_output, 'No axioms performed!~n', [])
+   ;
+       A =:= 1
+   ->
+       format(user_output, '1 axiom performed.~n', [])
+   ;
+       format(user_output, '~D axioms performed.~n', [A])
+   ).
+
 
 
 % = some test predicates
