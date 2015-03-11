@@ -8,9 +8,10 @@ option(prolog_like).
 proof_header :-
       ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
-	format(latex, '\\documentclass{article}~2n', []),
+	format(latex, '\\documentclass[leqno]{article}~2n', []),
 	format(latex, '\\usepackage[a2paper]{geometry}~n', []),
 	format(latex, '\\usepackage{proof}~n', []),
+	format(latex, '\\usepackage{amsmath}~n', []),
 	format(latex, '\\usepackage{amssymb}~2n', []),
 	format(latex, '\\begin{document}~2n', []).
 
@@ -183,9 +184,9 @@ print_var1(3, v).
 print_var1(4, w).
 
 latex_semantics(Sem) :-
-	format(latex, '~2n$$~n', []),	
+	format(latex, '~2n\\begin{equation}~n', []),	
 	latex_semantics(Sem, 0),
-	format(latex, '~n$$~2n', []).
+	format(latex, '~n\\end{equation}~2n', []).
 
 latex_semantics(true, _) :-
 	!,
