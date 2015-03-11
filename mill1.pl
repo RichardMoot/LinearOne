@@ -74,7 +74,7 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	/* generate semantics */
 	substitute_sem(LexSem, Sem0, Sem1),
 	reduce_sem(Sem1, Sem),
-	format(user_error, '~NSemantics ~w: ~p~n', [N,Sem]),
+	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace).
@@ -188,13 +188,39 @@ best_axiom1(List, ATree, Links) :-
 	best_axiom1(List, ATree, min, _Min, [], Links).
 
 best_axiom1([], _, Min, Min, Links, Links).
-best_axiom1([_AtName-atoms(Pos, Neg)|Rest], ATree, Min0, Min, Links0, Links) :-
+best_axiom1([AtName-atoms(Pos, Neg)|Rest], ATree, Min0, Min, Links0, Links) :-
 	/* count check */
 	length(Pos, LP),
 	length(Neg, LN),
-	LN == LP,
+	count_check(LN, LP, AtName, Rest),
 	try_link_atoms(Pos, Neg, ATree, Min0, Min1, Links0, Links1),
 	best_axiom1(Rest, ATree, Min1, Min, Links1, Links).
+
+count_check(LN, LP, AtName, Rest) :-
+	Count is LP - LN,
+   (
+	Count =:= 0
+   ->				  
+        true
+   ;		   
+        format(user_error, '~NCount check failure: count(~w)= ~w', [AtName, Count]),
+        print_count_offenders(Rest),
+        fail
+   ).
+print_count_offenders([]) :-
+	nl(user_error).
+print_count_offenders([AtName-atoms(Pos, Neg)|Rest]) :-
+	length(Pos, LP),
+	length(Neg, LN),
+	Count is LP - LN,
+   (
+	Count =:= 0
+   ->				  
+        true
+   ;		   
+        format(user_error, ', count(~w)= ~w', [AtName, Count])
+   ),
+ 	print_count_offenders(Rest).
 
 try_link_atoms(Ps, Ns, ATree, Min0, Min, Links) :-
 	try_link_atoms(Ps, Ns, ATree, Min0, Min, [], Links).
@@ -251,6 +277,7 @@ prove(Antecedent, Goal, LexSem) :-
 	multi_prove(Antecedent, Goal, LexSem),
 	fail.
 prove(_, _, _) :-
+        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
 	final_statistics.
 
 initialisation :-
@@ -267,8 +294,8 @@ final_statistics :-
 	/* print final statistics and generate pdf files */
 	'$AXIOMS'(A),
 	'$PROOFS'(N),
-	write_axioms(A),
 	write_proofs(N),
+	write_axioms(A),
 	/* LaTeX graphs */
 	graph_footer(N),
 	/* LaTeX proofs */
@@ -706,7 +733,7 @@ write_proofs(P) :-
    ->
        format(user_output, '1 proof found.~n', [])
    ;
-       format(user_output, '~p proofs found.~n', [P])
+       format(user_output, '~D proofs found.~n', [P])
    ).
 write_axioms(A) :-
    (
@@ -718,7 +745,7 @@ write_axioms(A) :-
    ->
        format(user_output, '1 axiom performed.~n', [])
    ;
-       format(user_output, '~p axioms performed.~n', [A])
+       format(user_output, '~D axioms performed.~n', [A])
    ).
 
 
@@ -752,10 +779,6 @@ prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	contract(G4, G, Rest0, Rest, Roots1, Roots),
 	connected(G),
 	prove1(G, Roots, Rest).
-prove1(G1, _, _) :-
-        format(user_error, '~N= Done!~n', []),
-        portray_graph(G1),
-        fail.
 
 % update_roots
 

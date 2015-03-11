@@ -74,6 +74,7 @@ parse(ListOfWords, Goal0) :-
 	multi_prove(Formulas, Goal, LexSem),
 	fail.
 parse(_, _) :-
+        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
 	'$LOOKUP'(L),
 	write_lookups(L),
         final_statistics,
