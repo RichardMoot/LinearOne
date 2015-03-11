@@ -373,9 +373,17 @@ latex_atom(A0) :-
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textrm{~w}', [A]).
 
+% = unary_term(+Term)
+%
+% if unary_term(Term) is true of their argument, the unary connectives pi1,
+% pi2, neg, etc. will not put parentheses around this argument.
+
 unary_term(pi1(_)).
 unary_term(pi2(_)).
 unary_term(neg(_)).
 unary_term(possible(_)).
 unary_term(necessary(_)).
+unary_term(number_of(_)).
 unary_term(quant(_,_,_)).
+unary_term(true).
+unary_term(false).
