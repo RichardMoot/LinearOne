@@ -260,19 +260,49 @@ latex_semantics(pair(N,M), _NB) :-
 	format(latex, '\\langle ~@,~@\\rangle', [latex_semantics(N, 0), latex_semantics(M, 0)]).
 latex_semantics(pi1(N), _NB) :-
 	!,
-	format(latex, '\\pi_1(~@)', [latex_semantics(N, 0)]).
+    (
+	unary_term(N)
+    ->
+        format(latex, '\\pi_1 ~@', [latex_semantics(N, 0)])
+    ;	     
+        format(latex, '\\pi_1(~@)', [latex_semantics(N, 0)])
+    ).
 latex_semantics(pi2(N), _NB) :-
 	!,
-	format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)]).
+    (
+	unary_term(N)
+    ->
+        format(latex, '\\pi_2 ~@', [latex_semantics(N, 0)])
+    ;	     
+        format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)])
+    ).
 latex_semantics(neg(N), _NB) :-
 	!,
-	format(latex, '\\neg (~@)', [latex_semantics(N, 0)]).
+    (
+	unary_term(N)
+    ->
+        format(latex, '\\neg ~@', [latex_semantics(N, 0)])
+    ;	     
+        format(latex, '\\neg(~@)', [latex_semantics(N, 0)])
+    ).
 latex_semantics(possible(N), _NB) :-
 	!,
-	format(latex, '\\Diamond (~@)', [latex_semantics(N, 0)]).
+    (
+	unary_term(N)
+    ->
+        format(latex, '\\Diamond ~@', [latex_semantics(N, 0)])
+    ;	     
+        format(latex, '\\Diamond(~@)', [latex_semantics(N, 0)])
+    ).
 latex_semantics(necessary(N), _NB) :-
 	!,
-	format(latex, '\\Box (~@)', [latex_semantics(N, 0)]).
+    (
+	unary_term(N)
+    ->
+        format(latex, '\\Box ~@', [latex_semantics(N, 0)])
+    ;	     
+        format(latex, '\\Box(~@)', [latex_semantics(N, 0)])
+    ).
 latex_semantics(quant(Q,X,F), _NB) :-
 	!,
 	format(latex, '~@ ~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
@@ -335,3 +365,10 @@ latex_atom(A0) :-
 	atomic_list_concat(List, '_', A0),
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textrm{~w}', [A]).
+
+unary_term(pi1(_)).
+unary_term(pi2(_)).
+unary_term(neg(_)).
+unary_term(possible(_)).
+unary_term(necessary(_)).
+unary_term(quant(_,_,_)).

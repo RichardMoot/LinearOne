@@ -66,12 +66,7 @@ multi_prove(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Roots, Vs0, _W, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
-<<<<<<< HEAD
-	compute_ancestors(Roots, Vs0, _Tree, _Neg, _Pos),
-        prove1(Vs0, Trace),
-=======
         prove1(Vs0, Roots, Trace),
->>>>>>> dancing-links
 	/* proof found */
 	/* update proof statistics */
 	'$PROOFS'(N0),
@@ -86,60 +81,7 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace).
 
-<<<<<<< HEAD
-compute_ancestors(Root, Graph, Tree, Neg, Pos) :-
-	btree_init(Tree0),
-	compute_ancestors(Root, Graph, Tree0, Tree),
-	sort_atoms(Graph, Neg, Pos).
 
-compute_ancestors([], _, T, T).
-compute_ancestors([A|As], G, T0, T) :-
-	btree_insert(T0, A, [A], T1),
-	visit(A, G, [A], [A], _, T1, T2),
-        compute_ancestors(As, G, T2, T).
-
-sort_atoms(Graph, Neg, Pos) :-
-	sort_atoms(Graph, Neg, [], Pos, []).
-
-sort_atoms([], Ns, Ns, Ps, Ps).
-sort_atoms([vertex(N, Atoms, _, _)|Rest], Ns0, Ns, Ps0, Ps) :-
-	sort_atoms1(Atoms, N, Ns0, Ns1, Ps0, Ps1),
-	sort_atoms(Rest, Ns1, Ns, Ps1, Ps).
-
-sort_atoms1([], _, Ns, Ns, Ps, Ps).
-sort_atoms1([A|As], N, Ns0, Ns, Ps0, Ps) :-
-	sort_atom(A, N, Ns0, Ns1, Ps0, Ps1),
-	sort_atoms1(As, N, Ns1, Ns, Ps1, Ps).
-
-sort_atom(neg(A,B,C,D,E), Num, [Num-neg(A,B,C,D,E)|Ns], Ns, Ps, Ps).
-sort_atom(pos(A,B,C,D,E), Num, Ns, Ns, [Num-pos(A,B,C,D,E)|Ps], Ps).
-
-
-
-% = visit(+Vertex, +Graph, ?Ancestors, +Visited).
-
-visit(N, G, Anc, V0, V, T0, T) :-
-	graph_get(N, G, Edges),
-	next_edges(Edges, Next0, []),
-	ord_intersect(Next0, V0, Revisited),
-	update_revisited(Revisited, Anc, T0, T1),
-	ord_subtract(Next0, V0, Next),
-	visit_next(Next, G, Anc, V0, V, T1, T).
-
-visit_next([], _, _, V, V, T, T).
-visit_next([N|Ns], G, Anc0, V0, V, T0, T) :-
-	ord_insert(Anc0, N, Anc),
-	ord_insert(V0, N, V1),
-	btree_insert(T0, N, Anc, T1),
-	visit(N, G, Anc, V1, V2, T1, T2),
-	visit_next(Ns, G, Anc0, V2, V, T2, T).
-
-update_revisited([], _, Tree, Tree).
-update_revisited([R|Rs], Anc, Tree0, Tree) :-
-	btree_get_replace(Tree0, R, As0, As, Tree1),
-	ord_union(Anc, As0, As),
-	update_revisited(Rs, Anc, Tree1, Tree).
-=======
 % = compute most restricted axioms.
 
 compute_axioms(Root, Graph, ATree, Axioms) :-
@@ -195,7 +137,7 @@ update_cross([C|Cs], Anc, Tree0, Tree) :-
 update_cross1(C, Anc, Tree0, Tree) :-
 	btree_get_replace(Tree0, C, As0, As, Tree),
 	ord_union(Anc, As0, As).	
->>>>>>> dancing-links
+
 
 next_edges([], N, N).
 next_edges([P|Ps], N0, N) :-
@@ -208,8 +150,6 @@ next_par(univ(_,X), [X|Ns], Ns).
 graph_get(N, Graph, Ps) :-
 	  memberchk(vertex(N, _, _, Ps), Graph).
 
-<<<<<<< HEAD
-=======
 % get all atomic formulas from the graph
 
 collect_atoms(Graph, Tree) :-
@@ -333,7 +273,6 @@ try_link_atom([tuple(IdN1,IdN2,NumN,VarsN)|Ns], Options0, NO0, tuple(IdP1,IdP2,N
 
 % = prove(+Antecedent, +GoalFormula)
 
->>>>>>> dancing-links
 prove(Antecedent, Goal) :-
 	prove(Antecedent, Goal, []).
 
@@ -1045,15 +984,9 @@ replace_item(X, N0, N1, Y) :-
 %
 % transforms sequents, antecedents and (polarized) formulas into graphs
 
-<<<<<<< HEAD
-unfold_sequent(List, Goal, [N0|Roots], Vs0, W, Sem) :-
-        retractall(node_formula(_,_,_)),
-	unfold_antecedent(List, 0, W, 0, N0, 0, M, Roots, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
-=======
 unfold_sequent(List, Goal, Roots, Vs0, W, Sem) :-
         retractall(node_formula(_,_,_)),
 	unfold_antecedent(List, 0, W, 0, N0, 0, M, Roots0, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
->>>>>>> dancing-links
 	N is N0 + 1,
 	append(Roots0, [N0], Roots),
 	number_subformulas_pos(Goal, N0, N, _, _-NGoal),

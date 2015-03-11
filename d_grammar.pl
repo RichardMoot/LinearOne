@@ -32,6 +32,7 @@
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, xfy, \).
 
+
 :- abolish(lex/3), abolish(lex/4), abolish(test/1).
 
 % =======================

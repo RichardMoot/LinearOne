@@ -1,3 +1,32 @@
+% =================================
+% =        Hybrid grammar         =
+% =================================
+
+% This grammar contains many examples from the following articles.
+%
+% Yusuke Kubota and Robert Levine (2012) Gapping as Like-Category Coordination, in Denis Bechet and
+% Alexander Dikovsky (eds), Logical Aspects of Computational Linguistics 2012, Springer Lecture Notes
+% in Computer Science 7351, pp. 135-150.
+%
+% Yusuke Kubota and Robert Levine (2013) Determiner Gapping as Higher-Order Discontinuous Constituency
+% in Glyn Morrill and Mark-Jan Nederhof (eds), Formal Grammar 2013, Springer Lecture Notes in Computer
+% Science 8036, pp. 225-241.
+
+% define operators to allow for easier specification of
+% displacement calculus lexical entries.
+%
+% WARNING: in case of doubt, use parentheses to disambiguate!
+% I have deliberately not changed the definitions of standard
+% mathematical and logical operations of Prolog, notably |
+% (alternative of ; for use in DCG), \ and *.
+%
+% This means for example that:
+% c/d*b/c = ((c/d)*b)/c
+% which corresponds to a left-to-right evaluation of the
+% mathematical functions of division and multiplication.
+% However, we do have the familiar a/b/c = (a/b)/c and
+% c\b\a = (c\(b\a) and even a\b/c = (a\b)/c.
+
 :- op(400, xfy, \).
 
 :- abolish(lex/3), abolish(lex/4), abolish(test/1).
@@ -30,6 +59,7 @@ test(9) :-
         /*   100,274,098 inferences,   24.442 CPU in   26.802 seconds (91% CPU, 4102589 Lips) */
 	parse([no,dog,eats,whiskas,or,cat,alpo], s).
 test(10) :-
+	/* first-found */
         /* 103,252,051,786 inferences, 35323.877 CPU in 94279.214 seconds (37% CPU, 2923010 Lips) */
 	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
@@ -38,9 +68,9 @@ test(10) :-
 % =       Lexicon       =
 % =======================
 
-% = lex(+Word, +Formula, +Prosodics, +Semantics)
+% = lex(+Word, +Formula, +ProsodicTerm, +SemanticTerm)
 %
-% Prosodics must be a linear lambda term containing exactly one occurrences of Word
+% ProsodicTerm must be a linear lambda term containing exactly one occurrence of Word
 
 lex(leslie, np, leslie, l).
 lex(robin, np, robin, r).
