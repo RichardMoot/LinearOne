@@ -214,7 +214,7 @@ latex_semantics(tau, _) :-
 	format(latex, '\\tau ', []).
 latex_semantics(number_of(A), _) :-
 	!,
-	format(latex, '\\| ~@ \\|', [latex_semantics(A, 0)]).
+	format(latex, ' | ~@ |', [latex_semantics(A, 0)]).
 latex_semantics(A, _) :-
 	atomic(A),
 	!,

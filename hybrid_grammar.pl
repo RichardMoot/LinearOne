@@ -13,7 +13,7 @@
 % Science 8036, pp. 225-241.
 
 % define operators to allow for easier specification of
-% displacement calculus lexical entries.
+% hybrid type-logical grammar lexical entries.
 %
 % WARNING: in case of doubt, use parentheses to disambiguate!
 % I have deliberately not changed the definitions of standard
@@ -47,6 +47,8 @@ test(6) :-
 % comparative subdeletion
 test(7) :-
 	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
+test(b) :-
+	parse([john,ate,more2,donuts,than2,mary,bought,bagels], s).
 test(8) :-
 	parse([no,fish,walks], s).
 % NOTE: The next two examples make the need for a better atom selection strategy evident!
@@ -119,3 +121,9 @@ lex(or, ((((s|h_det)|tv)|((s|h_det)|tv))|((s|h_det)|tv)), lambda(Rho2,lambda(Rho
 lex(no2, (s|sneg), lambda(S,lambda(Z,appl(appl(S,no2),Z))), neg).
 lex(or2, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V,lambda(W,lambda(TV,bool(appl(W,TV),\/,appl(V,TV)))))).
 lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(Z,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),Z))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+
+
+% attempt to recreate the Morrill e.a. analysis
+
+lex(than2, cp/s, than2, lambda(X,X)).
+lex(more2, ((s|(cp|h_det))|(s|h_det)), lambda(Rho1,lambda(Rho2,lambda(Z,appl(appl(Rho2,lambda(Phi,lambda(Sigma,appl(Sigma,lambda(V,appl(more2,appl(Phi,V))))))),appl(appl(Rho1,lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z))))), lambda(F,lambda(G,bool(number_of(appl(G,lambda(P,lambda(Q,lambda(X,bool(appl(P,X),&,appl(Q,X))))))),gneq,number_of(appl(F,lambda(P2,lambda(Q2,lambda(Y,bool(appl(P2,Y),&,appl(Q2,Y))))))))))).
