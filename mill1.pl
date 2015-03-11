@@ -173,10 +173,11 @@ prove0(Antecedent, Goal) :-
 	prove0(Antecedent, Goal, []).
 
 prove0(Antecedent, Goal, LexSem) :-
-        unfold_sequent(Antecedent, Goal, Roots, Vs0, Sem0),
+        unfold_sequent(Antecedent, Goal, Roots, Graph0, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
-	copy_term(Vs0, Vs),
-        prove1(Vs0, Roots, Trace),
+	copy_term(Graph0, Graph),
+	portray_graph(Graph0),
+        prove1(Graph0, Roots, Trace),
 	/* proof found */
 	/* update proof statistics */
 	'$PROOFS'(N0),
@@ -189,7 +190,7 @@ prove0(Antecedent, Goal, LexSem) :-
 	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* generate a LaTeX proof */
-	generate_proof(Vs, Trace).
+	generate_proof(Graph, Trace).
 
 % = prove1(+Graph, +Roots, -Trace)
 %
@@ -204,20 +205,22 @@ prove1([vertex(_, [], _, [])], _, []) :-
 	/* a single vertex with atoms or links, we have succeeded ! */
         format(user_error, '~N= Proof found!~n', []),
         !.
-prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
-        portray_graph(G0),
-	compute_axioms(Roots0, G0, _ATree, [tuple(AtV1,AtO1,N1,Choices)|_Axioms]),
-        select(vertex(N1, [A|As0], FVs0, Ps0), G0, G1),
+prove1(Graph0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
+	/* forced choice for positive atom, using first-found from the best */
+	/* choices returned by the dancing links algorithm */
+	/* TODO: evaluate different tie-breakers here as a heuristic for selecting */
+	/* atoms likely to fail quickly */
+	compute_axioms(Roots0, Graph0, _ATree, [tuple(AtV1,AtO1,N1,Choices)|_Axioms]),
+        select(vertex(N1, [A|As0], FVs0, Ps0), Graph0, Graph1),
         select(pos(At,AtV1,AtO1,X,Vars), [A|As0], As),
-	/* forced choice for positive atom */
 	!,
 	/* enumerate choices for negative atom */
 	member(tuple(AtV0,AtO0,N0), Choices),
-	select(vertex(N0, [B|Bs0], FVs1, Ps1), G1, G2),
+	select(vertex(N0, [B|Bs0], FVs1, Ps1), Graph1, Graph2),
 	select(neg(At,AtV0,AtO0,X,Vars), [B|Bs0], Bs),
         /* verify no cycle has been created */
-        \+ cyclic(Ps0, G2, N0),
-        \+ cyclic(Ps1, G2, N1),
+        \+ cyclic(Ps0, Graph2, N0),
+        \+ cyclic(Ps1, Graph2, N1),
 	'$AXIOMS'(Ax0),
 	Ax is Ax0 + 1,
 	retractall('$AXIOMS'(_)),
@@ -227,15 +230,15 @@ prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	append(As, Bs, Cs),
 	append(Ps0, Ps1, Ps),
 	merge_fvs(FVs0, FVs1, FVs),
-	replace_graph(G2, Ps, N0, N1, G3, Rs),
+	replace_graph(Graph2, Ps, N0, N1, Graph3, Rs),
 	update_roots_axiom(Roots0, N0, N1, Roots1),
-	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
-        portray_graph(G4),
+	Graph4 = [vertex(N1,Cs,FVs,Rs)|Graph3],
+        portray_graph(Graph4),
 	/* perform Danos-style graph contractions */
-	contract(G4, G, Rest0, Rest, Roots1, Roots),
+	contract(Graph4, Graph, Rest0, Rest, Roots1, Roots),
 	/* verify the result is (at least potentially) connected */
-	connected(G),
-	prove1(G, Roots, Rest).
+	connected(Graph),
+	prove1(Graph, Roots, Rest).
 
 % =======================================
 % =              Proof nets             =
@@ -251,37 +254,37 @@ prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 % a difference list) and updates the root nodes of the graph (using
 % an accumulator).
 
-contract(G0, G, L0, L, R0, R) :-
-        contract1(G0, G1, L0, L1, R0, R1),
-        portray_graph(G1),
+contract(Graph0, Graph, L0, L, R0, R) :-
+        contract1(Graph0, Graph1, L0, L1, R0, R1),
+        portray_graph(Graph1),
         !,
-        contract(G1, G, L1, L, R1, R).
-contract(G, G, L, L, R, R).
+        contract(Graph1, Graph, L1, L, R1, R).
+contract(Graph, Graph, L, L, R, R).
 
 % par contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest, Roots0, Roots) :-
-        select(vertex(N0, As, FVsA, Ps0), G0, G1),
+contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-par(N1)|Rest], Rest, Roots0, Roots) :-
+        select(vertex(N0, As, FVsA, Ps0), Graph0, Graph1),
         select(par(N1, N1), Ps0, Ps),
-	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
-	\+ cyclic(Qs, G2, N0),
+	select(vertex(N1, Bs, FVsB, Qs), Graph1, Graph2),
+	\+ cyclic(Qs, Graph2, N0),
 	!,
 	append(As, Bs, Cs),
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
-	replace_graph(G2, Rs0, N0, N1, G, Rs),
+	replace_graph(Graph2, Rs0, N0, N1, Graph, Rs),
         update_roots_contraction(Roots0, N0, N1, Roots).
 % forall contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
-        select(vertex(N0, As, FVsA, Ps0), G0, G1),
+contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
+        select(vertex(N0, As, FVsA, Ps0), Graph0, Graph1),
         select(univ(U, N1), Ps0, Ps),
-	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
+	select(vertex(N1, Bs, FVsB, Qs), Graph1, Graph2),
 	no_occurrences1(FVsA, U),
-	no_occurrences(G2, U),
+	no_occurrences(Graph2, U),
 	!,
 	append(As, Bs, Cs),
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
-	replace_graph(G2, Rs0, N0, N1, G, Rs),
+	replace_graph(Graph2, Rs0, N0, N1, Graph, Rs),
         update_roots_contraction(Roots0, N0, N1, Roots).
 
 
@@ -290,30 +293,30 @@ contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Root
 % P contains paths from current node
 % N is the node to reach for a cycle.
 
-cyclic([P|_], G2, N) :-
-    cyclic1(P, G2, N).
-cyclic([_|Ps], G2, N) :-
-    cyclic(Ps, G2, N).
+cyclic([P|_], Graph, N) :-
+    cyclic1(P, Graph, N).
+cyclic([_|Ps], Graph, N) :-
+    cyclic(Ps, Graph, N).
 
-cyclic1(par(M,P), G2, N) :-
+cyclic1(par(M,P), Graph0, N) :-
     (
        N =:= M
     ;
        N =:= P
     ;
-       select(vertex(M,_,_,Ps), G2, G3),
-       cyclic(Ps, G3, N)
+       select(vertex(M,_,_,Ps), Graph0, Graph),
+       cyclic(Ps, Graph, N)
     ;
        P \== M,
-       select(vertex(P,_,_,Ps), G2, G3),
-       cyclic(Ps, G3, N)
+       select(vertex(P,_,_,Ps), Graph0, Graph),
+       cyclic(Ps, Graph, N)
     ).
-cyclic1(univ(_,M), G2, N) :-
+cyclic1(univ(_,M), Graph0, N) :-
     (
        N =:= M
      ;
-       select(vertex(M,_,_,Ps), G2, G3),
-       cyclic(Ps, G3, N)
+       select(vertex(M,_,_,Ps), Graph0, Graph),
+       cyclic(Ps, Graph, N)
     ).        
 
 % = connected(+Graph)
