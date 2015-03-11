@@ -500,6 +500,8 @@ number_subformulas_pos(impl(A,B), C, N0, N, M, M, C-impl(NA,NB)) :-
 % =======================================
 
 % = print_trace(+Stream, +List).
+%
+% output proof trace in List to Stream
 
 print_trace(Stream, [A|As]) :-
         format(Stream, '~n= Proof trace =~n', []),
@@ -512,10 +514,18 @@ print_trace([B|Bs], A, Stream) :-
         print_trace(Bs, B, Stream).
 
 
+% = print_list(+List)
+%
+% output List to user_error
+
 print_list([]).
 print_list([A|As]) :-
 	format(user_error, '~p~n', [A]),
 	print_list(As).
+
+% = write_proof(P)
+%
+% output a message stating P proofs have been found
 
 write_proofs(P) :-
    (
@@ -530,6 +540,10 @@ write_proofs(P) :-
        format(user_output, '~D proofs found.~n', [P])
    ).
 
+% = write_axioms(A)
+%
+% output a message stating A axioms have been performed
+
 write_axioms(A) :-
    (
        A =:= 0
@@ -543,20 +557,29 @@ write_axioms(A) :-
        format(user_output, '~D axioms performed.~n', [A])
    ).
 
+% = write_lookup(L)
+%
+% output a message stating L lexical lookups have been done
 
-write_lookups(P) :-
+write_lookups(L) :-
    (
-       P =:= 0
+       L =:= 0
    ->
        format(user_output, 'No lexical lookups!~n', [])
    ;
-       P =:= 1
+       L =:= 1
    ->
        format(user_output, '1 lexical lookup.~n', [])
    ;
-       format(user_output, '~D lexical lookups.~n', [P])
+       format(user_output, '~D lexical lookups.~n', [L])
    ).
 
+
+% = print_solutions(+ExampleNos, +NumSolutions)
+%
+% display for each example in ExampleNo its number of solutions
+% in NumSolutions and print an overview of the number of failed,
+% succeeded and total examples.
 
 print_solutions(L, NS) :-
 	format(user_error, 'SentNo Solutions~n', []),

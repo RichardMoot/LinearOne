@@ -8,7 +8,7 @@ option(prolog_like).
 proof_header :-
       ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
-	format(latex, '\\documentclass[leqno]{article}~2n', []),
+	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
 	format(latex, '\\usepackage[a2paper]{geometry}~n', []),
 	format(latex, '\\usepackage{proof}~n', []),
 	format(latex, '\\usepackage{amsmath}~n', []),
@@ -384,6 +384,6 @@ unary_term(neg(_)).
 unary_term(possible(_)).
 unary_term(necessary(_)).
 unary_term(number_of(_)).
-unary_term(quant(_,_,_)).
+unary_term(quant(_, _, _)).
 unary_term(true).
 unary_term(false).
