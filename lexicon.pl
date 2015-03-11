@@ -92,7 +92,7 @@ write_lookups(P) :-
    ->
        format(user_output, '1 lexical lookup.~n', [])
    ;
-       format(user_output, '~p lexical lookups.~n', [P])
+       format(user_output, '~D lexical lookups.~n', [P])
    ).
 
 

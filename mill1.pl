@@ -6,7 +6,7 @@
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
 :- use_module(tree234, [btree_init/1,btree_insert/4,btree_get/3,btree_get_replace/5,btree_to_list/2]).
-:- use_module(lexicon, [parse/2]).
+:- use_module(lexicon, [parse/2,parse_all/0]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
