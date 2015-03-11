@@ -1,6 +1,7 @@
 :- module(proof_generation, [generate_proof/2]).
 
-:- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2]).
+:- use_module(latex, [latex_proof/1]).
+:- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1]).
 
 generate_diagnostics(false).
@@ -9,9 +10,14 @@ generate_diagnostics(false).
 % =           Proof generation          =
 % =======================================
 
-generate_proof(Vs, Trace) :-
-	node_proofs(Vs, Ps),
-	combine_proofs(Trace, Ps, Proof),
+% = generate_proof(+InitialGraph, +ProofTrace)
+%
+% generate a sequent proof from the initial graph and proof trace
+% given as arguments, and set the output to LaTeX.
+
+generate_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -45,6 +51,8 @@ combine_proofs([Next|_], CurrentProofs, Proof) :-
 	/* dump all partial proofs in case of failure (useful for inspection) */
 	format(user_error, '~N{Error: proof generation failed!}~nNext:~p~2n', [Next]),
 	member(Proof, CurrentProofs).
+
+% = trivial_cut_elimination(+LeftSubProof, +RightSubProof, +ConclusionAntecedent, +ConclusionSuccedent, -NewProof)
 
 trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
         is_axiom(P1),
@@ -91,7 +99,7 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
    ->
         Rule = rule(fr,GD,N1-forall(var(V),N1-AA), [P2])
    ;		  
-        Rule = rule(cut, GD, C, [P1,rule(fr,Gamma,N1-forall(var(V),N1-A), [P2])])
+        Rule = rule(cut, GD, C, [rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]),P1])
    ).
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
@@ -127,7 +135,7 @@ combine(P1, P2, N0, N1, N1-Rule) :-
    ->
         Rule = rule(ir, GD, A, [P2])
    ;		  
-        Rule = rule(cut, GD, A, [P1,rule(ir, Delta, impl(N1-C,N1-D), [P2])])
+        Rule = rule(cut, GD, A, [rule(ir, Delta, impl(N1-C,N1-D), [P2]),P1])
    ).
 
 % = unify_atoms(Atom1, Atom2)
@@ -226,14 +234,15 @@ create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,Proof
         create_pos_proof(A, N, L0, L1, ProofA),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
 	rename_bound_variables(B, B2),
-	copy_term(B2, B3),
+%	copy_term(B2, B3),
 	ProofA = rule(_, Gamma, N-A3, _),
 	ProofB = rule(_, Delta, _, _),
-	select_formula(B, N, Delta, Delta_B),
-	append(Gamma, [N-impl(N-A3,N-B3)|Delta_B], GD).
+	select_formula(B2, N, Delta, Delta_B),
+	append(Gamma, [N-impl(N-A3,N-B2)|Delta_B], GD).
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
         !,
 	rename_bound_variables(A, A2),
+%	copy_term(A2, AA),
         create_neg_proof(A, N, L0, L, Neg, ProofA),
         ProofA = rule(_, Gamma, C, _),
 	/* rename to make sure bound variables aren't unified */

@@ -57,7 +57,7 @@ replace_graph(Graph0, Par0, N0, N, Graph, Par) :-
 
 % = replace(+InGraph,+InNodeNum,?OutNodeNum,-OutGraph)
 %
-% renumbers InNode for OutNode throughout Graph.
+% renumbers InNodeNum for OutNodeNum throughout Graph.
 
 replace([], _, _, []).
 replace([vertex(N,As,FVs,Ps0)|Rest0], N0, N1, [vertex(N,As,FVs,Ps)|Rest]) :-

@@ -173,11 +173,11 @@ prove0(Antecedent, Goal) :-
 	prove0(Antecedent, Goal, []).
 
 prove0(Antecedent, Goal, LexSem) :-
-        unfold_sequent(Antecedent, Goal, Roots, Graph0, Sem0),
+        unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
-	copy_term(Graph0, Graph),
-	portray_graph(Graph0),
-        prove1(Graph0, Roots, Trace),
+	copy_term(Graph, GraphCopy),
+	portray_graph(Graph),
+        prove1(Graph, Roots, Trace),
 	/* proof found */
 	/* update proof statistics */
 	'$PROOFS'(N0),
@@ -190,7 +190,7 @@ prove0(Antecedent, Goal, LexSem) :-
 	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* generate a LaTeX proof */
-	generate_proof(Graph, Trace).
+	generate_proof(GraphCopy, Trace).
 
 % = prove1(+Graph, +Roots, -Trace)
 %
