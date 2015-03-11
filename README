@@ -5,6 +5,8 @@
 (c) 2015 CNRS         (http://www.cnrs.fr)
 (c) 2015 Richard Moot (Richard.Moot@labri.fr)
 
+This research has received financial support from the ANR CONTINT, project POLYMNIE (ANR-12-CORD-0004). 
+
 LinearOne is a prototype theorem prover for first-order (multiplicative, intuitionistic) linear logic.
 
 LinearOne is provided under the GNU Lesser General Public License (see the included file LICENSE for details).
