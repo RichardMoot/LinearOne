@@ -263,7 +263,7 @@ latex_semantics(pi1(N), _NB) :-
     (
 	unary_term(N)
     ->
-        format(latex, '\\pi_1 ~@', [latex_semantics(N, 0)])
+        format(latex, '\\pi_1 ~@', [latex_semantics(N, 1)])
     ;	     
         format(latex, '\\pi_1(~@)', [latex_semantics(N, 0)])
     ).
@@ -272,7 +272,7 @@ latex_semantics(pi2(N), _NB) :-
     (
 	unary_term(N)
     ->
-        format(latex, '\\pi_2 ~@', [latex_semantics(N, 0)])
+        format(latex, '\\pi_2 ~@', [latex_semantics(N, 1)])
     ;	     
         format(latex, '\\pi_2(~@)', [latex_semantics(N, 0)])
     ).
@@ -281,7 +281,7 @@ latex_semantics(neg(N), _NB) :-
     (
 	unary_term(N)
     ->
-        format(latex, '\\neg ~@', [latex_semantics(N, 0)])
+        format(latex, '\\neg ~@', [latex_semantics(N, 1)])
     ;	     
         format(latex, '\\neg(~@)', [latex_semantics(N, 0)])
     ).
@@ -290,7 +290,7 @@ latex_semantics(possible(N), _NB) :-
     (
 	unary_term(N)
     ->
-        format(latex, '\\Diamond ~@', [latex_semantics(N, 0)])
+        format(latex, '\\Diamond ~@', [latex_semantics(N, 1)])
     ;	     
         format(latex, '\\Diamond(~@)', [latex_semantics(N, 0)])
     ).
@@ -299,13 +299,19 @@ latex_semantics(necessary(N), _NB) :-
     (
 	unary_term(N)
     ->
-        format(latex, '\\Box ~@', [latex_semantics(N, 0)])
+        format(latex, '\\Box ~@', [latex_semantics(N, 1)])
     ;	     
         format(latex, '\\Box(~@)', [latex_semantics(N, 0)])
     ).
 latex_semantics(quant(Q,X,F), _NB) :-
 	!,
-	format(latex, '~@ ~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)]).
+    (	
+	F = quant(_,_,_)
+    ->
+	format(latex, '~@ ~@. ~@', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 1)])
+    ;
+        format(latex, '~@ ~@.[~@]', [latex_quantifier(Q), latex_semantics(X, 0), latex_semantics(F, 0)])
+    ).
 latex_semantics(bool(P,B,Q), NB) :-
 	!,
    (
