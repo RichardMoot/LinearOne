@@ -1,4 +1,4 @@
-:- module(lexicon, [parse/2, lookup/4, lookup/5, macro_expand/2, parse_all/0]).
+:- module(lexicon, [lookup/4, lookup/5, macro_expand/2]).
 
 :- use_module(translations, [translate/3, translate_hybrid/6]).
 
@@ -25,75 +25,6 @@
 :- op(400, yfx, *<).  % = \odot_<
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
-
-
-
-parse_all :-
-	findall(N, clause(test(N),_), List),
-	parse_all(List, Solutions),
-	print_solutions(List, Solutions).
-
-print_solutions(L, NS) :-
-	format(user_error, 'SentNo Solutions~n', []),
-	print_solutions(L, 0, 0, NS).
-print_solutions([], S, F, []) :-
-	Total is S + F,
-	format(user_error, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]).
-print_solutions([N|Ns], S0, F0, [P|Ps]) :-
-	format(user_error, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
-    (
-	P =:= 0
-    ->
-        format(user_error, ' *~n', []),
-	F is F0 + 1,
-	S = S0
-    ;
-        nl(user_error), 
-        S is S0 + 1,
-        F = F0
-    ),
-	print_solutions(Ns, S, F, Ps).
-
-parse_all([], []).
-parse_all([N|Ns], [P|Ps]) :-
-        test(N),
-        user:'$PROOFS'(P),
-	parse_all(Ns, Ps).
-
-parse(ListOfWords, Goal0) :-
-	initialisation,
-	retractall('$LOOKUP'(_)),
-	assert('$LOOKUP'(0)),
-	lookup(ListOfWords, Formulas, LexSem, Goal0, Goal),
-	/* update lookup statistics */
-	'$LOOKUP'(N0),
-	N is N0 + 1,
-	retractall('$LOOKUP'(_)),
-	assert('$LOOKUP'(N)),
-        format(user_error, '~N= Lookup ~w~n', [N]),
-	multi_prove(Formulas, Goal, LexSem),
-	fail.
-parse(_, _) :-
-        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
-	'$LOOKUP'(L),
-	write_lookups(L),
-        final_statistics,
-	/* succeed only if at least one proof was found */
-        user:'$PROOFS'(N),
-        N > 0.
-
-write_lookups(P) :-
-   (
-       P =:= 0
-   ->
-       format(user_output, 'No lexical lookups!~n', [])
-   ;
-       P =:= 1
-   ->
-       format(user_output, '1 lexical lookup.~n', [])
-   ;
-       format(user_output, '~D lexical lookups.~n', [P])
-   ).
 
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-

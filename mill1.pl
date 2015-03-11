@@ -7,13 +7,11 @@
 :- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 :- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
 :- use_module(replace, [replace_graph/6,replace_proofs_labels/4,replace_formula/5]).
-:- use_module(lexicon, [parse/2,parse_all/0]).
+:- use_module(lexicon, [lookup/5]).
 :- use_module(auxiliaries, [merge_fvs/3, free_vars_n/2, free_vars_p/2]).
 
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
-
-generate_diagnostics(false).
 
 % = some definitions for pretty-printing
 
@@ -65,7 +63,72 @@ portray(bool(P,B,Q)) :-
 % = Top-level theorem prover predicates =
 % =======================================
 
+% = parse_all
+%
+% parse all test sentences in the currently loaded
+% grammar file; test sentences are assumed to be
+% of the form
+%
+% test(N) :-
+%       parse(Words, Goal).
+%
+% or
+%
+% test(N) :-
+%       prove(Antecedent, Goal).
+
+parse_all :-
+	findall(N, clause(test(N),_), List),
+	parse_all(List, Solutions),
+	print_solutions(List, Solutions).
+
+parse_all([], []).
+parse_all([N|Ns], [P|Ps]) :-
+        test(N),
+        user:'$PROOFS'(P),
+	parse_all(Ns, Ps).
+
+% = parse(+ListOfWords, +GoalFormula)
+%
+% true if there are lexical entries for each of the words in ListOfWords
+% which allow us to derive GoalFormula; lexical entries for the Displacement
+% calculus or hybrid type-logical grammars are translated into first-order
+% linear logic beforehand.
+
+parse(ListOfWords, Goal0) :-
+	initialisation,
+	retractall('$LOOKUP'(_)),
+	assert('$LOOKUP'(0)),
+	lookup(ListOfWords, Formulas, LexSem, Goal0, Goal),
+	/* update lookup statistics */
+	'$LOOKUP'(N0),
+	N is N0 + 1,
+	retractall('$LOOKUP'(_)),
+	assert('$LOOKUP'(N)),
+        format(user_error, '~N= Lookup ~w~n', [N]),
+	prove0(Formulas, Goal, LexSem),
+	fail.
+parse(_, _) :-
+        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
+	'$LOOKUP'(L),
+	write_lookups(L),
+        final_statistics.
+% Commented out since this is inconsistent with the behavior of parse_all
+%	/* succeed only if at least one proof was found */
+%        user:'$PROOFS'(N),
+%        N > 0.
+
 % = prove(+Antecedent, +GoalFormula)
+%
+% true if the sequent Antecedent |- GoalFormula is derivable in
+% first-order linear logic.
+%
+% prove/2 and prove/3 are wrapper predicates: they do initialisation,
+% call prove0/3, enumerate solutions by a failure-drive loop and
+% outputs some proof statistics.
+%
+% The LaTeX headers and footers are also output here (when LaTeX
+% output is generated).
 
 prove(Antecedent, Goal) :-
 	prove(Antecedent, Goal, []).
@@ -74,7 +137,7 @@ prove(Antecedent, Goal) :-
 
 prove(Antecedent, Goal, LexSem) :-
 	initialisation,
-	multi_prove(Antecedent, Goal, LexSem),
+	prove0(Antecedent, Goal, LexSem),
 	fail.
 prove(_, _, _) :-
         format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
@@ -101,13 +164,16 @@ final_statistics :-
 	/* LaTeX proofs */
 	proof_footer.
 
+% prove0/2, prove0/3 is a second wrapper, doing sequent unfolding
+% calling the recursive prover predicate prove1/3, doing lexical
+% subsitution and outputing semantics
+% and proofs.
 
+prove0(Antecedent, Goal) :-
+	prove0(Antecedent, Goal, []).
 
-multi_prove(Antecedent, Goal) :-
-	multi_prove(Antecedent, Goal, []).
-
-multi_prove(Antecedent, Goal, LexSem) :-
-        unfold_sequent(Antecedent, Goal, Roots, Vs0, _W, Sem0),
+prove0(Antecedent, Goal, LexSem) :-
+        unfold_sequent(Antecedent, Goal, Roots, Vs0, Sem0),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Vs0, Vs),
         prove1(Vs0, Roots, Trace),
@@ -125,8 +191,17 @@ multi_prove(Antecedent, Goal, LexSem) :-
 	/* generate a LaTeX proof */
 	generate_proof(Vs, Trace).
 
+% = prove1(+Graph, +Roots, -Trace)
+%
+% true if Graph (with root nodes Roots) is a proof net, as justified by
+% the axioms/contractions in Trace.
+%
+% the prove1 predicate operates by identifying, at each recursive step, a pair
+% of atomic formulas and contracting the input graph (verifying for acyclicity
+% and connectedness)
 
 prove1([vertex(_, [], _, [])], _, []) :-
+	/* a single vertex with atoms or links, we have succeeded ! */
         format(user_error, '~N= Proof found!~n', []),
         !.
 prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
@@ -136,27 +211,79 @@ prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
         select(pos(At,AtV1,AtO1,X,Vars), [A|As0], As),
 	/* forced choice for positive atom */
 	!,
+	/* enumerate choices for negative atom */
 	member(tuple(AtV0,AtO0,N0), Choices),
 	select(vertex(N0, [B|Bs0], FVs1, Ps1), G1, G2),
 	select(neg(At,AtV0,AtO0,X,Vars), [B|Bs0], Bs),
+        /* verify no cycle has been created */
         \+ cyclic(Ps0, G2, N0),
         \+ cyclic(Ps1, G2, N1),
 	'$AXIOMS'(Ax0),
 	Ax is Ax0 + 1,
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(Ax)),
+	/* identify nodes of positive and negative atom */
+	/* (and do the necessary replacements) */
 	append(As, Bs, Cs),
 	append(Ps0, Ps1, Ps),
 	merge_fvs(FVs0, FVs1, FVs),
 	replace_graph(G2, Ps, N0, N1, G3, Rs),
-%	replace(G2, N0, N1, G3),
-%	replace_pars(Ps, N0, N1, Rs),
 	update_roots_axiom(Roots0, N0, N1, Roots1),
 	G4 = [vertex(N1,Cs,FVs,Rs)|G3],
         portray_graph(G4),
+	/* perform Danos-style graph contractions */
 	contract(G4, G, Rest0, Rest, Roots1, Roots),
+	/* verify the result is (at least potentially) connected */
 	connected(G),
 	prove1(G, Roots, Rest).
+
+% =======================================
+% =              Proof nets             =
+% =======================================
+
+% = contract(+InGraph,-OutGraph, TraceDL, RootNodeAcc)
+%
+% perform all valid contractions on InGraph producing OutGraph;
+% these are Danos-style contractions, performed in a first-found
+% search.
+%
+% In addition, it returns a Trace of the contractions performed (as
+% a difference list) and updates the root nodes of the graph (using
+% an accumulator).
+
+contract(G0, G, L0, L, R0, R) :-
+        contract1(G0, G1, L0, L1, R0, R1),
+        portray_graph(G1),
+        !,
+        contract(G1, G, L1, L, R1, R).
+contract(G, G, L, L, R, R).
+
+% par contraction
+contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest, Roots0, Roots) :-
+        select(vertex(N0, As, FVsA, Ps0), G0, G1),
+        select(par(N1, N1), Ps0, Ps),
+	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
+	\+ cyclic(Qs, G2, N0),
+	!,
+	append(As, Bs, Cs),
+	append(Ps, Qs, Rs0),
+	merge_fvs(FVsA, FVsB, FVs),
+	replace_graph(G2, Rs0, N0, N1, G, Rs),
+        update_roots_contraction(Roots0, N0, N1, Roots).
+% forall contraction
+contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
+        select(vertex(N0, As, FVsA, Ps0), G0, G1),
+        select(univ(U, N1), Ps0, Ps),
+	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
+	no_occurrences1(FVsA, U),
+	no_occurrences(G2, U),
+	!,
+	append(As, Bs, Cs),
+	append(Ps, Qs, Rs0),
+	merge_fvs(FVsA, FVsB, FVs),
+	replace_graph(G2, Rs0, N0, N1, G, Rs),
+        update_roots_contraction(Roots0, N0, N1, Roots).
+
 
 % test for cyclicity
 % G2 contains unvisited nodes
@@ -193,6 +320,9 @@ cyclic1(univ(_,M), G2, N) :-
 %
 % true if Graph is connected or at least can be made connected
 % by vertex identifications (corresponding to axioms)
+%
+% This test presupposes that all possible contractions for the
+% current graph have been performed.
 
 connected([V|Vs]) :-
    (
@@ -210,60 +340,19 @@ connected1([vertex(_,As,_,Ps)|Vs]) :-
         As = []
     ->  /* in a multiple-node graph, if a node has no */
         /* atoms, it must have a link */
+	/* In other words, in a fully contracted graph, */
+	/* a node cannot have both As and Ps empty */    
         Ps = [_|_]
     ;
         true
     ),
     connected1(Vs).
 
-% = contract(+InGraph,-OutGraph)
-%
-% perform all valid contractions on InGraph producing OutGraph;
-% these are Danos-style contractions, performed in a first-found
-% search.
-
-contract(G0, G, L0, L, R0, R) :-
-        contract1(G0, G1, L0, L1, R0, R1),
-        portray_graph(G1),
-        !,
-        contract(G1, G, L1, L, R1, R).
-contract(G, G, L, L, R, R).
-
-% par contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-par(N1)|Rest], Rest, Roots0, Roots) :-
-        select(vertex(N0, As, FVsA, Ps0), G0, G1),
-        select(par(N1, N1), Ps0, Ps),
-	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
-	\+ cyclic(Qs, G2, N0),
-	!,
-	append(As, Bs, Cs),
-	append(Ps, Qs, Rs0),
-	merge_fvs(FVsA, FVsB, FVs),
-	replace_graph(G2, Rs0, N0, N1, G, Rs),
-%	replace_pars(Rs0, N0, N1, Rs),
-%	replace(G2, N0, N1, G),
-        update_roots_contraction(Roots0, N0, N1, Roots).
-% forall contraction
-contract1(G0, [vertex(N1,Cs,FVs,Rs)|G], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
-        select(vertex(N0, As, FVsA, Ps0), G0, G1),
-        select(univ(U, N1), Ps0, Ps),
-	select(vertex(N1, Bs, FVsB, Qs), G1, G2),
-	no_occurrences1(FVsA, U),
-	no_occurrences(G2, U),
-	!,
-	append(As, Bs, Cs),
-	append(Ps, Qs, Rs0),
-	merge_fvs(FVsA, FVsB, FVs),
-	replace_graph(G2, Rs0, N0, N1, G, Rs),
-%	replace_pars(Rs0, N0, N1, Rs),
-%	replace(G2, N0, N1, G),
-        update_roots_contraction(Roots0, N0, N1, Roots).
-
-
 % = no_occurrences(+Graph, +VarNum)
 %
 % walks through +Graph and checks that none of its vertices
-% has the variable +VarNum in their list of free variables.
+% has the variable +VarNum in their list of free variables
+% (this is the condition on the forall contraction)
 
 no_occurrences([], _).
 no_occurrences([vertex(_, _, FVs, _)|Rest], U) :-
@@ -275,13 +364,29 @@ no_occurrences1([V|Vs], U) :-
         var(U) \== V,
         no_occurrences1(Vs, U).
 
-% = unfolding
-%
+% =======================================
+% =      Formula/sequent unfolding      =
+% =======================================
+
 % transforms sequents, antecedents and (polarized) formulas into graphs
 
-unfold_sequent(List, Goal, Roots, Vs0, W, Sem) :-
+% = unfold_sequent(+ListOfFormulas, +GoalFormula, -RootNodes, -Vertices, -Semantics) 
+%
+% unfold the sequent ListOfFormulas |- GoalFormula into the graph Vertices, keeping
+% track of the RootNodes (of the resulting forest) and the term representing the
+% Semantics (after all axiom links have been performed).
+%
+% In addition, for later proof generation, all nodes in the initial graph will have
+% their node number, polarity and the formula corresponding to this node stored by
+% means of an asserted
+%
+% node_formula(NodeNumber, Polarity, Formula)
+%
+% declaration (with Polarity one of pos/neg).
+
+unfold_sequent(List, Goal, Roots, Vs0, Sem) :-
         retractall(node_formula(_,_,_)),
-	unfold_antecedent(List, 0, W, 0, N0, 0, M, Roots0, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
+	unfold_antecedent(List, 0, _W, 0, N0, 0, M, Roots0, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
 	N is N0 + 1,
 	append(Roots0, [N0], Roots),
 	number_subformulas_pos(Goal, N0, N, _, _-NGoal),
@@ -298,6 +403,48 @@ unfold_antecedent([F|Fs], W0, W, N0, N, M0, M, [N0|Rs], [vertex(N0,As,FVsF,Es)|V
         assert(node_formula(N0, neg, NF)),
 	unfold_neg(NF, '$VAR'(W0), M0, M1, As, [], Es, [], Vs0, Vs1),
 	unfold_antecedent(Fs, W1, W, N2, N, M1, M, Rs, Vs1, Vs).
+
+%= unfold_neg(+Formula, Sem, VertexNo, VarNoAcc, AtomsDL, AtomsDL, EdgesDL, VerticesDL)
+
+unfold_neg(at(A,C,N,Vars), X, M, M, [neg(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs).
+unfold_neg(forall(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
+	unfold_neg(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
+unfold_neg(exists(var(M0),N-A), X, M0, M, As, As, [univ(M0,N)|Es], Es, [vertex(N,Bs,FVsA,Fs)|Vs0], Vs) :-
+        assert(node_formula(N, neg, A)),
+        free_vars_n(A, FVsA),
+	M1 is M0 + 1,
+	unfold_neg(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs).
+unfold_neg(p(N0-A,N1-B), X, M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
+        assert(node_formula(N0, neg, A)),
+        assert(node_formula(N1, neg, B)),
+        free_vars_n(A, FVsA),
+        free_vars_n(B, FVsB),
+	unfold_neg(A, pi1(X), M0, M1, Bs, [], Fs, [], Vs0, Vs1),
+	unfold_neg(B, pi2(X), M1, M, Cs, [], Gs, [], Vs1, Vs).
+unfold_neg(impl(_-A,_-B), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
+	unfold_pos(A, Y, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
+	unfold_neg(B, appl(X,Y), M1, M, As1, As, Es1, Es, Vs1, Vs).
+
+%= unfold_pos(+Formula, Sem, VertexNo, VarNoAcc, AtomsDL, AtomsDL, EdgesDL, VerticesDL)
+
+unfold_pos(at(A,C,N,Vars), X, M, M, [pos(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs).
+unfold_pos(forall(var(M0),N0-A), X, M0, M, As, As, [univ(M0,N0)|Es], Es, [vertex(N0,Bs,FVsA,Fs)|Vs0], Vs) :-
+        assert(node_formula(N0, pos, A)),
+        free_vars_p(A, FVsA),
+	M1 is M0 + 1,
+	unfold_pos(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs).
+unfold_pos(exists(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
+	unfold_pos(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
+unfold_pos(p(_-A,_-B), pair(X,Y), M0, M, As0, As, Es0, Es, Vs0, Vs) :-
+	unfold_pos(A, X, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
+	unfold_pos(B, Y, M1, M, As1, As, Es1, Es, Vs1, Vs).
+unfold_pos(impl(N0-A,N1-B), lambda(X,Y), M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
+        assert(node_formula(N0, neg, A)),
+        assert(node_formula(N1, pos, B)),
+        free_vars_n(A, FVsA),
+        free_vars_p(B, FVsB),
+	unfold_neg(A, X, M0, M1, Bs, [], Fs, [], Vs0, Vs1),
+	unfold_pos(B, Y, M1, M, Cs, [], Gs, [], Vs1, Vs).
 
 % = number_subformulas_neg(+Formula, +CurrentNodeNumber, +NextNodeNumberIn, -NextNodeNumberOut, -NumberFormula)
 %
@@ -344,48 +491,6 @@ number_subformulas_pos(impl(A,B), C, N0, N, M, M, C-impl(NA,NB)) :-
 	number_subformulas_neg(A, N0, N2, N3, 1, _, NA),
 	number_subformulas_pos(B, N1, N3, N, 1, _, NB).
 
-%= unfold(+Formula, Sem, VertexNo, VarNo, AtomsDL, EdgesDL, VerticesDL)
-
-%unfold_neg(N-F, X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-%        unfold_neg(F, N, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
-
-unfold_neg(at(A,C,N,Vars), X, M, M, [neg(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs).
-unfold_neg(forall(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_neg(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
-unfold_neg(exists(var(M0),N-A), X, M0, M, As, As, [univ(M0,N)|Es], Es, [vertex(N,Bs,FVsA,Fs)|Vs0], Vs) :-
-        assert(node_formula(N, neg, A)),
-        free_vars_n(A, FVsA),
-	M1 is M0 + 1,
-	unfold_neg(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs).
-unfold_neg(p(N0-A,N1-B), X, M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
-        assert(node_formula(N0, neg, A)),
-        assert(node_formula(N1, neg, B)),
-        free_vars_n(A, FVsA),
-        free_vars_n(B, FVsB),
-	unfold_neg(A, pi1(X), M0, M1, Bs, [], Fs, [], Vs0, Vs1),
-	unfold_neg(B, pi2(X), M1, M, Cs, [], Gs, [], Vs1, Vs).
-unfold_neg(impl(_-A,_-B), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_pos(A, Y, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
-	unfold_neg(B, appl(X,Y), M1, M, As1, As, Es1, Es, Vs1, Vs).
-
-unfold_pos(at(A,C,N,Vars), X, M, M, [pos(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs).
-unfold_pos(forall(var(M0),N0-A), X, M0, M, As, As, [univ(M0,N0)|Es], Es, [vertex(N0,Bs,FVsA,Fs)|Vs0], Vs) :-
-        assert(node_formula(N0, pos, A)),
-        free_vars_p(A, FVsA),
-	M1 is M0 + 1,
-	unfold_pos(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs).
-unfold_pos(exists(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_pos(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
-unfold_pos(p(_-A,_-B), pair(X,Y), M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_pos(A, X, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
-	unfold_pos(B, Y, M1, M, As1, As, Es1, Es, Vs1, Vs).
-unfold_pos(impl(N0-A,N1-B), lambda(X,Y), M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
-        assert(node_formula(N0, neg, A)),
-        assert(node_formula(N1, pos, B)),
-        free_vars_n(A, FVsA),
-        free_vars_p(B, FVsB),
-	unfold_neg(A, X, M0, M1, Bs, [], Fs, [], Vs0, Vs1),
-	unfold_pos(B, Y, M1, M, Cs, [], Gs, [], Vs1, Vs).
 
 % =======================================
 % =             Input/output            =
@@ -436,6 +541,40 @@ write_axioms(A) :-
    ).
 
 
+write_lookups(P) :-
+   (
+       P =:= 0
+   ->
+       format(user_output, 'No lexical lookups!~n', [])
+   ;
+       P =:= 1
+   ->
+       format(user_output, '1 lexical lookup.~n', [])
+   ;
+       format(user_output, '~D lexical lookups.~n', [P])
+   ).
+
+
+print_solutions(L, NS) :-
+	format(user_error, 'SentNo Solutions~n', []),
+	print_solutions(L, 0, 0, NS).
+print_solutions([], S, F, []) :-
+	Total is S + F,
+	format(user_error, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]).
+print_solutions([N|Ns], S0, F0, [P|Ps]) :-
+	format(user_error, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
+    (
+	P =:= 0
+    ->
+        format(user_error, ' *~n', []),
+	F is F0 + 1,
+	S = S0
+    ;
+        nl(user_error), 
+        S is S0 + 1,
+        F = F0
+    ),
+	print_solutions(Ns, S, F, Ps).
 
 % = some test predicates
 

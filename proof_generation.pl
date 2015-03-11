@@ -3,6 +3,8 @@
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1]).
 
+generate_diagnostics(false).
+
 % =======================================
 % =           Proof generation          =
 % =======================================
@@ -221,7 +223,7 @@ create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), ru
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
-        create_neg_subproof(A, N, L0, L1, ProofA),
+        create_pos_proof(A, N, L0, L1, ProofA),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
 	rename_bound_variables(B, B2),
 	copy_term(B2, B3),
@@ -239,25 +241,25 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
-create_neg_subproof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
-        !.
-create_neg_subproof(p(N-A0,N-B0), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [ProofA, ProofB])) :-
-	!,
-	rename_bound_variables(A0, A),
-	rename_bound_variables(B0, B),
-	create_neg_subproof(A, N, L0, L1, ProofA),
-	create_neg_subproof(B, N, L1, L, ProofB),
-	ProofA = rule(_, Gamma, _, _),
-	ProofB = rule(_, Delta, _, _),
-	append(Gamma, Delta, GD).
-create_neg_subproof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
-	!,
-	rename_bound_variables(A, A2),
-	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
-	create_neg_subproof(A, N, L0, L, ProofA),
-	ProofA = rule(_, Gamma, N-A2, _).
-create_neg_subproof(A0, N, L, L, rule(ax, [N-A], N-A, [])) :-
-	rename_bound_variables(A0, A).
+%% create_neg_subproof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
+%%         !.
+%% create_neg_subproof(p(N-A0,N-B0), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [ProofA, ProofB])) :-
+%% 	!,
+%% 	rename_bound_variables(A0, A),
+%% 	rename_bound_variables(B0, B),
+%% 	create_neg_subproof(A, N, L0, L1, ProofA),
+%% 	create_neg_subproof(B, N, L1, L, ProofB),
+%% 	ProofA = rule(_, Gamma, _, _),
+%% 	ProofB = rule(_, Delta, _, _),
+%% 	append(Gamma, Delta, GD).
+%% create_neg_subproof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
+%% 	!,
+%% 	rename_bound_variables(A, A2),
+%% 	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
+%% 	create_neg_subproof(A, N, L0, L, ProofA),
+%% 	ProofA = rule(_, Gamma, N-A2, _).
+%% create_neg_subproof(A0, N, L, L, rule(ax, [N-A], N-A, [])) :-
+%% 	rename_bound_variables(A0, A).
 
 % =======================================
 % =             Input/output            =
