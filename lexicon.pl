@@ -69,10 +69,12 @@ parse(ListOfWords, Goal0) :-
 	'$LOOKUP'(N0),
 	N is N0 + 1,
 	retractall('$LOOKUP'(_)),
-	assert('$LOOKUP'(N)),	
+	assert('$LOOKUP'(N)),
+        format(user_error, '~N= Lookup ~w~n', [N]),	
 	multi_prove(Formulas, Goal, LexSem),
 	fail.
 parse(_, _) :-
+        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
 	'$LOOKUP'(L),
 	write_lookups(L),
         final_statistics,

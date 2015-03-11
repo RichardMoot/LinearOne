@@ -22,12 +22,16 @@ test(8) :-
 	parse([no,fish,walks], s).
 % NOTE: The next two examples make the need for a better atom selection strategy evident!
 test(9) :-
+	/* first-found axioms */
 	/* 3,142,516 axioms ! */
         /* 5,808,425,093 inferences, 2014.396 CPU in 2139.522 seconds (94% CPU, 2883458 Lips) */
+	/* with first dancing links version */
+	/*    28,640 axioms */
+        /*   100,274,098 inferences,   24.442 CPU in   26.802 seconds (91% CPU, 4102589 Lips) */
 	parse([no,dog,eats,whiskas,or,cat,alpo], s).
 test(10) :-
         /* 103,252,051,786 inferences, 35323.877 CPU in 94279.214 seconds (37% CPU, 2923010 Lips) */
-	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo2], s).
+	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
 
 % =======================
