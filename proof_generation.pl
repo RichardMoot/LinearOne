@@ -123,19 +123,20 @@ combine(P1, P2, N0, N1, N1-Rule) :-
    ).
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, A, _),
-	P2 = rule(_, Delta0, _B, _),
+	P2 = rule(_, Delta0, N1-D, _),
 	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
-	rename_bound_variables(C, CC),
+	%	rename_bound_variables(C, CC),
+	C = CC,
 	select_formula(CC, N1, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
 	/* don't create trivial cuts */
    (
 	Nm = ax
-   ->
+   ->	    
         Rule = rule(ir, GD, A, [P2])
    ;		  
-        Rule = rule(cut, GD, A, [rule(ir, Delta, impl(N1-C,N1-D), [P2]),P1])
+        Rule = rule(cut, GD, A, [rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]),P1])
    ).
 
 % = unify_atoms(Atom1, Atom2)

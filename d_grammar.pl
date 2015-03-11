@@ -55,38 +55,40 @@ test(5) :-
 test(6) :-
 	parse([dog,that,mary,saw,today], cn).
 test(7) :-
-	parse([mountain,the,painting,of,which,by,cezanne,john,sold,for,ten_million_dollars], cn).
+	parse([bagels,which,john,sold,for,ten_million_dollars], cn).
 test(8) :-
-	parse([john,who,jogs,sneezed], s).
+	parse([mountain,the,painting,of,which,by,cezanne,john,sold,for,ten_million_dollars], cn).
 test(9) :-
-	parse([john,studies,logic,and,charles,phonetics], s).
+	parse([john,who,jogs,sneezed], s).
 test(10) :-
-	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
+	parse([john,studies,logic,and,charles,phonetics], s).
 test(11) :-
-	parse([dat,jan,boeken,las], cs).
+	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
 test(12) :-
-	parse([dat,jan,boeken,kan,lezen], cs).
+	parse([dat,jan,boeken,las], cs).
 test(13) :-
-	parse([dat,jan,boeken,wil,kunnen,lezen], cs).
+	parse([dat,jan,boeken,kan,lezen], cs).
 test(14) :-
-	parse([dat,jan,alles,las], cs).
+	parse([dat,jan,boeken,wil,kunnen,lezen], cs).
 test(15) :-
-	parse([dat,jan,alles,kan,lezen], cs).
+	parse([dat,jan,alles,las], cs).
 test(16) :-
-	parse([dat,jan,cecilia,de,nijlpaarden,zag,voeren], cs).
+	parse([dat,jan,alles,kan,lezen], cs).
 test(17) :-
-	parse([dat,jan,cecilia,henk,de,nijlpaarden,zag,helpen,voeren], cs).
+	parse([dat,jan,cecilia,de,nijlpaarden,zag,voeren], cs).
 test(18) :-
-	parse([wil2,jan,boeken,lezen], q).
+	parse([dat,jan,cecilia,henk,de,nijlpaarden,zag,helpen,voeren], cs).
 test(19) :-
-	parse([jan,wil2,boeken,lezen], n*(^(q/<n))).
+	parse([wil2,jan,boeken,lezen], q).
 test(20) :-
-	parse([john,bought,himself,coffee], s).
+	parse([jan,wil2,boeken,lezen], n*(^(q/<n))).
 test(21) :-
-	parse([every,man,loves,himself], s).
+	parse([john,bought,himself,coffee], s).
 test(22) :-
-	parse([mary,talked,to,john,about,himself2], s).
+	parse([every,man,loves,himself], s).
 test(23) :-
+	parse([mary,talked,to,john,about,himself2], s).
+test(24) :-
 	parse([mary,talked,about,himself2,to,john], s).
 
 % =======================
@@ -134,6 +136,7 @@ lex(by, (cn\cn)/n, lambda(NP,lambda(N,lambda(X,bool(appl(N,X),&,appl(appl(by,NP)
 lex(for, pp/n, lambda(X,X)).
 lex(to, pp/n, lambda(X,X)).
 lex(about, pp/n, lambda(X,X)).
+lex(a, d_q, lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(every, d_q, lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
 lex(someone, (s/>n)\<s, lambda(P,quant(exists,X,appl(P,X)))).
 lex(everyone, (s/>n)\<s, lambda(P,quant(forall,X,appl(P,X)))).
