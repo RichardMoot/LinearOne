@@ -1,4 +1,10 @@
-:- module(replace, [replace_proofs_labels/4, replace_proof_labels/4, replace_formula/5, replace_graph/6]).
+:- module(replace, [replace_proofs_labels/4, replace_proof_labels/4, replace_formula/5, replace_graph/6, rename_bound_variable/4, rename_bound_variables/2]).
+
+:- use_module(ordset, [ord_key_insert/4, ord_key_member/3]).
+
+% =======================================
+% =   Auxiliary replacement predicates  =
+% =======================================
 
 /* I don't believe it's necessary to do replacements inside the subproofs Rs here */
 
@@ -40,29 +46,8 @@ replace_formula_labels(exists(V,A0), X, Y, exists(V,A)) :-
 % using forced-choice determinism
 
 replace_formula(F0, N, F, L0, L) :-
-%   (
-%        F0 = at(_,_,_,_)
-%   ->
-%	select(F0, L0, F, L)
-%   ;
         select(N-F0, L0, F, L),
-%   ),
         !.
-
-
-%% replace_list(F, N, List0, R, List) :-
-%% 	replace_list(List0, N-F, R, List). 
-%% replace_list([], _, _, []).
-%% replace_list([A|As], C, D, [B|Bs]) :-
-%%     (
-%%        A = C
-%%     ->
-%%        B = D
-%%     ;
-%%        B = A
-%%     ),
-%%        replace_list(As, C, D, Bs).
-
 
 %= replace_graph(+InGraph, +InPars, +InNodeNum, ?OutNodeNum, -OutGraph, OutPars)
 
@@ -99,3 +84,74 @@ replace_item(X, N0, N1, Y) :-
         Y = X
     ).
 
+
+% = rename_bound_variable(+LabeledFormulaIn, +InVariable, ?OutVariable, ?LabeldFormulaOut)
+%
+% true if LabeledFormulaOut is identical to LabeledFormulaIn except that all bound
+% occurrences of InVariable have been renamed to OutVariable.
+
+rename_bound_variable(N-F0, X, Y, N-F) :-
+	rename_bound_variable(F0, X, Y, F).
+rename_bound_variable(at(A,C,N,Vars0), X, Y, at(A,C,N,Vars)) :-
+	rename_bound_var_list(Vars0, X, Y, Vars).
+rename_bound_variable(forall(Z,A0), X, Y, forall(V,A)) :-
+	rename_bound_var(Z, X, Y, V),
+	rename_bound_variable(A0, X, Y, A).
+rename_bound_variable(exists(Z,A0), X, Y, exists(V,A)) :-
+	rename_bound_var(Z, X, Y, V),
+	rename_bound_variable(A0, X, Y, A).
+rename_bound_variable(impl(A0,B0), X, Y, impl(A,B)) :-
+	rename_bound_variable(A0, X, Y, A),
+	rename_bound_variable(B0, X, Y, B).
+rename_bound_variable(p(A0,B0), X, Y, p(A,B)) :-
+	rename_bound_variable(A0, X, Y, A),
+	rename_bound_variable(B0, X, Y, B).
+
+
+rename_bound_var_list([], _, _, []).
+rename_bound_var_list([V|Vs], X, Y, [W|Ws]) :-
+	rename_bound_var(V, X, Y, W),
+	rename_bound_var_list(Vs, X, Y, Ws).
+
+rename_bound_var(V, X, Y, W) :-
+   (
+	V == X 
+   ->
+	W = Y
+   ;
+	W = V
+   ).
+
+    
+rename_bound_variables(F0, F) :-
+	rename_bound_variables(F0, [], F).
+rename_bound_variables(N-F0, Map, N-F) :-
+	rename_bound_variables(F0, Map, F).
+rename_bound_variables(at(A,C,N,Vars0), Map, at(A,C,N,Vars)) :-
+	rename_bound_var_list(Vars0, Map, Vars).
+rename_bound_variables(forall(Z,A0), Map0, forall(V,A)) :-
+	ord_key_insert(Map0, Z, V, Map),
+	rename_bound_variables(A0, Map, A).
+rename_bound_variables(exists(Z,A0), Map0, exists(V,A)) :-
+	ord_key_insert(Map0, Z, V, Map),
+	rename_bound_variables(A0, Map, A).
+rename_bound_variables(impl(A0,B0), Map, impl(A,B)) :-
+	rename_bound_variables(A0, Map, A),
+	rename_bound_variables(B0, Map, B).
+rename_bound_variables(p(A0,B0), Map, p(A,B)) :-
+	rename_bound_variables(A0, Map, A),
+	rename_bound_variables(B0, Map, B).
+
+rename_bound_var_list([], _, []).
+rename_bound_var_list([V|Vs], Map, [W|Ws]) :-
+	rename_bound_var(V, Map, W),
+	rename_bound_var_list(Vs, Map, Ws).
+
+rename_bound_var(V, Map, W) :-
+   (
+	ord_key_member(V, Map, W) 
+   ->
+	true
+   ;
+	W = V
+   ).
