@@ -12,4 +12,4 @@ LinearOne is a prototype theorem prover for first-order (multiplicative, intuiti
 LinearOne is provided under the GNU Lesser General Public License (see the included file LICENSE for details).
 
 LinearOne is a set of SWI Prolog files, which optional graph output to LuaLaTeX (using the TikZ 3.0.0 graph drawing
-libraries).
+libraries) and proof output to LaTeX/pdfLaTeX/luaLaTeX.

@@ -754,7 +754,7 @@ write_axioms(A) :-
 
 
 prove1([vertex(_, [], _, [])], _, []) :-
-        format(user_error, '~N= Sequent proved!~n', []),
+        format(user_error, '~N= Proof found!~n', []),
         !.
 prove1(G0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
         portray_graph(G0),

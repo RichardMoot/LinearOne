@@ -34,25 +34,29 @@
 test(1) :-
 	parse([someone,talked,to,everyone,yesterday], s).
 test(2) :-
-	parse([leslie,bought,a,cd,and,robin,a,book], s1).
+	parse([leslie,bought,a,cd,and1,robin,a,book], s1).
 test(3) :-
-	parse([robin,must,discover,a,solution], s).
+	parse([leslie,bought,a,cd,and,robin,a,book], s).
 test(4) :-
-	parse([john,cant,eat,steak,and,mary,pizza], s1).
-% split scope
+	parse([robin,must,discover,a,solution], s).
 test(5) :-
-	parse([no2,neg,fish,walks], s).
+	parse([john,cant,eat,steak,and1,mary,pizza], s1).
 test(6) :-
+	parse([john,cant,eat,steak,and,mary,pizza], s).
+% split scope
+test(7) :-
+	parse([no2,neg,fish,walks], s).
+test(8) :-
 	parse([no2,neg,dog,eats,whiskas,or2,neg,cat,alpo], s).
 % comparative subdeletion
-test(7) :-
+test(9) :-
 	parse([john,ate,more,donuts,than,mary,bought,bagels], s).
 test(b) :-
 	parse([john,ate,more2,donuts,than2,mary,bought,bagels], s).
-test(8) :-
+test(10) :-
 	parse([no,fish,walks], s).
 % NOTE: The next two examples make the need for a better atom selection strategy evident!
-test(9) :-
+test(11) :-
 	/* first-found axioms */
 	/* 3,142,516 axioms ! */
         /* 5,808,425,093 inferences, 2014.396 CPU in 2139.522 seconds (94% CPU, 2883458 Lips) */
@@ -60,9 +64,12 @@ test(9) :-
 	/*    28,640 axioms */
         /*   100,274,098 inferences,   24.442 CPU in   26.802 seconds (91% CPU, 4102589 Lips) */
 	parse([no,dog,eats,whiskas,or,cat,alpo], s).
-test(10) :-
+test(12) :-
 	/* first-found */
         /* 103,252,051,786 inferences, 35323.877 CPU in 94279.214 seconds (37% CPU, 2923010 Lips) */
+	/* with first dancing links version */
+	/* 3,142,516 axioms */
+        /*    65,938,819 inferences,    9.097 CPU in 9.842 seconds (92% CPU, 7248058 Lips) */
 	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
 
@@ -107,7 +114,8 @@ lex(whiskas2, n, whiskas2, whiskas).
 lex(alpo2, n, alpo2, alpo).
 lex(to, pp/np, to, lambda(X,X)).
 % = uses s1 as final category to avoid quantifier scope outside of the individual conjuncts
-lex(and, (((s1|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
+lex(and1, (((s1|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and1,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
+lex(and, (((s|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
 lex(must, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,must),Z))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
 lex(cant, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,cant),Z))), lambda(F,neg(possible(appl(F,lambda(Y,Y)))))).
 lex(no, (s|(s|h_det)), lambda(Rho,lambda(Z,appl(appl(Rho,lambda(Phi,lambda(Sigma,lambda(V,appl(appl(Sigma,lambda(W,appl(no,appl(Phi,W)))),V))))),Z))), lambda(P,neg(appl(P,lambda(Q,lambda(R,quant(exists,X,bool(appl(Q,X),&,appl(R,X))))))))).
