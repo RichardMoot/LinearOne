@@ -366,7 +366,26 @@ latex_quantifier(Q) :-
 	format(user_error, '~N{Warning: unknown LaTeX output quantifier: ~w}~n', [Q]),
 	format(latex, ' ~w ', [Q]).
 
+% = latex_atom(+PrologAtom)
+%
+% output a Prolog atom to LaTeX, giving some constants (forall/exists/iota)
+% special treatment and taking care of underscores to help LaTeX process them
 
+latex_atom(forall) :-
+	!,
+	format(latex, '\\forall ', []).
+latex_atom(exists) :-
+	!,
+	format(latex, '\\exists ', []).
+latex_atom(iota) :-
+	!,
+	format(latex, '\\iota ', []).
+latex_atom(epsilon) :-
+	!,
+	format(latex, '\\epsilon ', []).
+latex_atom(tau) :-
+	!,
+	format(latex, '\\tau ', []).
 latex_atom(A0) :-
 	/* take care of Prolog atoms containing '_' */
 	atomic_list_concat(List, '_', A0),
