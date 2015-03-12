@@ -162,8 +162,9 @@ replace_sem(N0, U, X, Y, V) :-
 
 substitute_sem(L, T0, T) :-
 	max_key_list(L, 0, Max0),
-	Max1 is Max0 +1,
-	numbervars(T0, Max1, Max),
+	get_max_variable_number(T0, Max1),
+	Max2 is max(Max0+1,Max1+1),
+	numbervars(T0, Max2, Max),
 	substitute_sem(L, T0, T, Max, _).
 
 substitute_sem([], T, T, N, N).
