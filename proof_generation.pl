@@ -90,7 +90,7 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
 	P1 = rule(Nm, Delta, C, _),
 %	rename_bound_variables(A, AA),
 	A = AA,
-	append(Delta0, [_-forall(var(V),AA)|Delta1], Delta),
+	append(Delta0, [_-forall(var(V),N1-AA)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
 	/* don't create trivial cuts */
