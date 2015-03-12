@@ -173,7 +173,8 @@ prove0(Antecedent, Goal) :-
 	prove0(Antecedent, Goal, []).
 
 prove0(Antecedent, Goal, LexSem) :-
-        unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0),
+        unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0, Stats),
+	portray_sequent_statistics(Stats),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Graph, GraphCopy),
 	portray_graph(Graph),
@@ -386,68 +387,79 @@ no_occurrences1([V|Vs], U) :-
 % node_formula(NodeNumber, Polarity, Formula)
 %
 % declaration (with Polarity one of pos/neg).
-
-unfold_sequent(List, Goal, Roots, Vs0, Sem) :-
+	    
+unfold_sequent(List, Goal, Roots, Vs0, Sem, Stats) :-
         retractall(node_formula(_,_,_)),
-	unfold_antecedent(List, 0, _W, 0, N0, 0, M, Roots0, Vs0, [vertex(N0,As,FVsG,Es)|Vs1]),
+	init_stats(Stats0),
+	unfold_antecedent(List, 0, _W, 0, N0, 0, M, Roots0, Vs0, [vertex(N0,As,FVsG,Es)|Vs1], Stats0, Stats1),
 	N is N0 + 1,
 	append(Roots0, [N0], Roots),
 	number_subformulas_pos(Goal, N0, N, _, _-NGoal),
         assert(node_formula(N0, pos, NGoal)),
 	free_vars_p(Goal, FVsG),
-	unfold_pos(NGoal, Sem, M, _, As, [], Es, [], Vs1, []).
+	unfold_pos(NGoal, Sem, M, _, As, [], Es, [], Vs1, [], Stats1, Stats).
 
-unfold_antecedent([], W, W, N, N, M, M, [], Vs, Vs).
-unfold_antecedent([F|Fs], W0, W, N0, N, M0, M, [N0|Rs], [vertex(N0,As,FVsF,Es)|Vs0], Vs) :-
+unfold_antecedent([], W, W, N, N, M, M, [], Vs, Vs, Stats, Stats).
+unfold_antecedent([F|Fs], W0, W, N0, N, M0, M, [N0|Rs], [vertex(N0,As,FVsF,Es)|Vs0], Vs, Stats0, Stats) :-
         N1 is N0 + 1,
         W1 is W0 + 1,
 	free_vars_n(F, FVsF),
 	number_subformulas_neg(F, N0, N1, N2, _-NF),
         assert(node_formula(N0, neg, NF)),
-	unfold_neg(NF, '$VAR'(W0), M0, M1, As, [], Es, [], Vs0, Vs1),
-	unfold_antecedent(Fs, W1, W, N2, N, M1, M, Rs, Vs1, Vs).
+	unfold_neg(NF, '$VAR'(W0), M0, M1, As, [], Es, [], Vs0, Vs1, Stats0, Stats1),
+	unfold_antecedent(Fs, W1, W, N2, N, M1, M, Rs, Vs1, Vs, Stats1, Stats).
 
 %= unfold_neg(+Formula, Sem, VertexNo, VarNoAcc, AtomsDL, AtomsDL, EdgesDL, VerticesDL)
 
-unfold_neg(at(A,C,N,Vars), X, M, M, [neg(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs).
-unfold_neg(forall(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_neg(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
-unfold_neg(exists(var(M0),N-A), X, M0, M, As, As, [univ(M0,N)|Es], Es, [vertex(N,Bs,FVsA,Fs)|Vs0], Vs) :-
+unfold_neg(at(A,C,N,Vars), X, M, M, [neg(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs, Stats0, Stats) :-
+	add_neg_atom(Stats0, Stats).
+unfold_neg(forall(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs, Stats0, Stats) :-
+	add_unary_tensor(Stats0, Stats1),
+	unfold_neg(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs, Stats1, Stats).
+unfold_neg(exists(var(M0),N-A), X, M0, M, As, As, [univ(M0,N)|Es], Es, [vertex(N,Bs,FVsA,Fs)|Vs0], Vs, Stats0, Stats) :-
         assert(node_formula(N, neg, A)),
         free_vars_n(A, FVsA),
 	M1 is M0 + 1,
-	unfold_neg(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs).
-unfold_neg(p(N0-A,N1-B), X, M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
+	add_unary_par(Stats0, Stats1),
+	unfold_neg(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs, Stats1, Stats).
+unfold_neg(p(N0-A,N1-B), X, M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs, Stats0, Stats) :-
         assert(node_formula(N0, neg, A)),
         assert(node_formula(N1, neg, B)),
         free_vars_n(A, FVsA),
         free_vars_n(B, FVsB),
-	unfold_neg(A, pi1(X), M0, M1, Bs, [], Fs, [], Vs0, Vs1),
-	unfold_neg(B, pi2(X), M1, M, Cs, [], Gs, [], Vs1, Vs).
-unfold_neg(impl(_-A,_-B), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_pos(A, Y, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
-	unfold_neg(B, appl(X,Y), M1, M, As1, As, Es1, Es, Vs1, Vs).
+	add_binary_par(Stats0, Stats1),
+	unfold_neg(A, pi1(X), M0, M1, Bs, [], Fs, [], Vs0, Vs1, Stats1, Stats2),
+	unfold_neg(B, pi2(X), M1, M, Cs, [], Gs, [], Vs1, Vs, Stats2, Stats).
+unfold_neg(impl(_-A,_-B), X, M0, M, As0, As, Es0, Es, Vs0, Vs, Stats0, Stats) :-
+	add_binary_tensor(Stats0, Stats1),
+	unfold_pos(A, Y, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1, Stats1, Stats2),
+	unfold_neg(B, appl(X,Y), M1, M, As1, As, Es1, Es, Vs1, Vs, Stats2, Stats).
 
 %= unfold_pos(+Formula, Sem, VertexNo, VarNoAcc, AtomsDL, AtomsDL, EdgesDL, VerticesDL)
 
-unfold_pos(at(A,C,N,Vars), X, M, M, [pos(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs).
-unfold_pos(forall(var(M0),N0-A), X, M0, M, As, As, [univ(M0,N0)|Es], Es, [vertex(N0,Bs,FVsA,Fs)|Vs0], Vs) :-
+unfold_pos(at(A,C,N,Vars), X, M, M, [pos(A,C,N,X,Vars)|As], As, Es, Es, Vs, Vs, Stats0, Stats) :-
+	add_pos_atom(Stats0, Stats).
+unfold_pos(forall(var(M0),N0-A), X, M0, M, As, As, [univ(M0,N0)|Es], Es, [vertex(N0,Bs,FVsA,Fs)|Vs0], Vs, Stats0, Stats) :-
         assert(node_formula(N0, pos, A)),
         free_vars_p(A, FVsA),
 	M1 is M0 + 1,
-	unfold_pos(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs).
-unfold_pos(exists(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_pos(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs).
-unfold_pos(p(_-A,_-B), pair(X,Y), M0, M, As0, As, Es0, Es, Vs0, Vs) :-
-	unfold_pos(A, X, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1),
-	unfold_pos(B, Y, M1, M, As1, As, Es1, Es, Vs1, Vs).
-unfold_pos(impl(N0-A,N1-B), lambda(X,Y), M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs) :-
+	add_unary_par(Stats0, Stats1),
+	unfold_pos(A, X, M1, M, Bs, [], Fs, [], Vs0, Vs, Stats1, Stats).
+unfold_pos(exists(_,_-A), X, M0, M, As0, As, Es0, Es, Vs0, Vs, Stats0, Stats) :-
+	add_unary_tensor(Stats0, Stats1),
+	unfold_pos(A, X, M0, M, As0, As, Es0, Es, Vs0, Vs, Stats1, Stats).
+unfold_pos(p(_-A,_-B), pair(X,Y), M0, M, As0, As, Es0, Es, Vs0, Vs, Stats0, Stats) :-
+	add_binary_tensor(Stats0, Stats1),
+	unfold_pos(A, X, M0, M1, As0, As1, Es0, Es1, Vs0, Vs1, Stats1, Stats2),
+	unfold_pos(B, Y, M1, M, As1, As, Es1, Es, Vs1, Vs, Stats2, Stats).
+unfold_pos(impl(N0-A,N1-B), lambda(X,Y), M0, M, As, As, [par(N0,N1)|Es], Es, [vertex(N0,Bs,FVsA,Fs),vertex(N1,Cs,FVsB,Gs)|Vs0], Vs, Stats0, Stats) :-
         assert(node_formula(N0, neg, A)),
         assert(node_formula(N1, pos, B)),
         free_vars_n(A, FVsA),
         free_vars_p(B, FVsB),
-	unfold_neg(A, X, M0, M1, Bs, [], Fs, [], Vs0, Vs1),
-	unfold_pos(B, Y, M1, M, Cs, [], Gs, [], Vs1, Vs).
+	add_binary_par(Stats0, Stats1),
+	unfold_neg(A, X, M0, M1, Bs, [], Fs, [], Vs0, Vs1, Stats1, Stats2),
+	unfold_pos(B, Y, M1, M, Cs, [], Gs, [], Vs1, Vs, Stats2, Stats).
 
 % = number_subformulas_neg(+Formula, +CurrentNodeNumber, +NextNodeNumberIn, -NextNodeNumberOut, -NumberFormula)
 %
@@ -498,6 +510,43 @@ number_subformulas_pos(impl(A,B), C, N0, N, M, M, C-impl(NA,NB)) :-
 % =======================================
 % =             Input/output            =
 % =======================================
+
+% = sequent statistics predicates
+
+init_stats(stats(0,0,0,0,0,0)).
+
+add_neg_atom(stats(A0,B,C,D,E,F), stats(A,B,C,D,E,F)) :-
+	A is A0 + 1.
+
+add_pos_atom(stats(A,B0,C,D,E,F), stats(A,B,C,D,E,F)) :-
+	B is B0 + 1.
+
+add_unary_tensor(stats(A,B,C0,D,E,F), stats(A,B,C,D,E,F)) :-
+	C is C0 + 1.
+
+add_unary_par(stats(A,B,C,D0,E,F), stats(A,B,C,D,E,F)) :-
+	D is D0 + 1.
+
+add_binary_tensor(stats(A,B,C,D,E0,F), stats(A,B,C,D,E,F)) :-
+	E is E0 + 1.
+
+add_binary_par(stats(A,B,C,D,E,F0), stats(A,B,C,D,E,F)) :-
+	F is F0 + 1.
+
+
+portray_sequent_statistics(stats(A,B,C,D,E,F)) :-
+   (
+	A =:= B
+    ->
+	format('~NAtoms:   ~|~t~D~4+~n', [A])
+    ;
+        format('~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
+    ),
+        format('Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
+	format('Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
+
+
+
 
 % = print_trace(+Stream, +List).
 %
