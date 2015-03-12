@@ -86,7 +86,7 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         Rule = rule(cut, GD, C, [P1,rule(el, Delta1, C, [P2])])
    ).
 combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
-        P2 = rule(_, Gamma, A, _),
+        P2 = rule(_, Gamma, N1-A, _),
 	P1 = rule(Nm, Delta, C, _),
 %	rename_bound_variables(A, AA),
 	A = AA,
