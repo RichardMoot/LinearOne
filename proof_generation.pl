@@ -242,12 +242,12 @@ create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [Pro
 	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
         create_pos_proof(A, N, L0, L, ProofA),
         ProofA = rule(_, Gamma, N-A2, _).
-create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
+create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A2,N-B2), [P1,P2])) :-
         !,
         create_pos_proof(A, N, L0, L1, P1),
         create_pos_proof(B, N, L1, L, P2),
-        P1 = rule(_, Gamma, _, _),
-        P2 = rule(_, Delta, _, _),
+        P1 = rule(_, Gamma, N-A2, _),
+        P2 = rule(_, Delta, N-B2, _),
         append(Gamma, Delta, GD).
 % complex (negative) subformula
 create_pos_proof(F, N, L, L, rule(ax, [N-F], N-F, [])).
