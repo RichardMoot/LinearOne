@@ -136,6 +136,15 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 
 unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
 
+% = select_neg_proof(+InProofs, -OutProofs, +Vertex, +Order, -Gamma, -A, -Delta, -C, -Proof)
+%
+% select the negative atomic formula indicated by the unique identifier Vertex-Order from InProofs, that is
+% we are seeking a Proof with conclusion
+%
+%   Gamma, A, Delta |- C
+%
+% such that A is the formula indicated by Vertex-Order and OutProofs are the other proofs.
+
 select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
 	!.
@@ -145,7 +154,16 @@ select_neg_proof([P|Ps], [P|Rs], V, O, Gamma, A, Delta, C, Proof) :-
 select_neg_proof1(_-P, V, O, Gamma, A, Delta, C, R) :-
 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, R).
 select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(Nm, GammaADelta, C, Ps)) :-
-	select_ant_formula(GammaADelta, V, O, Gamma, [], A, Delta).
+	select_ant_formula(GammaADelta, V, O, Gamma, A, Delta).
+
+% = select_pos_proof(+InProofs, -Outproof, +Vertex, +Order, -Delta, -A, -Proof)
+%
+% select the positive atomic indicated by the unique identifier Vertex-Order from InProofs, that is
+% we are seeking a Proof with conclusion
+%
+%   Delta |- A
+%
+% such that A is the formula indicated by Vertex-Order and OutProofs are the other proofs.
 
 select_pos_proof([P|Ps], Ps, V, O, Delta, A, Proof) :-
 	select_pos_proof1(P, V, O, Delta, A, Proof),
@@ -157,12 +175,21 @@ select_pos_proof1(_-P, V, O, Delta, A, R) :-
 	select_pos_proof1(P, V, O, Delta, A, R).
 select_pos_proof1(rule(Nm, Delta, N-at(At,V,O,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)).
 
-select_ant_formula([N-at(At,V,O,Vars)|Delta], V, O, Gamma, Gamma, N-at(At,V,O,Vars), Delta) :-
-	!.
-select_ant_formula([G|Gs], V, O, [G|Gamma0], Gamma, A, Delta) :-
-	select_ant_formula(Gs, V, O, Gamma0, Gamma, A, Delta).
 
-	
+% = select_ant_formula(+Antecedent, +Vertex, +Order, -Gamma, -A, -Delta)
+%
+% select the (negative) atomic formula indicated by Vertex-Order from the given Antecedent,
+% dividing the antecedent into Gamma, A, Delta (Gamma is represented as a difference list)
+
+select_ant_formula([N-at(At,V,O,Vars)|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+	!.
+select_ant_formula([G|Gs], V, O, [G|Gamma], A, Delta) :-
+	select_ant_formula(Gs, V, O, Gamma, A, Delta).
+
+% = node_proofs(+Graph, -Proofs)
+%
+% for each of the nodes in Graph, retrieve the stored formula and polarity of the node and
+% compute the corresponding sequent proof
 
 node_proofs([V|Vs], [P|Ps]) :-
         node_proof1(V, P),
@@ -175,6 +202,10 @@ node_proof1(vertex(N0, As, _, _), N0-Proof) :-
 	proof_diagnostics('~w. ', [N0], Proof),	
 	!.
 
+% = node_proof2(+Atoms, +Formula, +NodeNumber, +Polarity, -Proof)
+%
+% create a Proof using matching Formula to its Atoms
+
 node_proof2([], F, N, _, rule(ax, [N-F], N-F, [])).
 node_proof2([A|As], F, N, Pol, Proof) :-
         node_proof3(Pol, [A|As], F, N, Proof).
@@ -185,6 +216,11 @@ node_proof3(neg, L, F, N, Proof) :-
         max_neg(F, MN0),
 	rename_bound_variables(MN0, MN),
         create_neg_proof(F, N, L, [], MN, Proof).
+
+% = max_neg(+Formula, -Conclusion)
+%
+% given a negative (antecedent) formula, compute the Conclusion of the proof we are computing for it;
+% this is (maximal) subformula we reach following a path of negative subformulas.
 
 max_neg(impl(_,_-F0), F) :-
 	!,
@@ -213,7 +249,7 @@ create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A,N-B), [P1,P2])) :-
         P1 = rule(_, Gamma, _, _),
         P2 = rule(_, Delta, _, _),
         append(Gamma, Delta, GD).
-% complex subformula
+% complex (negative) subformula
 create_pos_proof(F, N, L, L, rule(ax, [N-F], N-F, [])).
 
 create_neg_proof(N-A, L0, L, Neg, Proof) :-
@@ -237,6 +273,7 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
 	/* rename to make sure bound variables aren't unified */
 	replace_formula(A2, N, N-forall(Y,N-A3), Gamma, GammaP),
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
+% complex (positive) subformula
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
 % =======================================
