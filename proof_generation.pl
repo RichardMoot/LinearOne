@@ -43,7 +43,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
-	try_cut_elimination(P2, P1, GDP, C, DeltaP, A1, Rule),
+	try_cut_elimination(P2, P1, GDP, C, DeltaP, A1, A2, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -67,36 +67,36 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
 
-try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C, Proof) :-
-	turbo_cut_elimination(RightProof, LeftProof, Delta, C, Proof),
+try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C1, _-C2, Proof) :-
+	turbo_cut_elimination(RightProof, LeftProof, Delta, C1, C2, Proof),
 	!.
-try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C, rule(cut, GDP, F, [LeftProof,RightProof])).
+try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C1, _C2, rule(cut, GDP, F, [LeftProof,RightProof])).
 
-turbo_cut_elimination(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, C, Proof) :-
+turbo_cut_elimination(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, C1, C2, Proof) :-
     (
-        Gamma = [_-C], Rs0 = []
+        Gamma = [_-C1], Rs0 = []
     ->
 	/* reached axiom */     
 	GammaDelta = Delta,
 	Proof = LeftProof    
     ;				      		
-	append(Gamma0, [_-C|Gamma1], Gamma),
+	append(Gamma0, [_-C1|Gamma1], Gamma),
 	append(Gamma0, Delta, GammaDelta0),
 	append(GammaDelta0, Gamma1, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
-	turbo_cut_elimination1(Rs0, LeftProof, Delta, C, Rs)
+	turbo_cut_elimination1(Rs0, LeftProof, Delta, C1, C2, Rs)
     ).
 
-% = proceed to the subproof containing C
-turbo_cut_elimination1([R0|Rs0], LeftProof, Delta, C, [R|Rs]) :-
+% = proceed to the subproof containing C1
+turbo_cut_elimination1([R0|Rs0], LeftProof, Delta, C1, C2, [R|Rs]) :-
     (
-	antecedent_member(C, R0)
+	antecedent_member(C1, R0)
     ->
 	Rs = Rs0,
-	turbo_cut_elimination(R0, LeftProof, Delta, C, R)
+	turbo_cut_elimination(R0, LeftProof, Delta, C1, C2, R)
     ;		     
         R = R0,
-        turbo_cut_elimination1(Rs0, LeftProof, Delta, C, Rs)
+        turbo_cut_elimination1(Rs0, LeftProof, Delta, C1, C2, Rs)
     ).
 
 antecedent_member(F, rule(_, Gamma, _, _)) :-
