@@ -43,7 +43,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
-	trivial_cut_elimination(P1, P2, GDP, C, Rule),
+	try_cut_elimination(P2, P1, GDP, C, DeltaP, A1, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -67,7 +67,42 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
 
+try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C, Proof) :-
+	turbo_cut_elimination(RightProof, LeftProof, Delta, C, Proof),
+	!.
+try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C, rule(cut, GDP, F, [LeftProof,RightProof])).
 
+turbo_cut_elimination(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, C, Proof) :-
+    (
+        Gamma = [_-C], Rs0 = []
+    ->
+	/* reached axiom */     
+	GammaDelta = Delta,
+	Proof = LeftProof    
+    ;				      		
+	append(Gamma0, [_-C|Gamma1], Gamma),
+	append(Gamma0, Delta, GammaDelta0),
+	append(GammaDelta0, Gamma1, GammaDelta),
+	Proof = rule(Nm, GammaDelta, A, Rs),
+	turbo_cut_elimination1(Rs0, LeftProof, Delta, C, Rs)
+    ).
+
+% = proceed to the subproof containing C
+turbo_cut_elimination1([R0|Rs0], LeftProof, Delta, C, [R|Rs]) :-
+    (
+	antecedent_member(C, R0)
+    ->
+	Rs = Rs0,
+	turbo_cut_elimination(R0, LeftProof, Delta, C, R)
+    ;		     
+        R = R0,
+        turbo_cut_elimination1(Rs0, LeftProof, Delta, C, Rs)
+    ).
+
+antecedent_member(F, rule(_, Gamma, _, _)) :-
+	member(_-F, Gamma).
+
+% = left rule for existential quantifier
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
@@ -83,6 +118,7 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
    ;		  
         Rule = rule(cut, GD, C, [P1,rule(el, Delta1, C, [P2])])
    ).
+% = right rule for universal quantifier
 combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, N1-A, _),
 	P1 = rule(Nm, Delta, C, _),
@@ -97,6 +133,7 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
    ;		  
         Rule = rule(cut, GD, C, [rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]),P1])
    ).
+% = left rule for product
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
@@ -113,6 +150,7 @@ combine(P1, P2, N0, N1, N1-Rule) :-
    ;		  
         Rule = rule(cut, GD, C, [P1,rule(pl, Delta2, C, [P2])])
    ).
+% = right rule for implication
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, A, _),
 	P2 = rule(_, Delta0, N1-D, _),
@@ -129,12 +167,34 @@ combine(P1, P2, N0, N1, N1-Rule) :-
         Rule = rule(cut, GD, A, [rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]),P1])
    ).
 
-% = unify_atoms(Atom1, Atom2)
+% = unify_atoms(+Atom1, +Atom2)
 %
 % true if Atom1 and Atom2 unify when disregarding the unique two-integer
 % identifiers
 
 unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
+
+% = same_formula(+Formula1, +Formula2)
+%
+% true if Formula1 and Formula2 are the same when disregarding the subformula
+% numbering
+
+same_formula(_-F0, _-F) :-
+	same_formula1(F0, F).
+
+same_formula1(at(A,Id1,Id2,_), at(A,Id1,Id2,_)).
+same_formula1(forall(X,F0), forall(Y,F)) :-
+	X == Y,
+	same_formula(F0, F).
+same_formula1(exists(X,F0), exists(Y,F)) :-
+	X == Y,
+	same_formula(F0, F).
+same_formula1(impl(A0,B0), impl(A,B)) :-
+	same_formula(A0, A),
+	same_formula(B0, B).
+same_formula1(p(A0,B0), p(A,B)) :-
+	same_formula(A0, A),
+	same_formula(B0, B).
 
 select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
