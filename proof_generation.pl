@@ -72,6 +72,14 @@ try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C1, _-C2, Proof) :
 	!.
 try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C1, _C2, rule(cut, GDP, F, [LeftProof,RightProof])).
 
+%                      CL |- CL             Gamma |- CR
+%                         .                       .
+%                         .                       .
+%  Gamma |- CR  Delta, CL |- A        Gamma, Delta |- A
+%
+% the proof on the left keeps CL constant in its right branch; in the proof of the right, we replace
+% CL by Gamma throughout (and CL in the succedent by CR).
+
 turbo_cut_elimination_left(rule(Nm, Gamma, CR, Rs0), RightProof, Delta, CL, CR, rule(Nm, Gamma, CR, Rs)) :-
     (
         Gamma = [_-CR], Rs0 = []
@@ -86,7 +94,15 @@ turbo_cut_elimination_left(rule(Nm, Gamma, CR, Rs0), RightProof, Delta, CL, CR, 
 	Proof = rule(Nm, GammaDelta, A, Rs),
 	turbo_cut_elimination1(Rs0, RightProof, Delta, CL, CR, Rs)
     ).
-	
+
+%     CR |- CR                               Delta, CL |- A
+%        .                                             .
+%        .                                             .
+%  Gamma |- CR  Delta, CL |- A            Delta, Gamma |- A
+%
+% the proof on the left transforms CR to Gamma without changing the succedent; we can
+% use this same sequence of rules on the right to transform (replace) CL by the
+% successive antecedents of the left proof
 
 turbo_cut_elimination_right(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, CL, CR, Proof) :-
     (
