@@ -72,18 +72,31 @@ try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C1, _-C2, Proof) :
 	!.
 try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C1, _C2, rule(cut, GDP, F, [LeftProof,RightProof])).
 
-%turbo_cut_elimination_left(rule(Nm, Gamma, A, Rs0), RightProof, CL, CR, Proof) :-
+turbo_cut_elimination_left(rule(Nm, Gamma, CR, Rs0), RightProof, Delta, CL, CR, rule(Nm, Gamma, CR, Rs)) :-
+    (
+        Gamma = [_-CR], Rs0 = []
+    ->
+	/* reached axiom */     
+	GammaDelta = Delta,
+	Proof = RightProof    
+    ;				      		
+	append(Gamma0, [_-CR|Gamma1], Gamma),
+	append(Gamma0, Delta, GammaDelta0),
+	append(GammaDelta0, Gamma1, GammaDelta),
+	Proof = rule(Nm, GammaDelta, A, Rs),
+	turbo_cut_elimination1(Rs0, RightProof, Delta, CL, CR, Rs)
+    ).
 	
 
-turbo_cut_elimination(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, C1, C2, Proof) :-
+turbo_cut_elimination_right(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, CL, CR, Proof) :-
     (
-        Gamma = [_-C1], Rs0 = []
+        Gamma = [_-CL], Rs0 = []
     ->
 	/* reached axiom */     
 	GammaDelta = Delta,
 	Proof = LeftProof    
     ;				      		
-	append(Gamma0, [_-C1|Gamma1], Gamma),
+	append(Gamma0, [_-CL|Gamma1], Gamma),
 	append(Gamma0, Delta, GammaDelta0),
 	append(GammaDelta0, Gamma1, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
