@@ -72,6 +72,9 @@ try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C1, _-C2, Proof) :
 	!.
 try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C1, _C2, rule(cut, GDP, F, [LeftProof,RightProof])).
 
+%turbo_cut_elimination_left(rule(Nm, Gamma, A, Rs0), RightProof, CL, CR, Proof) :-
+	
+
 turbo_cut_elimination(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, C1, C2, Proof) :-
     (
         Gamma = [_-C1], Rs0 = []
@@ -101,6 +104,11 @@ turbo_cut_elimination1([R0|Rs0], LeftProof, Delta, C1, C2, [R|Rs]) :-
 
 antecedent_member(F, rule(_, Gamma, _, _)) :-
 	member(_-F, Gamma).
+
+% = combine_univ(+Proof1, +Proof2, +Node1, +Node2, +VariableNumber, -Proof)
+%
+% combine Proof1 and Proof2 into Proof using a unary par contraction (with eigenvariable
+% VariableNumber) which links Node1 to Node2
 
 % = left rule for existential quantifier
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
@@ -133,6 +141,14 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
    ;		  
         Rule = rule(cut, GD, C, [rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]),P1])
    ).
+
+
+% = combine(+Proof1, +Proof2, +Node1, +Node2, -Proof)
+%
+% combine Proof1 and Proof2 into Proof using a binary par contraction which links Node1
+% to Node2 (since this is a valid contraction, the two edges leaving Node1 must arrive
+% in the same node Node2)
+
 % = left rule for product
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
@@ -291,8 +307,12 @@ max_neg(forall(_,_-F0), F) :-
 	max_neg(F0, F).
 max_neg(F, F).
 
+% = create_pos_proof(+NumberedPositiveFormula, +/-AtomsDL, -Proof)
+
 create_pos_proof(N-A, L0, L, Proof) :-
 	create_pos_proof(A, N, L0, L, Proof).
+
+% = create_pos_proof(+PositiveFormula, +NodeNumber, +/-AtomsDL, -Proof)
 
 create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
 	!.
@@ -313,8 +333,13 @@ create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A2,N-B2), [P1,P2])) :-
 % complex (negative) subformula
 create_pos_proof(F, N, L, L, rule(ax, [N-F], N-F, [])).
 
+% = create_neg_proof(+NumberedNegativeFormula, +/-AtomsDL, +Goal, -Proof)
+
 create_neg_proof(N-A, L0, L, Neg, Proof) :-
 	create_neg_proof(A, N, L0, L, Neg, Proof).
+
+% = create_neg_proof(+NegativeFormula, +NodeNumber, +/-AtomsDL, +Goal, -Proof)
+
 create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
