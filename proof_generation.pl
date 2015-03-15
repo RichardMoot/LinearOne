@@ -44,11 +44,14 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	append(GDP1, Delta2, GDP),
 	unify_atoms(CL, CR),
 	try_cut_elimination_right(LeftProof, RightProof, GDP, A, Gamma, CL, CR, Rule),
-	trivial_cut_elimination(RightProof, LeftProof, GDP, A, Rule0),
-	antecedent(Rule, Ant1),
-	antecedent(Rule0, Ant2),
-	nl(user_error),
-	print_two_lists(Ant1, Ant2),
+%	trivial_cut_elimination(RightProof, LeftProof, GDP, A, Rule0),
+%	antecedent(Rule, Ant1),
+%	antecedent(Rule0, Ant2),
+%	nl(user_error),
+%	%	print_two_lists(Ant1, Ant2),
+%	( Rule == Rule0 -> true ; 
+%	format(user_error, '~N~p,~n', [Rule]),
+%	format(user_error, '~p~n', [Rule0])),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -72,13 +75,13 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
 
-try_cut_elimination_right(LeftProof, RightProof, _GammaDelta, _A, Gamma, _-CL, _-CR, Proof) :-
-	turbo_cut_elimination_right(RightProof, LeftProof, Gamma, CL, CR, Proof),
-	!.
-%	antecedent(Proof, Ant),
-%	nl(user_error),
-%        print_two_lists(GammaDelta, Ant).
+try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, Gamma, _-CL, _-CR, Proof) :-
+	turbo_cut_elimination_right(RightProof, LeftProof, Gamma, CL, CR, Proof0),
+	!,
+	update_proof_cheat(Proof0, GammaDelta, A, Proof).
 try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, _Gamma, _CL, _CR, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
+
+update_proof_cheat(rule(Nm, _, _, Rs), Gamma, A, rule(Nm, Gamma, A, Rs)).
 
 
 print_two_lists([], []).
