@@ -43,7 +43,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
         append(Gamma, DeltaP, GDP1),
 	append(GDP1, Delta, GDP),
 	unify_atoms(A1, A2),
-	try_cut_elimination(P2, P1, GDP, C, DeltaP, A1, A2, Rule),
+	try_cut_elimination(P2, P1, GDP, C, DeltaP, A2, A1, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -67,8 +67,8 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
 
-try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-C1, _-C2, Proof) :-
-	turbo_cut_elimination(RightProof, LeftProof, Delta, C1, C2, Proof),
+try_cut_elimination(LeftProof, RightProof, _GDP, _F, Delta, _-CL, _-CR, Proof) :-
+	turbo_cut_elimination_right(RightProof, LeftProof, Delta, CL, CR, Proof),
 	!.
 try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C1, _C2, rule(cut, GDP, F, [LeftProof,RightProof])).
 
@@ -80,19 +80,28 @@ try_cut_elimination(LeftProof, RightProof, GDP, F, _Delta, _C1, _C2, rule(cut, G
 % the proof on the left keeps CL constant in its right branch; in the proof of the right, we replace
 % CL by Gamma throughout (and CL in the succedent by CR).
 
-turbo_cut_elimination_left(rule(Nm, Gamma, CR, Rs0), RightProof, Delta, CL, CR, rule(Nm, Gamma, CR, Rs)) :-
+turbo_cut_elimination_left(rule(Nm, Gamma, CL, Rs0), RightProof, Delta, A, CL, CR, Proof) :-
     (
-        Gamma = [_-CR], Rs0 = []
+        Gamma = [_-CL], Rs0 = []
     ->
 	/* reached axiom */     
-	GammaDelta = Delta,
+	append(Delta, [CR], GammaDelta),
 	Proof = RightProof    
     ;				      		
-	append(Gamma0, [_-CR|Gamma1], Gamma),
-	append(Gamma0, Delta, GammaDelta0),
-	append(GammaDelta0, Gamma1, GammaDelta),
+	append(Gamma, Delta, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
-	turbo_cut_elimination1(Rs0, RightProof, Delta, CL, CR, Rs)
+	turbo_cut_elimination_left1(Rs0, RightProof, Delta, A, CL, CR, Rs)
+    ).
+
+turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta, A, CL, CR, [R|Rs]) :-
+    (
+	R0 = rule(_, _, _-A, Rs0)
+    ->
+	Rs = Rs0,
+	turbo_cut_elimination_left(R0, RightProof, Delta, A, CL, CR, R)
+    ;		     
+        R = R0,
+        turbo_cut_elimination_left1(Rs0, RightProof, Delta, A, CL, CR, Rs)
     ).
 
 %     CR |- CR                               Delta, CL |- A
@@ -106,30 +115,31 @@ turbo_cut_elimination_left(rule(Nm, Gamma, CR, Rs0), RightProof, Delta, CL, CR, 
 
 turbo_cut_elimination_right(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, CL, CR, Proof) :-
     (
-        Gamma = [_-CL], Rs0 = []
+        Gamma = [_-CR], Rs0 = []
     ->
 	/* reached axiom */     
 	GammaDelta = Delta,
 	Proof = LeftProof    
     ;				      		
-	append(Gamma0, [_-CL|Gamma1], Gamma),
+	append(Gamma0, [_-CR|Gamma1], Gamma),
 	append(Gamma0, Delta, GammaDelta0),
 	append(GammaDelta0, Gamma1, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
-	turbo_cut_elimination1(Rs0, LeftProof, Delta, C1, C2, Rs)
+	turbo_cut_elimination_right1(Rs0, LeftProof, Delta, CL, CR, Rs)
     ).
 
 % = proceed to the subproof containing C1
-turbo_cut_elimination1([R0|Rs0], LeftProof, Delta, C1, C2, [R|Rs]) :-
+turbo_cut_elimination_right1([R0|Rs0], LeftProof, Delta, CL, CR, [R|Rs]) :-
     (
-	antecedent_member(C1, R0)
+	antecedent_member(CL, R0)
     ->
 	Rs = Rs0,
-	turbo_cut_elimination(R0, LeftProof, Delta, C1, C2, R)
+	turbo_cut_elimination_right(R0, LeftProof, Delta, CL, CR, R)
     ;		     
         R = R0,
-        turbo_cut_elimination1(Rs0, LeftProof, Delta, C1, C2, Rs)
+        turbo_cut_elimination_right1(Rs0, LeftProof, Delta, CL, CR, Rs)
     ).
+
 
 antecedent_member(F, rule(_, Gamma, _, _)) :-
 	member(_-F, Gamma).
