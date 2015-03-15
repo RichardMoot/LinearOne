@@ -2,7 +2,7 @@
 
 :- use_module(latex, [latex_proof/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
-:- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1]).
+:- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 
 generate_diagnostics(false).
 
@@ -36,14 +36,19 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
-	select_pos_proof(Ps0, Ps1, AtV1, AtO1, Gamma, CR, LeftProof),
+	select_pos_proof(Ps0, Ps1, AtV1, AtO1, Gamma, CL, LeftProof),
 	proof_diagnostics('~NPos:~2n', LeftProof),
-	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Delta1, CL, Delta2, A, RightProof),
+	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Delta1, CR, Delta2, A, RightProof),
 	proof_diagnostics('~NNeg:~2n', RightProof),
         append(Delta1, Gamma, GDP1),
 	append(GDP1, Delta2, GDP),
 	unify_atoms(CL, CR),
 	try_cut_elimination_right(LeftProof, RightProof, GDP, A, Gamma, CL, CR, Rule),
+	trivial_cut_elimination(RightProof, LeftProof, GDP, A, Rule0),
+	antecedent(Rule, Ant1),
+	antecedent(Rule0, Ant2),
+	nl(user_error),
+	print_two_lists(Ant1, Ant2),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -67,10 +72,20 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
 
-try_cut_elimination_right(LeftProof, RightProof, _GDP, _A, Gamma, _-CL, _-CR, Proof) :-
+try_cut_elimination_right(LeftProof, RightProof, _GammaDelta, _A, Gamma, _-CL, _-CR, Proof) :-
 	turbo_cut_elimination_right(RightProof, LeftProof, Gamma, CL, CR, Proof),
 	!.
-try_cut_elimination_right(LeftProof, RightProof, GDP, A, _Gamma, _CL, _CR, rule(cut, GDP, A, [LeftProof,RightProof])).
+%	antecedent(Proof, Ant),
+%	nl(user_error),
+%        print_two_lists(GammaDelta, Ant).
+try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, _Gamma, _CL, _CR, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
+
+
+print_two_lists([], []).
+print_two_lists([A|As], [B|Bs]) :-
+	( A == B -> C = ' '	; C = '*' ),
+	format(user_error, '~w~t~w~34|~t~w~72|~w~n', [C,A,B,C]),
+	print_two_lists(As, Bs).
 
 %                      CL |- CL             Gamma |- CR
 %                         .                       .
@@ -126,7 +141,7 @@ turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, P
 	append(Delta1, Gamma, GammaDelta1),
 	append(GammaDelta1, Delta2, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
-	turbo_cut_elimination_right1(Rs0, LeftProof, Delta, CL, CR, Rs)
+	turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR, Rs)
     ).
 
 % = proceed to the subproof containing CR

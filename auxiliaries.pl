@@ -1,4 +1,4 @@
-:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2]).
+:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2, antecedent/2]).
 
 :- use_module(ordset, [ord_union/3, ord_delete/3]).
 
@@ -55,6 +55,15 @@ subproofs(rule(_,_,_,S), S).
 rulename(_-R, N) :-
         rulename(R, N).
 rulename(rule(N,_,_,_), N).
+
+% = antecedent(+Proof, ?Antecedent)
+%
+% true if Antecedent is the antecedent of the conclusion of the
+% given Proof.
+
+antecedent(_-R, Ant) :-
+	antecedent(R, Ant).
+antecedent(rule(_,Ant,_,_), Ant).
 
 % = is_axiom(+Proof)
 %
