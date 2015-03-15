@@ -118,7 +118,6 @@ turbo_cut_elimination_right(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, CL, CR, P
         Gamma = [_-CR], Rs0 = []
     ->
 	/* reached axiom */     
-	GammaDelta = Delta,
 	Proof = LeftProof    
     ;				      		
 	append(Gamma0, [_-CR|Gamma1], Gamma),
@@ -131,7 +130,7 @@ turbo_cut_elimination_right(rule(Nm, Gamma, A, Rs0), LeftProof, Delta, CL, CR, P
 % = proceed to the subproof containing C1
 turbo_cut_elimination_right1([R0|Rs0], LeftProof, Delta, CL, CR, [R|Rs]) :-
     (
-	antecedent_member(CL, R0)
+	antecedent_member(CR, R0)
     ->
 	Rs = Rs0,
 	turbo_cut_elimination_right(R0, LeftProof, Delta, CL, CR, R)
