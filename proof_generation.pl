@@ -43,7 +43,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
         append(Delta1, Gamma, GDP1),
 	append(GDP1, Delta2, GDP),
 	unify_atoms(CL, CR),
-	try_cut_elimination_right(LeftProof, RightProof, GDP, A, Gamma, CL, CR, Rule),
+	try_cut_elimination_left(LeftProof, RightProof, GDP, Delta1, Delta2, A, CL, CR, Rule),
 %	trivial_cut_elimination(RightProof, LeftProof, GDP, A, Rule0),
 %	antecedent(Rule, Ant1),
 %	antecedent(Rule0, Ant2),
@@ -74,12 +74,19 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
         subproofs(P1, R).
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
+try_cut_elimination_left(LeftProof, RightProof, GammaDelta, Delta1, Delta2, A, _-CL, _-CR, Proof) :-
+	turbo_cut_elimination_left(LeftProof, RightProof, Delta1, Delta2, A, CL, CR, Proof0),
+	!,
+	update_proof_cheat(Proof0, GammaDelta, A, Proof).
+try_cut_elimination_left(LeftProof, RightProof, GammaDelta, _, _, A, _, _, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
 
 try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, Gamma, _-CL, _-CR, Proof) :-
 	turbo_cut_elimination_right(RightProof, LeftProof, Gamma, CL, CR, Proof0),
 	!,
 	update_proof_cheat(Proof0, GammaDelta, A, Proof).
 try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, _Gamma, _CL, _CR, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
+
+% = as the name indicates, this predicate needs to be subsumed by the main cut elimination predicates later
 
 update_proof_cheat(rule(Nm, _, _, Rs), Gamma, A, rule(Nm, Gamma, A, Rs)).
 
@@ -93,7 +100,7 @@ print_two_lists([A|As], [B|Bs]) :-
 %                      CL |- CL             Gamma |- CR
 %                         .                       .
 %                         .                       .
-%  Gamma |- CR  Delta  CL |- A        Gamma, Delta |- A
+%  Gamma |- CR  Delta, CL |- A        Gamma, Delta |- A
 %
 % the proof on the left keeps CL constant in its right branch; in the proof of the right, we replace
 % CL by Gamma throughout (and CL in the succedent by CR).
@@ -226,20 +233,26 @@ combine(P1, P2, N0, N1, N1-Rule) :-
    ).
 % = right rule for implication
 combine(P1, P2, N0, N1, N1-Rule) :-
-	P1 = rule(Nm, Gamma, A, _),
+	P1 = rule(_, Gamma, A, _),
 	P2 = rule(_, Delta0, N1-D, _),
 	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
 	select_formula(C, N1, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
 	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->	    
-        Rule = rule(ir, GD, A, [P2])
-   ;		  
-        Rule = rule(cut, GD, A, [rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]),P1])
-   ).
+	% P1 = RightProof
+	% rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]) = LeftProof
+	% GD = GammaDelta
+	% Delta
+	trace,
+	try_cut_elimination_right(rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]), P1, GD, A, Delta, N0-impl(N1-C,N1-D), N0-impl(N1-C,N1-D), Rule).
+%   (
+%	Nm = ax
+%   ->	    
+%        Rule = rule(ir, GD, A, [P2])
+%   ;		  
+%        Rule = rule(cut, GD, A, [rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]),P1])
+%   ).
 
 % = unify_atoms(+Atom1, +Atom2)
 %
