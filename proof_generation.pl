@@ -119,15 +119,16 @@ turbo_cut_elimination_left(rule(Nm, Gamma, _-CL, Rs0), RightProof, Delta1, Delta
 	turbo_cut_elimination_left1(Rs0, RightProof, Delta1, Delta2, A, CL, CR, Rs)
     ).
 
-turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta1, Delta2, A, CL, CR, [R|Rs]) :-
+turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta1, Delta2, A, CL0, CR, [R|Rs]) :-
     (
-	R0 = rule(_, _,_-CL, _)
+	R0 = rule(_, _,_-CL, _),
+	same_formula1(CL0, CL)
     ->
 	Rs = Rs0,
 	turbo_cut_elimination_left(R0, RightProof, Delta1, Delta2, A, CL, CR, R)
     ;		     
         R = R0,
-        turbo_cut_elimination_left1(Rs0, RightProof, Delta1, Delta2, A, CL, CR, Rs)
+        turbo_cut_elimination_left1(Rs0, RightProof, Delta1, Delta2, A, CL0, CR, Rs)
     ).
 
 %     CR |- CR                               Delta, CL |- A
@@ -186,35 +187,43 @@ antecedent_member1([_-G|Gs], F0, F) :-
 
 % = left rule for existential quantifier
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
-        P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
+        P1 = rule(_, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	select_formula(A, N1, Delta0, Delta),
-	replace_formula(A, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
-	append(Gamma, Delta, GD),
+	append(Delta1, [_-A|Delta2], Delta0),
+	append(Delta1, [N1-exists(var(V),N1-A)|Delta2], Delta),
+%	replace_formula(A, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
+	append(Delta1, Gamma, GD1),
+	append(GD1, Delta2, GD),
+	/* try to create a cut-free proof */
+	try_cut_elimination_left(P1, rule(el, Delta, C, [P2]), GD, Delta1, Delta2, C, N0-exists(var(V),N1-A), N0-exists(var(V),N1-A), Rule).
+
 	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->
-        Rule = rule(el, GD, C, [P2])
-   ;		  
-        Rule = rule(cut, GD, C, [P1,rule(el, Delta1, C, [P2])])
-   ).
+   %% (
+   %% 	Nm = ax
+   %% ->
+   %%      Rule = rule(el, GD, C, [P2])
+   %% ;		  
+   %%      Rule = rule(cut, GD, C, [P1,rule(el, Delta1, C, [P2])])
+   %% ).
 % = right rule for universal quantifier
-combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
+combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, N1-A, _),
-	P1 = rule(Nm, Delta, C, _),
+	P1 = rule(_, Delta, C, _),
 	append(Delta0, [_-forall(var(V),N1-A)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
-	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->
-        Rule = rule(fr,GD,N1-forall(var(V),N1-A), [P2])
-   ;		  
-        Rule = rule(cut, GD, C, [rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]),P1])
-   ).
+	/* try to create a cut-free proof */
+	try_cut_elimination_right(rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]), P1, GD, C, Delta, N0-forall(var(V),N1-A), N0-forall(var(V),N1-A), Rule).
+
+   %% 	/* don't create trivial cuts */
+   %% (
+   %% 	Nm = ax
+   %% ->
+   %%      Rule = rule(fr,GD,N1-forall(var(V),N1-A), [P2])
+   %% ;		  
+   %%      Rule = rule(cut, GD, C, [rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]),P1])
+   %% ).
 
 
 % = combine(+Proof1, +Proof2, +Node1, +Node2, -Proof)
@@ -225,21 +234,23 @@ combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
 
 % = left rule for product
 combine(P1, P2, N0, N1, N1-Rule) :-
-	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
+	P1 = rule(_, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
 	select_formula(B, N1, Delta0, Delta1),
 	select_formula(A, N1, Delta1, Delta),
 	replace_formula(A, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
+	append(Delta3, [N1-p(N1-A,N1-B)|Delta4], Delta2),
 	append(Gamma, Delta, GD),		  
-	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->
-        Rule = rule(pl, GD, C, [P2])
-   ;		  
-        Rule = rule(cut, GD, C, [P1,rule(pl, Delta2, C, [P2])])
-   ).
+	/* try to create a cut-free proof */
+	try_cut_elimination_left(P1, rule(pl, Delta2, C, [P2]), GD, Delta3, Delta4, C, N0-p(N1-A, N1-B), N0-p(N1-A, N1-B), Rule).
+   %% (
+   %% 	Nm = ax
+   %% ->
+   %%      Rule = rule(pl, GD, C, [P2])
+   %% ;		  
+   %%      Rule = rule(cut, GD, C, [P1,rule(pl, Delta2, C, [P2])])
+   %% ).
 % = right rule for implication
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(_, Gamma, A, _),
@@ -248,19 +259,8 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	select_formula(C, N1, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
-	/* don't create trivial cuts */
-	% P1 = RightProof
-	% rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]) = LeftProof
-	% GD = GammaDelta
-	% Delta
+	/* try to create a cut-free proof */
 	try_cut_elimination_right(rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]), P1, GD, A, Delta, N0-impl(N1-C,N1-D), N0-impl(N1-C,N1-D), Rule).
-%   (
-%	Nm = ax
-%   ->	    
-%        Rule = rule(ir, GD, A, [P2])
-%   ;		  
-%        Rule = rule(cut, GD, A, [rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]),P1])
-%   ).
 
 % = unify_atoms(+Atom1, +Atom2)
 %
