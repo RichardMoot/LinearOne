@@ -1,4 +1,4 @@
-:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2]).
+:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2, antecedent/2]).
 
 :- use_module(ordset, [ord_union/3, ord_delete/3]).
 
@@ -39,6 +39,20 @@ print_count_offenders([AtName-atoms(Pos, Neg)|Rest]) :-
    ),
  	print_count_offenders(Rest).
 
+% = print_diff_lists(+List1, +List2)
+%
+% supposing List1 and List2 have the same length, we print the members of the two lists
+% side-by-side, marking by * the elements which differ between the two lists
+
+print_diff_lists([], []).
+print_diff_lists([A|As], [B|Bs]) :-
+	copy_term(A, AA),
+	copy_term(B, BB),
+	numbervars(AA, 0, _),
+	numbervars(BB, 0, _),
+	( A == B -> C = ' '	; C = '*' ),
+	format(user_error, '~w~t~w~50|~t~w~100|~w~n', [C,AA,BB,C]),
+	print_diff_lists(As, Bs).
 
 % = sub_proofs(+Proof, ?SubProofList)
 %
@@ -55,6 +69,15 @@ subproofs(rule(_,_,_,S), S).
 rulename(_-R, N) :-
         rulename(R, N).
 rulename(rule(N,_,_,_), N).
+
+% = antecedent(+Proof, ?Antecedent)
+%
+% true if Antecedent is the antecedent of the conclusion of the
+% given Proof.
+
+antecedent(_-R, Ant) :-
+	antecedent(R, Ant).
+antecedent(rule(_,Ant,_,_), Ant).
 
 % = is_axiom(+Proof)
 %

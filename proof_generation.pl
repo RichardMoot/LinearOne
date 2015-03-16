@@ -2,7 +2,7 @@
 
 :- use_module(latex, [latex_proof/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
-:- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1]).
+:- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 
 generate_diagnostics(false).
 
@@ -18,6 +18,8 @@ generate_diagnostics(false).
 generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
+%	trace,
+%	sequent_to_nd(Proof, NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -36,14 +38,14 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
-	select_pos_proof(Ps0, Ps1, AtV1, AtO1, DeltaP, A2, P2),
-	proof_diagnostics('~NPos:~2n', P2),
-	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Gamma, A1, Delta, C, P1),
-	proof_diagnostics('~NNeg:~2n', P1),
-        append(Gamma, DeltaP, GDP1),
-	append(GDP1, Delta, GDP),
-	unify_atoms(A1, A2),
-	trivial_cut_elimination(P1, P2, GDP, C, Rule),
+	select_pos_proof(Ps0, Ps1, AtV1, AtO1, Gamma, CL, LeftProof),
+	proof_diagnostics('~NPos:~2n', LeftProof),
+	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Delta1, CR, Delta2, A, RightProof),
+	proof_diagnostics('~NNeg:~2n', RightProof),
+        append(Delta1, Gamma, GDP1),
+	append(GDP1, Delta2, GDP),
+	unify_atoms(CL, CR),
+	try_cut_elimination_left(LeftProof, RightProof, GDP, Delta1, Delta2, A, CL, CR, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -66,75 +68,216 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
         subproofs(P1, R).
 trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 
+try_cut_elimination_left(LeftProof, RightProof, GammaDelta, Delta1, Delta2, A, _-CL, _-CR, Proof) :-
+	turbo_cut_elimination_left(LeftProof, RightProof, Delta1, Delta2, A, CL, CR, Proof0),
+	!,
+	rulename(LeftProof, LeftN),
+	rulename(RightProof, RightN),
+	update_proof_cheat(Proof0, GammaDelta, A, Proof, LeftN, RightN).
+try_cut_elimination_left(LeftProof, RightProof, GammaDelta, _, _, A, _, _, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
+
+try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, Gamma, _-CL, _-CR, Proof) :-
+	turbo_cut_elimination_right(RightProof, LeftProof, Gamma, CL, CR, Proof0),
+	!,
+	rulename(LeftProof, LeftN),
+	rulename(RightProof, RightN),
+	update_proof_cheat(Proof0, GammaDelta, A, Proof, LeftN, RightN).
+try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, _Gamma, _CL, _CR, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
+
+% = as the name indicates, this predicate needs to be subsumed by the main cut elimination predicates later
+
+update_proof_cheat(rule(Nm, Gamma0, _, Rs), Gamma, A, rule(Nm, Gamma, A, Rs), LeftN, RightN) :-
+   (	
+	generate_diagnostics(true),
+	Gamma0 \= Gamma
+    ->
+        format(user_error, '~n= Computed ~w ~w =~n', [LeftN,RightN]),
+	print_antecedent(Gamma0),
+        format(user_error, '~n= Correct =~n', []),	
+	print_antecedent(Gamma)    
+    ;
+        true
+    ).		   
 
 
+print_antecedent(Ant) :-
+	print_antecedent(Ant, 0).
+
+print_antecedent([], _).
+print_antecedent([A|As], N0) :-
+	copy_term(A, AA),
+	numbervars(AA, N0, N),
+	format(user_error, '~p~n', [AA]),
+	print_antecedent(As, N).
+	
+%                      CL |- CL             Gamma |- CR
+%                         .                       .
+%                         .                       .
+%  Gamma |- CR  Delta, CL |- A        Gamma, Delta |- A
+%
+% the proof on the left keeps CL constant in its right branch; in the proof of the right, we replace
+% CL by Gamma throughout (and CL in the succedent by CR).
+
+turbo_cut_elimination_left(rule(Nm, Gamma, _-CL, Rs0), RightProof, Delta1, Delta2, A, CL, CR, Proof) :-
+    (
+        Gamma = [_-CL], Rs0 = []
+    ->
+	/* reached axiom */     
+	Proof = RightProof    
+    ;				      		
+        /* add Delta to Gamma and replace CL by A */
+        append(Delta1, Gamma, GammaDelta1),
+	append(GammaDelta1, Delta2, GammaDelta),
+	Proof = rule(Nm, GammaDelta, A, Rs),
+	turbo_cut_elimination_left1(Rs0, RightProof, Delta1, Delta2, A, CL, CR, Rs)
+    ).
+
+turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta1, Delta2, A, CL0, CR, [R|Rs]) :-
+    (
+	R0 = rule(_, _,_-CL, _),
+	same_formula1(CL0, CL)
+    ->
+	Rs = Rs0,
+	turbo_cut_elimination_left(R0, RightProof, Delta1, Delta2, A, CL, CR, R)
+    ;		     
+        R = R0,
+        turbo_cut_elimination_left1(Rs0, RightProof, Delta1, Delta2, A, CL0, CR, Rs)
+    ).
+
+%     CR |- CR                               Delta, CL |- A
+%        .                                             .
+%        .                                             .
+%  Gamma |- CR  Delta, CL |- A            Delta, Gamma |- A
+%
+% the proof on the left transforms CR to Gamma without changing the succedent; we can
+% use this same sequence of rules on the right to transform (replace) CL by the
+% successive antecedents of the left proof
+
+turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, Proof) :-
+    (
+        Delta = [_-CR], Rs0 = []
+    ->
+	/* reached axiom */     
+	Proof = LeftProof    
+    ;				      		
+        /* replace CR in the antecedent by Gamma */
+	append(Delta1, [_-CR|Delta2], Delta),
+	append(Delta1, Gamma, GammaDelta1),
+	append(GammaDelta1, Delta2, GammaDelta),
+	Proof = rule(Nm, GammaDelta, A, Rs),
+	turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR, Rs)
+    ).
+
+% = proceed to the subproof containing CR
+turbo_cut_elimination_right1([R0|Rs0], LeftProof, Gamma, CL, CR0, [R|Rs]) :-
+    (
+	antecedent_member(CR0, CR, R0)
+    ->
+	Rs = Rs0,
+	turbo_cut_elimination_right(R0, LeftProof, Gamma, CL, CR, R)
+    ;		     
+        R = R0,
+        turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR0, Rs)
+    ).
+
+
+antecedent_member(F0, F, rule(_, Gamma, _, _)) :-
+	antecedent_member1(Gamma, F0, F).
+
+antecedent_member1([_-G|Gs], F0, F) :-
+   (
+	same_formula1(F0, G)
+   ->
+        F = G
+   ;		       
+        antecedent_member1(Gs, F0, F)
+   ).
+
+% = combine_univ(+Proof1, +Proof2, +Node1, +Node2, +VariableNumber, -Proof)
+%
+% combine Proof1 and Proof2 into Proof using a unary par contraction (with eigenvariable
+% VariableNumber) which links Node1 to Node2
+
+% = left rule for existential quantifier
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
-        P1 = rule(Nm, Gamma, N0-exists(var(V),N1-A), _),
+        P1 = rule(_, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	select_formula(A, N1, Delta0, Delta),
-	replace_formula(A, N1, N1-exists(var(V),N1-A), Delta0, Delta1),
-	append(Gamma, Delta, GD),
-	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->
-        Rule = rule(el, GD, C, [P2])
-   ;		  
-        Rule = rule(cut, GD, C, [P1,rule(el, Delta1, C, [P2])])
-   ).
-combine_univ(P1, P2, _N0, N1, V, N1-Rule) :-
+	append(Delta1, [_-A|Delta2], Delta0),
+	append(Delta1, [N1-exists(var(V),N1-A)|Delta2], Delta),
+	append(Delta1, Gamma, GD1),
+	append(GD1, Delta2, GD),
+	/* try to create a cut-free proof */
+	try_cut_elimination_left(P1, rule(el, Delta, C, [P2]), GD, Delta1, Delta2, C, N0-exists(var(V),N1-A), N0-exists(var(V),N1-A), Rule).
+
+% = right rule for universal quantifier
+combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, N1-A, _),
-	P1 = rule(Nm, Delta, C, _),
+	P1 = rule(_, Delta, C, _),
 	append(Delta0, [_-forall(var(V),N1-A)|Delta1], Delta),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
-	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->
-        Rule = rule(fr,GD,N1-forall(var(V),N1-A), [P2])
-   ;		  
-        Rule = rule(cut, GD, C, [rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]),P1])
-   ).
+	/* try to create a cut-free proof */
+	try_cut_elimination_right(rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]), P1, GD, C, Gamma, N0-forall(var(V),N1-A), N0-forall(var(V),N1-A), Rule).
+
+% = combine(+Proof1, +Proof2, +Node1, +Node2, -Proof)
+%
+% combine Proof1 and Proof2 into Proof using a binary par contraction which links Node1
+% to Node2 (since this is a valid contraction, the two edges leaving Node1 must arrive
+% in the same node Node2)
+
+% = left rule for product
 combine(P1, P2, N0, N1, N1-Rule) :-
-	P1 = rule(Nm, Gamma, N0-p(N1-A, N1-B), _),
+	P1 = rule(_, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
 	select_formula(B, N1, Delta0, Delta1),
 	select_formula(A, N1, Delta1, Delta),
 	replace_formula(A, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
+	append(Delta3, [N1-p(N1-A,N1-B)|Delta4], Delta2),
 	append(Gamma, Delta, GD),		  
-	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->
-        Rule = rule(pl, GD, C, [P2])
-   ;		  
-        Rule = rule(cut, GD, C, [P1,rule(pl, Delta2, C, [P2])])
-   ).
+	/* try to create a cut-free proof */
+	try_cut_elimination_left(P1, rule(pl, Delta2, C, [P2]), GD, Delta3, Delta4, C, N0-p(N1-A, N1-B), N0-p(N1-A, N1-B), Rule).
+
+% = right rule for implication
 combine(P1, P2, N0, N1, N1-Rule) :-
-	P1 = rule(Nm, Gamma, A, _),
+	P1 = rule(_, Gamma, A, _),
 	P2 = rule(_, Delta0, N1-D, _),
 	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
 	select_formula(C, N1, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
-	/* don't create trivial cuts */
-   (
-	Nm = ax
-   ->	    
-        Rule = rule(ir, GD, A, [P2])
-   ;		  
-        Rule = rule(cut, GD, A, [rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]),P1])
-   ).
+	/* try to create a cut-free proof */
+	try_cut_elimination_right(rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]), P1, GD, A, Delta, N0-impl(N1-C,N1-D), N0-impl(N1-C,N1-D), Rule).
 
-% = unify_atoms(Atom1, Atom2)
+% = unify_atoms(+Atom1, +Atom2)
 %
 % true if Atom1 and Atom2 unify when disregarding the unique two-integer
 % identifiers
 
 unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
+
+% = same_formula(+Formula1, +Formula2)
+%
+% true if Formula1 and Formula2 are the same when disregarding the subformula
+% numbering
+
+same_formula(_-F0, _-F) :-
+	same_formula1(F0, F).
+
+same_formula1(at(A,Id1,Id2,_), at(A,Id1,Id2,_)).
+same_formula1(forall(X,F0), forall(Y,F)) :-
+	X == Y,
+	same_formula(F0, F).
+same_formula1(exists(X,F0), exists(Y,F)) :-
+	X == Y,
+	same_formula(F0, F).
+same_formula1(impl(A0,B0), impl(A,B)) :-
+	same_formula(A0, A),
+	same_formula(B0, B).
+same_formula1(p(A0,B0), p(A,B)) :-
+	same_formula(A0, A),
+	same_formula(B0, B).
 
 % = select_neg_proof(+InProofs, -OutProofs, +Vertex, +Order, -Gamma, -A, -Delta, -C, -Proof)
 %
@@ -144,6 +287,7 @@ unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
 %   Gamma, A, Delta |- C
 %
 % such that A is the formula indicated by Vertex-Order and OutProofs are the other proofs.
+
 
 select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
@@ -173,15 +317,18 @@ select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
 
 select_pos_proof1(_-P, V, O, Delta, A, R) :-
 	select_pos_proof1(P, V, O, Delta, A, R).
-select_pos_proof1(rule(Nm, Delta, N-at(At,V,O,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)).
-
+select_pos_proof1(rule(Nm, Delta, N-at(At,V1,O1,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)) :-
+	V1 == V,
+	O1 == O.
 
 % = select_ant_formula(+Antecedent, +Vertex, +Order, -Gamma, -A, -Delta)
 %
 % select the (negative) atomic formula indicated by Vertex-Order from the given Antecedent,
 % dividing the antecedent into Gamma, A, Delta (Gamma is represented as a difference list)
 
-select_ant_formula([N-at(At,V,O,Vars)|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+select_ant_formula([N-at(At,V1,O1,Vars)|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+	V1 == V,
+	O1 == O,
 	!.
 select_ant_formula([G|Gs], V, O, [G|Gamma], A, Delta) :-
 	select_ant_formula(Gs, V, O, Gamma, A, Delta).
@@ -230,10 +377,14 @@ max_neg(forall(_,_-F0), F) :-
 	max_neg(F0, F).
 max_neg(F, F).
 
+% = create_pos_proof(+NumberedPositiveFormula, +/-AtomsDL, -Proof)
+
 create_pos_proof(N-A, L0, L, Proof) :-
 	create_pos_proof(A, N, L0, L, Proof).
 
-create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
+% = create_pos_proof(+PositiveFormula, +NodeNumber, +/-AtomsDL, -Proof)
+
+create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,_C,_N,Vars), [])) :-
 	!.
 create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
         !,
@@ -252,9 +403,14 @@ create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A2,N-B2), [P1,P2])) :-
 % complex (negative) subformula
 create_pos_proof(F, N, L, L, rule(ax, [N-F], N-F, [])).
 
+% = create_neg_proof(+NumberedNegativeFormula, +/-AtomsDL, +Goal, -Proof)
+
 create_neg_proof(N-A, L0, L, Neg, Proof) :-
 	create_neg_proof(A, N, L0, L, Neg, Proof).
-create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
+
+% = create_neg_proof(+NegativeFormula, +NodeNumber, +/-AtomsDL, +Goal, -Proof)
+
+create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,_C,_N,Vars)], M-at(A,C,N,Vars), [])) :-
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
@@ -276,10 +432,43 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
 % complex (positive) subformula
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
+%% sequent_to_nd(_-R0, R) :-
+%% 	sequent_to_nd(R0, R).
+%% sequent_to_nd(rule(ax, _, _-A, []), rule(ax, A, [])).
+%% sequent_to_nd(rule(fl, Gamma, _A, [R]), Proof) :-
+%% 	member(_-forall(X,_-B0), Gamma),
+%% %	rename_bound_variables(B0, B1),
+%% 	antecedent_member(B0, B, R),
+%% 	!,
+%% 	sequent_to_nd(R, Proof0),
+%% 	insert_rule(Proof0, rule(ax, B, []), rule(fe, B, [rule(ax, forall(X,B0), [])]), Proof).
+%% sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, A, Rs)) :-
+%% 	sequent_to_nd_list(Rs0, Rs).
+%% sequent_to_nd(rule(il, Gamma, _C, [R1,R2]), Proof) :-
+%% 	member(_-impl(N-A,N-B0), Gamma),
+%% 	sequent_to_nd(R1, ProofA),
+%% 	sequent_to_nd(R2, ProofC),
+%% 	antecedent_member(B0, B, R2),
+%% 	insert_rule(ProofC, rule(ax, B, []), rule(ie, B, [ProofA,rule(ax, impl(A,B), [])]), Proof).
+%% sequent_to_nd(rule(ir, Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
+%% 	sequent_to_nd(R0, R).
+
+%% insert_rule(rule(Nm, A, Rs), rule(Nm, B, Rs), Proof, Proof) :-
+%% 	same_formula1(A, B),
+%% 	!.
+%% insert_rule(rule(Nm, A, Rs0), Sub1, Sub2, rule(Nm, A, Rs)) :-
+%% 	insert_rule_list(Rs0, Sub1, Sub2, Rs).
+
+%% insert_rule_list([R0|Rs0], Sub1, Sub2, [R|Rs]) :-
+%% 	insert_rule(Rs0, Sub1, Sub2, R),
+%% 	!,
+%% 	Rs0 = Rs.
+%% insert_rule_list([R|Rs0], Sub1, Sub2, [R|Rs]) :-
+%% 	insert_rule_list(Rs0, Sub1, Sub2, Rs).
+
 % =======================================
 % =             Input/output            =
 % =======================================
-
 
 proof_diagnostics(Msg, P) :-
 	proof_diagnostics(Msg, [], P).
