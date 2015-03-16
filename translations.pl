@@ -370,9 +370,20 @@ principal_type(Term, Type) :-
 principal_type(V, Type, [V-Type]) :-
 	var(V),
 	!.
-principal_type(At, Type, [At-Type]) :-
+principal_type(epsilon, impl(TypeZ,TypeZ), []) :-
+	!,
+	/* epsilon must be of type sigma-> sigma (ie. a string) */
+	verify_non_compound(TypeZ,TypeZ, epsilon, 'epsilon of').
+principal_type(At, impl(TypeZ,TypeS), [At-impl(TypeZ,TypeS)]) :-
 	atom(At),
-	!.
+	!,
+	/* atoms must be of type sigma-> sigma (ie. strings) */
+	verify_non_compound(TypeZ, TypeS, At, 'atom of').
+principal_type(A+B, impl(TypeZ,TypeS), List) :-
+	!,
+        /* allow explicit concatenation using +, though only of terms sigma->sigma */
+	verify_non_compound(TypeZ, TypeS, A+B, 'concatenation producing'),
+	principal_type(lambda(Z,appl(A,appl(B,Z))), impl(TypeZ,TypeS), List).
 principal_type(appl(A,B), TypeA, ABlist) :-
         !,
 	principal_type(A, impl(TypeB,TypeA), Alist),
@@ -402,6 +413,19 @@ get_type([A-TypeA|Rest], B, TypeB, New) :-
      ;
          New = [A-TypeA|New0],
          get_type(Rest, B, TypeB, New0)
+     ).
+
+verify_non_compound(TypeA, TypeB, Term, Diag) :-
+     (
+        compound(TypeA)		
+     ->
+	format(user_error, '{Error: ~w non-string term ~w of type ~w->~w}~n', [Diag, Term, TypeA, TypeB]) 
+     ;
+        compound(TypeB)		
+     ->
+	format(user_error, '{Error: ~w non-string term ~w of type ~w->~w}~n', [Diag, Term, TypeA, TypeB]) 
+     ;
+        true
      ).
 
 debug(0).
