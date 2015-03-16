@@ -121,7 +121,7 @@ turbo_cut_elimination_left(rule(Nm, Gamma, _-CL, Rs0), RightProof, Delta1, Delta
 
 turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta1, Delta2, A, CL, CR, [R|Rs]) :-
     (
-	R0 = rule(_, _,_-CL, Rs0)
+	R0 = rule(_, _,_-CL, _)
     ->
 	Rs = Rs0,
 	turbo_cut_elimination_left(R0, RightProof, Delta1, Delta2, A, CL, CR, R)
@@ -155,20 +155,21 @@ turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, P
     ).
 
 % = proceed to the subproof containing CR
-turbo_cut_elimination_right1([R0|Rs0], LeftProof, Delta, CL, CR, [R|Rs]) :-
+turbo_cut_elimination_right1([R0|Rs0], LeftProof, Delta, CL, CR0, [R|Rs]) :-
     (
-	antecedent_member(CR, R0)
+	antecedent_member(CR0, CR, R0)
     ->
 	Rs = Rs0,
 	turbo_cut_elimination_right(R0, LeftProof, Delta, CL, CR, R)
     ;		     
         R = R0,
-        turbo_cut_elimination_right1(Rs0, LeftProof, Delta, CL, CR, Rs)
+        turbo_cut_elimination_right1(Rs0, LeftProof, Delta, CL, CR0, Rs)
     ).
 
 
-antecedent_member(F, rule(_, Gamma, _, _)) :-
-	member(_-F, Gamma).
+antecedent_member(F0, F, rule(_, Gamma, _, _)) :-
+	member(_-F, Gamma),
+	same_formula1(F0, F).
 
 % = combine_univ(+Proof1, +Proof2, +Node1, +Node2, +VariableNumber, -Proof)
 %

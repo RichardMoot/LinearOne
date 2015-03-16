@@ -35,7 +35,7 @@ portray(impl(A,B)) :-
 	format('(~p -o ~p)', [A,B]).
 portray(rule(N,A,B,Ps)) :-
 	Ps \== [],
-	format('rule(~p,~p,~p,...)', [N,A,B]).
+	format('rule(~p,~p  |-  ~p,...)', [N,A,B]).
 portray(appl(appl(appl(F,Z),Y),X)) :-
 	!,
 	atom(F),
