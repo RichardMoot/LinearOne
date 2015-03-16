@@ -82,6 +82,23 @@ latex_rule_name(pl) :-
 	write(latex, 'L\\otimes').
 latex_rule_name(pr) :-
 	write(latex, 'R\\otimes').
+latex_rule_name(fi) :-
+	write(latex, '\\forall I').
+latex_rule_name(fe) :-
+	write(latex, '\\forall E').
+latex_rule_name(ei) :-
+	write(latex, '\\exists I').
+latex_rule_name(ee) :-
+	write(latex, '\\exists E').
+latex_rule_name(ii) :-
+	write(latex, '\\multimap I').
+latex_rule_name(ie) :-
+	write(latex, '\\multimap E').
+latex_rule_name(pi) :-
+	write(latex, '\\otimes I').
+latex_rule_name(pe) :-
+	write(latex, '\\otimes E').
+
 
 latex_sequent(Ant, Suc) :-
 	format(latex, '~@ \\vdash ~@', [latex_antecedent(Ant),latex_formula(Suc)]).

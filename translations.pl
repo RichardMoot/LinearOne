@@ -372,12 +372,12 @@ principal_type(V, Type, [V-Type]) :-
 	!.
 principal_type(epsilon, impl(TypeZ,TypeZ), []) :-
 	!,
-	/* epsilon must be of type sigma-> sigma (ie. a string) */
+	/* epsilon must be of type sigma->sigma (ie. a string) */
 	verify_non_compound(TypeZ,TypeZ, epsilon, 'epsilon of').
 principal_type(At, impl(TypeZ,TypeS), [At-impl(TypeZ,TypeS)]) :-
 	atom(At),
 	!,
-	/* atoms must be of type sigma-> sigma (ie. strings) */
+	/* atoms must be of type sigma->sigma (ie. strings) */
 	verify_non_compound(TypeZ, TypeS, At, 'atom of').
 principal_type(A+B, impl(TypeZ,TypeS), List) :-
 	!,

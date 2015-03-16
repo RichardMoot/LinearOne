@@ -55,21 +55,23 @@ test(b) :-
 	parse([john,ate,more2,donuts,than2,mary,bought,bagels], s).
 test(10) :-
 	parse([no,fish,walks], s).
-% NOTE: The next two examples make the need for a better atom selection strategy evident!
+% NOTE: The next two examples illustrate the improvement of the dancing links algorithm over the naive algorith rather spectacularly!
 test(11) :-
 	/* first-found axioms */
-	/* 3,142,516 axioms ! */
-        /* 5,808,425,093 inferences, 2014.396 CPU in 2139.522 seconds (94% CPU, 2883458 Lips) */
+	/*         3,142,516 axioms ! */
+        /*     5,808,425,093 inferences, 2014.396 CPU in 2139.522 seconds (94% CPU, 2883458 Lips) */
 	/* with first dancing links version */
-	/*    28,640 axioms */
-        /*    65,938,819 inferences,    9.097 CPU in 9.842 seconds (92% CPU, 7248058 Lips) */
+	/*            28,640 axioms */
+        /*        65,938,819 inferences,    9.097 CPU in 9.842 seconds (92% CPU, 7248058 Lips) */
 	parse([no,dog,eats,whiskas,or,cat,alpo], s).
 test(12) :-
 	/* first-found */
-        /* 103,252,051,786 inferences, 35323.877 CPU in 94279.214 seconds (37% CPU, 2923010 Lips) */
+        /*     4,215,069,209 axioms performed */
+	/*  3,014,184,930,660 inferences, 375241.334 CPU in 375357.875 seconds (100% CPU, 8032657 Lips) */
+	/* 59 proofs */
 	/* with first dancing links version */
-	/* 3,142,516 axioms */
-       /*   100,274,098 inferences,   24.442 CPU in   26.802 seconds (91% CPU, 4102589 Lips) */
+	/*         3,142,516 axioms */
+       /*        100,274,098 inferences,     24.442 CPU in     26.802 seconds  (91% CPU, 4102589 Lips) */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
 
@@ -95,6 +97,7 @@ lex(discovers, tv, discovers, discover).
 lex(walks, np\s, walks, walk).
 lex(eat, tv, eat, eat).
 lex(a, ((s|(s|np))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(every, ((s|(s|np))|n), lambda(N, lambda(P,appl(P,every+N))), lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
 lex(someone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(everyone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(yesterday, (np\s)\(np\s), yesterday, lambda(X,lambda(Y,appl(yesterday,appl(X,Y))))).

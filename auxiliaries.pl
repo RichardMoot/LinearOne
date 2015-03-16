@@ -39,6 +39,20 @@ print_count_offenders([AtName-atoms(Pos, Neg)|Rest]) :-
    ),
  	print_count_offenders(Rest).
 
+% = print_diff_lists(+List1, +List2)
+%
+% supposing List1 and List2 have the same length, we print the members of the two lists
+% side-by-side, marking by * the elements which differ between the two lists
+
+print_diff_lists([], []).
+print_diff_lists([A|As], [B|Bs]) :-
+	copy_term(A, AA),
+	copy_term(B, BB),
+	numbervars(AA, 0, _),
+	numbervars(BB, 0, _),
+	( A == B -> C = ' '	; C = '*' ),
+	format(user_error, '~w~t~w~50|~t~w~100|~w~n', [C,AA,BB,C]),
+	print_diff_lists(As, Bs).
 
 % = sub_proofs(+Proof, ?SubProofList)
 %
