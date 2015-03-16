@@ -321,15 +321,18 @@ select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
 
 select_pos_proof1(_-P, V, O, Delta, A, R) :-
 	select_pos_proof1(P, V, O, Delta, A, R).
-select_pos_proof1(rule(Nm, Delta, N-at(At,V,O,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)).
-
+select_pos_proof1(rule(Nm, Delta, N-at(At,V1,O1,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)) :-
+	V1 == V,
+	O1 == O.
 
 % = select_ant_formula(+Antecedent, +Vertex, +Order, -Gamma, -A, -Delta)
 %
 % select the (negative) atomic formula indicated by Vertex-Order from the given Antecedent,
 % dividing the antecedent into Gamma, A, Delta (Gamma is represented as a difference list)
 
-select_ant_formula([N-at(At,V,O,Vars)|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+select_ant_formula([N-at(At,V1,O1,Vars)|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+	V1 == V,
+	O1 == O,
 	!.
 select_ant_formula([G|Gs], V, O, [G|Gamma], A, Delta) :-
 	select_ant_formula(Gs, V, O, Gamma, A, Delta).
@@ -385,7 +388,7 @@ create_pos_proof(N-A, L0, L, Proof) :-
 
 % = create_pos_proof(+PositiveFormula, +NodeNumber, +/-AtomsDL, -Proof)
 
-create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
+create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,_C,_N,Vars), [])) :-
 	!.
 create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
         !,
@@ -411,7 +414,7 @@ create_neg_proof(N-A, L0, L, Neg, Proof) :-
 
 % = create_neg_proof(+NegativeFormula, +NodeNumber, +/-AtomsDL, +Goal, -Proof)
 
-create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,C,N,Vars)], M-at(A,C,N,Vars), [])) :-
+create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,_C,_N,Vars)], M-at(A,C,N,Vars), [])) :-
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
