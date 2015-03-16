@@ -168,8 +168,16 @@ turbo_cut_elimination_right1([R0|Rs0], LeftProof, Delta, CL, CR0, [R|Rs]) :-
 
 
 antecedent_member(F0, F, rule(_, Gamma, _, _)) :-
-	member(_-F, Gamma),
-	same_formula1(F0, F).
+	antecedent_member1(Gamma, F0, F).
+
+antecedent_member1([_-G|Gs], F0, F) :-
+   (
+	same_formula1(F0, G)
+   ->
+        F = G
+   ;		       
+        antecedent_member1(Gs, F0, F)
+   ).
 
 % = combine_univ(+Proof1, +Proof2, +Node1, +Node2, +VariableNumber, -Proof)
 %
@@ -245,7 +253,6 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	% rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]) = LeftProof
 	% GD = GammaDelta
 	% Delta
-	trace,
 	try_cut_elimination_right(rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]), P1, GD, A, Delta, N0-impl(N1-C,N1-D), N0-impl(N1-C,N1-D), Rule).
 %   (
 %	Nm = ax
