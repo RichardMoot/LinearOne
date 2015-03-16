@@ -34,8 +34,10 @@ portray(at(X, I1, I2, Vs)) :-
 portray(impl(A,B)) :-
 	format('(~p -o ~p)', [A,B]).
 portray(rule(N,A,B,Ps)) :-
+	copy_term(A-B, AA-BB),
+	numbervars(AA-BB, 0, _),
 	Ps \== [],
-	format('rule(~p,~p  |-  ~p,...)', [N,A,B]).
+	format('rule(~p,~p  |-  ~p,...)', [N,AA,BB]).
 portray(appl(appl(appl(F,Z),Y),X)) :-
 	!,
 	atom(F),

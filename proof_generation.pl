@@ -77,24 +77,53 @@ trivial_cut_elimination(P1, P2, GDP, C, rule(cut, GDP, C, [P2,P1])).
 try_cut_elimination_left(LeftProof, RightProof, GammaDelta, Delta1, Delta2, A, _-CL, _-CR, Proof) :-
 	turbo_cut_elimination_left(LeftProof, RightProof, Delta1, Delta2, A, CL, CR, Proof0),
 	!,
-	update_proof_cheat(Proof0, GammaDelta, A, Proof).
+	rulename(LeftProof, LeftN),
+	rulename(RightProof, RightN),
+	update_proof_cheat(Proof0, GammaDelta, A, Proof, LeftN, RightN).
 try_cut_elimination_left(LeftProof, RightProof, GammaDelta, _, _, A, _, _, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
 
 try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, Gamma, _-CL, _-CR, Proof) :-
 	turbo_cut_elimination_right(RightProof, LeftProof, Gamma, CL, CR, Proof0),
 	!,
-	update_proof_cheat(Proof0, GammaDelta, A, Proof).
+	rulename(LeftProof, LeftN),
+	rulename(RightProof, RightN),
+	update_proof_cheat(Proof0, GammaDelta, A, Proof, LeftN, RightN).
 try_cut_elimination_right(LeftProof, RightProof, GammaDelta, A, _Gamma, _CL, _CR, rule(cut, GammaDelta, A, [LeftProof,RightProof])).
 
 % = as the name indicates, this predicate needs to be subsumed by the main cut elimination predicates later
 
-update_proof_cheat(rule(Nm, _, _, Rs), Gamma, A, rule(Nm, Gamma, A, Rs)).
+update_proof_cheat(rule(Nm, Gamma0, _, Rs), Gamma, A, rule(Nm, Gamma, A, Rs), LeftN, RightN) :-
+   (	
+	generate_diagnostics(true),
+	Gamma0 \= Gamma
+    ->
+        format(user_error, '~n= Computed ~w ~w =~n', [LeftN,RightN]),
+	print_antecedent(Gamma0),
+        format(user_error, '~n= Correct =~n', []),	
+	print_antecedent(Gamma)    
+    ;
+        true
+    ).		   
 
 
+print_antecedent(Ant) :-
+	print_antecedent(Ant, 0).
+
+print_antecedent([], _).
+print_antecedent([A|As], N0) :-
+	copy_term(A, AA),
+	numbervars(AA, N0, N),
+	format(user_error, '~p~n', [AA]),
+	print_antecedent(As, N).
+	
 print_two_lists([], []).
 print_two_lists([A|As], [B|Bs]) :-
+	copy_term(A, AA),
+	copy_term(B, BB),
+	numbervars(AA, 0, _),
+	numbervars(BB, 0, _),
 	( A == B -> C = ' '	; C = '*' ),
-	format(user_error, '~w~t~w~34|~t~w~72|~w~n', [C,A,B,C]),
+	format(user_error, '~w~t~w~50|~t~w~100|~w~n', [C,AA,BB,C]),
 	print_two_lists(As, Bs).
 
 %                      CL |- CL             Gamma |- CR
@@ -156,15 +185,15 @@ turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, P
     ).
 
 % = proceed to the subproof containing CR
-turbo_cut_elimination_right1([R0|Rs0], LeftProof, Delta, CL, CR0, [R|Rs]) :-
+turbo_cut_elimination_right1([R0|Rs0], LeftProof, Gamma, CL, CR0, [R|Rs]) :-
     (
 	antecedent_member(CR0, CR, R0)
     ->
 	Rs = Rs0,
-	turbo_cut_elimination_right(R0, LeftProof, Delta, CL, CR, R)
+	turbo_cut_elimination_right(R0, LeftProof, Gamma, CL, CR, R)
     ;		     
         R = R0,
-        turbo_cut_elimination_right1(Rs0, LeftProof, Delta, CL, CR0, Rs)
+        turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR0, Rs)
     ).
 
 
@@ -214,7 +243,7 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
 	/* try to create a cut-free proof */
-	try_cut_elimination_right(rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]), P1, GD, C, Delta, N0-forall(var(V),N1-A), N0-forall(var(V),N1-A), Rule).
+	try_cut_elimination_right(rule(fr,Gamma,N1-forall(var(V),N1-A), [P2]), P1, GD, C, Gamma, N0-forall(var(V),N1-A), N0-forall(var(V),N1-A), Rule).
 
    %% 	/* don't create trivial cuts */
    %% (
