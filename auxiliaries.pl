@@ -197,3 +197,13 @@ free_vars(exists(X,A), Vars) :-
 free_vars(forall(X,A), Vars) :-
         free_vars(A, Vars0),
         ord_delete(Vars0, X, Vars).
+
+% = non_member(+Element, +List)
+%
+% true if Element is not a member of List (that is if it is not strictly
+% equal to one of the members of List; member_chk(Element, List) must fail).
+
+non_member(_, []).
+non_member(X, [Y|Ys]) :-
+	X \== Y,
+	non_member(X, Ys).
