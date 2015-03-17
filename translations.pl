@@ -1,4 +1,6 @@
-:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3]).
+:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3,principal_type/2,formula_type/2,inhabitants/2,inhabitants/3,exhaustive_test/6]).
+
+:- use_module(auxiliaries, [non_member/2]).
 
 translate(F0, [X,Y], F) :-
 	translate_lambek(F0, [X,Y], F),
@@ -403,6 +405,7 @@ principal_type(Term, Type, _) :-
 	fail.
 
 get_type([], B, _, []) :-
+	/* error message if a free variable appears */
 	format(user_error, '{Warning: free occurrences of ~w}~n', [B]). 
 get_type([A-TypeA|Rest], B, TypeB, New) :-
      (
@@ -414,6 +417,76 @@ get_type([A-TypeA|Rest], B, TypeB, New) :-
          New = [A-TypeA|New0],
          get_type(Rest, B, TypeB, New0)
      ).
+
+% = inhabitants(+Type, ?Term)
+%
+% true if Term is a (long normal form) inhabitatant of Type; can be used to
+% enumerate inhabitants
+
+inhabitants(Type, Term) :-
+	inhabitants(Type, Term, [], []).
+inhabitants(Type, Term, Word) :-
+	inhabitants(Type, Term, [Word-impl(s,s)], []).
+
+inhabitants(s, Term, Set0, Set) :-
+	select(X-A, Set0, Set1),
+	argument_list(A, X, Term, List, []),
+	inhabitants_list(List, Set1, Set).
+inhabitants(impl(A,B), lambda(X, Term), Set0, Set) :-
+	inhabitants(B, Term, [X-A|Set0], Set),
+	non_member(X-A, Set).
+
+
+inhabitants_list([], Set, Set).
+inhabitants_list([X-A|Rest], Set0, Set) :-
+	inhabitants(A, X, Set0, Set1),
+	inhabitants_list(Rest, Set1, Set).
+
+argument_list(s, Term, Term) -->
+	[].
+argument_list(impl(A,B), X, Term) -->
+	[Y-A],
+	argument_list(B, appl(X,Y), Term).
+
+% = exhaustive_test(Word, Formula, Semantics, Sentence, Goal)
+
+exhaustive_test(File, Word, Formula0, Semantics, Sentence, Goal) :-
+	open(File, write, Stream, []),
+	macro_expand(Formula0, Formula),
+	formula_type(Formula, Type),
+	findall(Term, inhabitants(impl(impl(s,s),Type), Term), List),
+	selectchk(Word, Sentence, OtherWords),
+	format(Stream, ':- op(400, xfy, \\).~2n:- abolish(lex/3), abolish(lex/4), abolish(test/1).~2n', []),
+	format(Stream, '% = lexicon~2n', []), 
+	export_lexicon(OtherWords, Stream),
+	export_lexicon(List, Stream, Formula0, Word, 1, Semantics),
+	format(Stream, '~2n% = sentences~2n', []), 
+	export_sentences(List, Stream, Word, 1, Sentence, Goal),
+	close(Stream).
+
+export_lexicon([], _).
+export_lexicon([W|Ws], Stream) :-
+	lex(W, A, B, C),
+	portray_clause(Stream, (lex(W,A,B,C) :- true)),
+	export_lexicon(Ws, Stream).
+
+export_lexicon([], _, _, _, _, _).
+export_lexicon([lambda(W,Term)|Rest], Stream, Formula, Word, N0, Semantics) :-
+	atom_concat(Word, N0, W),
+	N is N0 + 1,
+	portray_clause(Stream, (lex(W, Formula, Term, Semantics) :- true)),
+	export_lexicon(Rest, Stream, Formula, Word, N, Semantics).
+
+
+export_sentences([], _, _, _, _, _).
+export_sentences([_|Ls], Stream, Word0, N0, Sentence, Goal) :-
+	atom_concat(Word0, N0, Word),
+	N is N0 + 1,
+	selectchk(Word0, Sentence, Word, Sentence1),
+	portray_clause(Stream, (test(N0) :- parse(Sentence1, Goal))),
+	export_sentences(Ls, Stream, Word0, N, Sentence, Goal).
+	
+% = debugging tools
 
 verify_non_compound(TypeA, TypeB, Term, Diag) :-
      (
