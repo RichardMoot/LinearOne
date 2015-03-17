@@ -432,39 +432,47 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
 % complex (positive) subformula
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
-%% sequent_to_nd(_-R0, R) :-
-%% 	sequent_to_nd(R0, R).
-%% sequent_to_nd(rule(ax, _, _-A, []), rule(ax, A, [])).
-%% sequent_to_nd(rule(fl, Gamma, _A, [R]), Proof) :-
-%% 	member(_-forall(X,_-B0), Gamma),
-%% %	rename_bound_variables(B0, B1),
-%% 	antecedent_member(B0, B, R),
-%% 	!,
-%% 	sequent_to_nd(R, Proof0),
-%% 	insert_rule(Proof0, rule(ax, B, []), rule(fe, B, [rule(ax, forall(X,B0), [])]), Proof).
-%% sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, A, Rs)) :-
-%% 	sequent_to_nd_list(Rs0, Rs).
-%% sequent_to_nd(rule(il, Gamma, _C, [R1,R2]), Proof) :-
-%% 	member(_-impl(N-A,N-B0), Gamma),
-%% 	sequent_to_nd(R1, ProofA),
-%% 	sequent_to_nd(R2, ProofC),
-%% 	antecedent_member(B0, B, R2),
-%% 	insert_rule(ProofC, rule(ax, B, []), rule(ie, B, [ProofA,rule(ax, impl(A,B), [])]), Proof).
-%% sequent_to_nd(rule(ir, Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
-%% 	sequent_to_nd(R0, R).
+% = sequent_to_nd(+SequentProof, -NaturalDeductionProof)
+%
+% Q: is it easier to generate natural deduction proofs directly?
 
-%% insert_rule(rule(Nm, A, Rs), rule(Nm, B, Rs), Proof, Proof) :-
-%% 	same_formula1(A, B),
-%% 	!.
-%% insert_rule(rule(Nm, A, Rs0), Sub1, Sub2, rule(Nm, A, Rs)) :-
-%% 	insert_rule_list(Rs0, Sub1, Sub2, Rs).
+sequent_to_nd(_-R0, R) :-
+	sequent_to_nd(R0, R).
+sequent_to_nd(rule(ax, [M-A1], N-A2, []), rule(ax, [M-A1], N-A2, [])).
+sequent_to_nd(rule(fl, Gamma, A, [R]), Proof) :-
+	% find a formula which is of the form forall(X,B) in the conclusion of the rule
+	% and B in the premiss of the rule.
+	member(N1-forall(X,N0-B0), Gamma),
+	antecedent_member(B0, B, R),
+	!,
+	/* TODO: replace by cut elimination */
+	sequent_to_nd(R, Proof0),
+	insert_rule(Proof0, rule(ax, [N-B1], M-B2, []), rule(fe, [N-forall(X,N-B1)], M-B2, [rule(ax, [N-forall(X,N-B1)], N1-forall(X,N0-B0), [])]), Proof).
+sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, Gamma, A, Rs)) :-
+	sequent_to_nd_list(Rs0, Rs).
+sequent_to_nd(rule(il, Gamma, C, [R1,R2]), Proof) :-
+	member(M-impl(N-A,N-B0), Gamma),
+	sequent_to_nd(R1, ProofA),
+	sequent_to_nd(R2, ProofC),
+	antecedent_member(B0, B, R2),
+	/* TODO: replace by cut elimination */
+	insert_rule(ProofC, rule(ax, [N1-B1], N-B0, []), rule(ie, B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]), Proof).
+sequent_to_nd(rule(ir, Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
+	/* TODO: add axiom withdrawal */
+	sequent_to_nd(R0, R).
 
-%% insert_rule_list([R0|Rs0], Sub1, Sub2, [R|Rs]) :-
-%% 	insert_rule(Rs0, Sub1, Sub2, R),
-%% 	!,
-%% 	Rs0 = Rs.
-%% insert_rule_list([R|Rs0], Sub1, Sub2, [R|Rs]) :-
-%% 	insert_rule_list(Rs0, Sub1, Sub2, Rs).
+insert_rule(rule(Nm, A, Rs), rule(Nm, B, Rs), Proof, Proof) :-
+	same_formula1(A, B),
+	!.
+insert_rule(rule(Nm, A, Rs0), Sub1, Sub2, rule(Nm, A, Rs)) :-
+	insert_rule_list(Rs0, Sub1, Sub2, Rs).
+
+insert_rule_list([R0|Rs0], Sub1, Sub2, [R|Rs]) :-
+	insert_rule(Rs0, Sub1, Sub2, R),
+	!,
+	Rs0 = Rs.
+insert_rule_list([R|Rs0], Sub1, Sub2, [R|Rs]) :-
+	insert_rule_list(Rs0, Sub1, Sub2, Rs).
 
 % =======================================
 % =             Input/output            =
