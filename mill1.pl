@@ -85,9 +85,9 @@ parse_all :-
 	print_solutions(List, Solutions).
 
 parse_all([], []).
-parse_all([N|Ns], [P|Ps]) :-
+parse_all([N|Ns], [P-SemList|Ps]) :-
         test(N),
-        user:'$PROOFS'(P),
+        user:'$PROOFS'(P, SemList),
 	parse_all(Ns, Ps).
 
 % = parse(+ListOfWords, +GoalFormula)
@@ -150,15 +150,15 @@ initialisation :-
 	graph_header,
 	proof_header,
 	/* reset counters */
-	retractall('$PROOFS'(_)),
-	assert('$PROOFS'(0)),
+	retractall('$PROOFS'(_, _)),
+	assert('$PROOFS'(0, [])),
 	retractall('$AXIOMS'(_)),
 	assert('$AXIOMS'(0)).
 
 final_statistics :-
 	/* print final statistics and generate pdf files */
 	'$AXIOMS'(A),
-	'$PROOFS'(N),
+	'$PROOFS'(N, _),
 	write_proofs(N),
 	write_axioms(A),
 	/* LaTeX graphs */
@@ -182,16 +182,16 @@ prove0(Antecedent, Goal, LexSem) :-
 	portray_graph(Graph),
         prove1(Graph, Roots, Trace),
 	/* proof found */
-	/* update proof statistics */
-	'$PROOFS'(N0),
+	'$PROOFS'(N0, SemList),
 	N is N0 + 1,
-	retractall('$PROOFS'(_)),
-	assert('$PROOFS'(N)),
 	/* generate semantics */
 	substitute_sem(LexSem, Sem0, Sem1),
 	reduce_sem(Sem1, Sem),
 	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
+	/* update proof statistics */
+	retractall('$PROOFS'(_, _)),
+	assert('$PROOFS'(N, [Sem|SemList])),
 	/* generate a LaTeX proof */
 	generate_proof(GraphCopy, Trace).
 
@@ -633,25 +633,32 @@ write_lookups(L) :-
 % succeeded and total examples.
 
 print_solutions(L, NS) :-
+	open('parse_log.txt', write, Stream, []), 
+	format(Stream, 'SentNo Solutions~n', []),
 	format(user_error, 'SentNo Solutions~n', []),
-	print_solutions(L, 0, 0, NS).
-print_solutions([], S, F, []) :-
+	print_solutions(L, Stream, 0, 0, NS),
+	close(Stream).
+print_solutions([], Stream, S, F, []) :-
 	Total is S + F,
+	format(Stream, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]),
 	format(user_error, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]).
-print_solutions([N|Ns], S0, F0, [P|Ps]) :-
+print_solutions([N|Ns], Stream, S0, F0, [P-SemList|Ps]) :-
+	format(Stream, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
 	format(user_error, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
     (
 	P =:= 0
     ->
-        format(user_error, ' *~n', []),
+        format(Stream, ' * ~p~n', [SemList]),
+        format(user_error, ' * ~p~n', [SemList]),
 	F is F0 + 1,
 	S = S0
     ;
-        nl(user_error), 
+        format(Stream, '   ~p~n', [SemList]),
+        format(user_error, '   ~p~n', [SemList]),
         S is S0 + 1,
         F = F0
     ),
-	print_solutions(Ns, S, F, Ps).
+	print_solutions(Ns, Stream, S, F, Ps).
 
 % = some test predicates
 
