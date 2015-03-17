@@ -24,15 +24,15 @@ generate_proof(Graph, Trace) :-
 
 combine_proofs([], [Proof], Proof).
 combine_proofs([N0-par(N1)|Rest], Ps0, Proof) :-
-	select(N0-P0, Ps0, Ps1),
-	select(N1-P1, Ps1, Ps2),
+	selectchk(N0-P0, Ps0, Ps1),
+	selectchk(N1-P1, Ps1, Ps2),
 	combine(P0, P1, N0, N1, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
-        select(N0-P0, Ps0, Ps1),
-	select(N1-P1, Ps1, Ps2),
+        selectchk(N0-P0, Ps0, Ps1),
+	selectchk(N1-P1, Ps1, Ps2),
 	combine_univ(P0, P1, N0, N1, V, P2),
 	replace_proofs_labels([P2|Ps2], N0, N1, Ps),
 	!,
