@@ -1,7 +1,8 @@
 # ignore emacs backups
 *~
-# ignore parse log
+# ignore parse logs
 parse_log.txt
+fish_log.txt
 # ignore (Lua)LaTeX graph and proof files
 graph.*
 latex_proofs.*
