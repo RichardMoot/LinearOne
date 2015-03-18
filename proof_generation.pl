@@ -473,9 +473,8 @@ sequent_to_nd(rule(il, GammaDelta, _C, [R1,R2]), Proof) :-
 	%	write(B0),write(B1),
 	%antecedent_member(B0, B1, Gamma),
 	antecedent_member(B0, B, ProofC),
-	/* TODO: replace by cut elimination */
 %	trace,
-	try_cut_elimination_right(rule(ie, DeltaAB, N-B0, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
+	try_cut_elimination_right(rule(ie, DeltaAB, N-B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
 				  ProofC, GammaDelta, Gamma, N-B0, N-B, Proof).
 %	insert_rule(ProofC, rule(ax, [N1-B1], N-B0, []), rule(ie, B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]), Proof).
 sequent_to_nd(rule(ir, _Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
