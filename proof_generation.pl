@@ -38,15 +38,15 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
-	select_neg_proof(Ps0, Ps1, AtV1, AtO1, Delta1, _-CL, Delta2, A, _-LeftProof),
+	select_neg_proof(Ps0, Ps1, AtV1, AtO1, _Delta1, _-CL, _Delta2, A, _-LeftProof),
 	A = _-at(_, AtV0, AtO0, _),
 	proof_diagnostics('~NNeg:~2n', RightProof),
 	select_pos_axiom(Ps1, Ps2, AtV0, AtO0, Gamma, _-CR, _-RightProof),
 	Gamma = [_-at(_, AtV1, AtO1, _)],
 	proof_diagnostics('~NPos:~2n', RightProof),
-	RightProof = rule(_, _Ant, D, _),
+	RightProof = rule(_, Ant, D, _),
 	LeftProof = rule(_, Gamma0, _, _),
-%	append(Delta1, [_-CL|Delta2], Ant), 
+	append(Delta1, [_-at(_,AtV1,AtO1,_)|Delta2], Ant), 
         append(Delta1, Gamma0, GDP1),
 	append(GDP1, Delta2, GDP),
 	unify_atoms(_-CL, _-CR),
