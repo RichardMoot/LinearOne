@@ -38,7 +38,7 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
-	select_neg_proof(Ps0, Ps1, AtV1, AtO1, _Delta1, _-CL, _Delta2, A, _-LeftProof),
+	select_neg_axiom(Ps0, Ps1, AtV1, AtO1, _-CL, A, _-LeftProof),
 	A = _-at(_, AtV0, AtO0, _),
 	proof_diagnostics('~NNeg:~2n', RightProof),
 	select_pos_axiom(Ps1, Ps2, AtV0, AtO0, Gamma, _-CR, _-RightProof),
@@ -57,6 +57,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 combine_proofs([Next|_], CurrentProofs, Proof) :-
 	/* dump all partial proofs in case of failure (useful for inspection) */
 	format(user_error, '~N{Error: proof generation failed!}~nNext:~p~2n', [Next]),
+	numbervars(CurrentProofs, 0, _),
 	member(Proof, CurrentProofs).
 
 % = trivial_cut_elimination(+LeftSubProof, +RightSubProof, +ConclusionAntecedent, +ConclusionSuccedent, -NewProof)
@@ -309,16 +310,37 @@ same_formula1(p(A0,B0), p(A,B)) :-
 % such that A is the formula indicated by Vertex-Order and OutProofs are the other proofs.
 
 
-select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
-	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
-	!.
-select_neg_proof([P|Ps], [P|Rs], V, O, Gamma, A, Delta, C, Proof) :-
-	select_neg_proof(Ps, Rs, V, O, Gamma, A, Delta, C, Proof).
+%% select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
+%% 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
+%% 	!.
+%% select_neg_proof([P|Ps], [P|Rs], V, O, Gamma, A, Delta, C, Proof) :-
+%% 	select_neg_proof(Ps, Rs, V, O, Gamma, A, Delta, C, Proof).
 
-select_neg_proof1(N-P, V, O, Gamma, A, Delta, C, N-R) :-
-	select_neg_proof1(P, V, O, Gamma, A, Delta, C, R).
-select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(Nm, GammaADelta, C, Ps)) :-
-	select_ant_formula(GammaADelta, V, O, Gamma, A, Delta).
+%% select_neg_proof1(N-P, V, O, Gamma, A, Delta, C, N-R) :-
+%% 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, R).
+%% select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(Nm, GammaADelta, C, Ps)) :-
+%% 	select_ant_formula(GammaADelta, V, O, Gamma, A, Delta).
+
+select_neg_axiom([Proof|Ps], Ps, V, O, C, A, Proof) :-
+	select_neg_axiom1(Proof, V, O, C, A),
+	!.
+select_neg_axiom([P|Ps], [P|Rs], V, O, C, A, Proof) :-
+	select_neg_axiom(Ps, Rs, V, O, C, A, Proof).
+
+select_neg_axiom1(_-P, V, O, C, A) :-
+	select_neg_axiom1(P, V, O, C, A).
+select_neg_axiom1(rule(ax, [M-at(At,V2,O2,Vars)], N-at(At,V1,O1,Vars), []), V, O, M-at(At,V2,O2,Vars), N-at(At,V1,O1,Vars)) :-
+	V2 == V,
+	O2 == O,
+	!.
+select_neg_axiom1(rule(_, _, _, Rs), V, O, C, A) :-
+	select_neg_axiom_list(Rs, V, O, C, A).
+
+select_neg_axiom_list([R|_], V, O, C, A) :-
+	select_neg_axiom1(R, V, O, C, A),
+	!.
+select_neg_axiom_list([_|Rs], V, O, C, A) :-
+	select_neg_axiom_list(Rs, V, O, C, A).
 
 % = select_pos_proof(+InProofs, -Outproof, +Vertex, +Order, -Delta, -A, -Proof)
 %
@@ -350,18 +372,18 @@ select_pos_axiom_list([R|_], V, O, Delta, A) :-
 select_pos_axiom_list([_|Rs], V, O, Delta, A) :-
 	select_pos_axiom_list(Rs, V, O, Delta, A).
 	
-select_pos_proof([P|Ps], Ps, V, O, Delta, A, Proof) :-
-	select_pos_proof1(P, V, O, Delta, A, Proof),
-	!.
-select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
-	select_pos_proof(Ps, Rs, V, O, Delta, A, Proof).
+%% select_pos_proof([P|Ps], Ps, V, O, Delta, A, Proof) :-
+%% 	select_pos_proof1(P, V, O, Delta, A, Proof),
+%% 	!.
+%% select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
+%% 	select_pos_proof(Ps, Rs, V, O, Delta, A, Proof).
 
-select_pos_proof1(_-P, V, O, Delta, A, R) :-
-	select_pos_proof1(P, V, O, Delta, A, R).
-select_pos_proof1(rule(Nm, Delta, N-at(At,V1,O1,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)) :-
-	V1 == V,
-	O1 == O,
-	!.
+%% select_pos_proof1(_-P, V, O, Delta, A, R) :-
+%% 	select_pos_proof1(P, V, O, Delta, A, R).
+%% select_pos_proof1(rule(Nm, Delta, N-at(At,V1,O1,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)) :-
+%% 	V1 == V,
+%% 	O1 == O,
+%% 	!.
 %select_pos_proof1(rule(_, _, _, Rs), V, O, Delta, A, Proof) :-
 
 % = select_ant_formula(+Antecedent, +Vertex, +Order, -Gamma, -A, -Delta)
