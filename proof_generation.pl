@@ -19,7 +19,7 @@ generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
 %	trace,
-	sequent_to_nd(Proof, _NDProof),
+%	sequent_to_nd(Proof, _NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -38,14 +38,19 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 	!,
 	combine_proofs(Rest, Ps, Proof).
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
-	select_pos_proof(Ps0, Ps1, AtV1, AtO1, Gamma, CL, LeftProof),
-	proof_diagnostics('~NPos:~2n', LeftProof),
-	select_neg_proof(Ps1, Ps2, AtV0, AtO0, Delta1, CR, Delta2, A, RightProof),
+	select_neg_proof(Ps0, Ps1, AtV1, AtO1, _G1, _-CL, _G2, A, _-LeftProof),
+	A = _-at(_, AtV0, AtO0, _),
 	proof_diagnostics('~NNeg:~2n', RightProof),
-        append(Delta1, Gamma, GDP1),
+	select_pos_axiom(Ps1, Ps2, AtV0, AtO0, Gamma, _-CR, _-RightProof),
+	Gamma = [_-at(_, AtV1, AtO1, _)],
+	proof_diagnostics('~NPos:~2n', RightProof),
+	RightProof = rule(_, Ant, D, _),
+	LeftProof = rule(_, Gamma0, _, _),
+	append(Delta1, [_-CL|Delta2], Ant), 
+        append(Delta1, Gamma0, GDP1),
 	append(GDP1, Delta2, GDP),
-	unify_atoms(CL, CR),
-	try_cut_elimination_left(LeftProof, RightProof, GDP, Delta1, Delta2, A, CL, CR, Rule),
+	unify_atoms(_-CL, _-CR),
+	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -168,13 +173,13 @@ turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta1, Delta2, A, CL0, CR, [R
 
 turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, Proof) :-
     (
-        Delta = [_-CR], Rs0 = []
+        Delta = [_-CL], Rs0 = []
     ->
 	/* reached axiom */     
 	Proof = LeftProof    
     ;				      		
         /* replace CR in the antecedent by Gamma */
-	append(Delta1, [_-CR|Delta2], Delta),
+	append(Delta1, [_-CL|Delta2], Delta),
 	append(Delta1, Gamma, GammaDelta1),
 	append(GammaDelta1, Delta2, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
@@ -182,17 +187,19 @@ turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, P
     ).
 
 % = proceed to the subproof containing CR
-turbo_cut_elimination_right1([R0|Rs0], LeftProof, Gamma, CL, CR0, [R|Rs]) :-
+turbo_cut_elimination_right1([R0|Rs0], LeftProof, Gamma, CL, CR, [R|Rs]) :-
     (
-	antecedent_member(CR0, CR, R0)
+	antecedent_member(CL, R0)
     ->
 	Rs = Rs0,
 	turbo_cut_elimination_right(R0, LeftProof, Gamma, CL, CR, R)
     ;		     
         R = R0,
-        turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR0, Rs)
+        turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR, Rs)
     ).
 
+antecedent_member(F, rule(_, Gamma, _, _)) :-
+	memberchk(_-F, Gamma).
 
 antecedent_member(F0, F, rule(_, Gamma, _, _)) :-
 	antecedent_member1(Gamma, F0, F).
@@ -308,7 +315,7 @@ select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
 select_neg_proof([P|Ps], [P|Rs], V, O, Gamma, A, Delta, C, Proof) :-
 	select_neg_proof(Ps, Rs, V, O, Gamma, A, Delta, C, Proof).
 
-select_neg_proof1(_-P, V, O, Gamma, A, Delta, C, R) :-
+select_neg_proof1(N-P, V, O, Gamma, A, Delta, C, N-R) :-
 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, R).
 select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(Nm, GammaADelta, C, Ps)) :-
 	select_ant_formula(GammaADelta, V, O, Gamma, A, Delta).
@@ -322,6 +329,27 @@ select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(N
 %
 % such that A is the formula indicated by Vertex-Order and OutProofs are the other proofs.
 
+select_pos_axiom([Proof|Ps], Ps, V, O, Delta, A, Proof) :-
+	select_pos_axiom1(Proof, V, O, Delta, A),
+	!.
+select_pos_axiom([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
+	select_pos_axiom(Ps, Rs, V, O, Delta, A, Proof).
+
+select_pos_axiom1(_-P, V, O, Delta, A) :-
+	select_pos_axiom1(P, V, O, Delta, A).
+select_pos_axiom1(rule(ax, [M-at(At,V2,O2,Vars)], N-at(At,V1,O1,Vars), []), V, O, [M-at(At,V2,O2,Vars)], N-at(At,V1,O1,Vars)) :-
+	V1 == V,
+	O1 == O,
+	!.
+select_pos_axiom1(rule(_, _, _, Rs), V, O, Delta, A) :-
+	select_pos_axiom_list(Rs, V, O, Delta, A).
+
+select_pos_axiom_list([R|_], V, O, Delta, A) :-
+	select_pos_axiom1(R, V, O, Delta, A),
+	!.
+select_pos_axiom_list([_|Rs], V, O, Delta, A) :-
+	select_pos_axiom_list(Rs, V, O, Delta, A).
+	
 select_pos_proof([P|Ps], Ps, V, O, Delta, A, Proof) :-
 	select_pos_proof1(P, V, O, Delta, A, Proof),
 	!.
@@ -332,14 +360,17 @@ select_pos_proof1(_-P, V, O, Delta, A, R) :-
 	select_pos_proof1(P, V, O, Delta, A, R).
 select_pos_proof1(rule(Nm, Delta, N-at(At,V1,O1,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)) :-
 	V1 == V,
-	O1 == O.
+	O1 == O,
+	!.
+%select_pos_proof1(rule(_, _, _, Rs), V, O, Delta, A, Proof) :-
 
 % = select_ant_formula(+Antecedent, +Vertex, +Order, -Gamma, -A, -Delta)
 %
 % select the (negative) atomic formula indicated by Vertex-Order from the given Antecedent,
 % dividing the antecedent into Gamma, A, Delta (Gamma is represented as a difference list)
 
-select_ant_formula([N-at(At,V1,O1,Vars)|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+select_ant_formula([N-F|Delta], V, O, [], N-at(At,V,O,Vars), Delta) :-
+	max_neg(F, at(At,V1,O1,Vars)),
 	V1 == V,
 	O1 == O,
 	!.
@@ -373,7 +404,7 @@ node_proof2([A|As], F, N, Pol, Proof) :-
 node_proof3(pos, L, F, N, Proof) :-
         create_pos_proof(F, N, L, [], Proof).
 node_proof3(neg, L, F, N, Proof) :-
-        max_neg(F, MN0),
+        max_neg_noid(F, MN0),
 	rename_bound_variables(MN0, MN),
         create_neg_proof(F, N, L, [], MN, Proof).
 
@@ -390,6 +421,19 @@ max_neg(forall(_,_-F0), F) :-
 	max_neg(F0, F).
 max_neg(F, F).
 
+max_neg_noid(at(At, _, _, FVs), at(At, _, _, FVs)) :-
+	!.
+max_neg_noid(impl(_,_-F0), F) :-
+	!,
+	max_neg_noid(F0, F).
+max_neg_noid(forall(_,_-F0), F) :-
+	!,
+	max_neg_noid(F0, F).
+max_neg_noid(F, F).
+
+
+
+
 % = create_pos_proof(+NumberedPositiveFormula, +/-AtomsDL, -Proof)
 
 create_pos_proof(N-A, L0, L, Proof) :-
@@ -397,7 +441,7 @@ create_pos_proof(N-A, L0, L, Proof) :-
 
 % = create_pos_proof(+PositiveFormula, +NodeNumber, +/-AtomsDL, -Proof)
 
-create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,C,N,Vars)], M-at(A,_C,_N,Vars), [])) :-
+create_pos_proof(at(A,C,N,Vars), M, [pos(A,C,N,_,Vars)|L], L, rule(ax,[M-at(A,_C,_N,Vars)], M-at(A,C,N,Vars), [])) :-
 	!.
 create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [ProofA])) :-
         !,
@@ -423,7 +467,7 @@ create_neg_proof(N-A, L0, L, Neg, Proof) :-
 
 % = create_neg_proof(+NegativeFormula, +NodeNumber, +/-AtomsDL, +Goal, -Proof)
 
-create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C,N,Vars), rule(ax, [M-at(A,_C,_N,Vars)], M-at(A,C,N,Vars), [])) :-
+create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C1,N1,Vars), rule(ax, [M-at(A,C,N,Vars)], M-at(A,C1,N1,Vars), [])) :-
         !.
 create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
@@ -434,11 +478,11 @@ create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,Proof
 	ProofB = rule(_, Delta, _, _),
 	select_formula(B2, N, Delta, Delta_B),
 	append(Gamma, [N-impl(N-A3,N-B2)|Delta_B], GD).
-create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, C, [ProofA])) :-
+create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, N-Neg, [ProofA])) :-
         !,
 	rename_bound_variables(A, A2),
         create_neg_proof(A, N, L0, L, Neg, ProofA),
-        ProofA = rule(_, Gamma, C, _),
+        ProofA = rule(_, Gamma, _C, _),
 	/* rename to make sure bound variables aren't unified */
 	replace_formula(A2, N, N-forall(Y,N-A3), Gamma, GammaP),
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
