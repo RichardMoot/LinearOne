@@ -1,4 +1,4 @@
-:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2, antecedent/2]).
+:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2, antecedent/2, non_member/2]).
 
 :- use_module(ordset, [ord_union/3, ord_delete/3]).
 
