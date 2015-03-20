@@ -4,6 +4,7 @@
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 
+% generate_diagnostics(true).
 generate_diagnostics(false).
 
 % =======================================
@@ -54,6 +55,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	append(GDP1, Delta2, GDP),
 	unify_atoms(_-CL, _-CR),
 	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
+	proof_diagnostics('~NResults:~2n', N0-Rule),
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -558,7 +560,8 @@ create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C1,N1,Vars), 
 create_neg_proof(impl(N-A0,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
 	remove_formula_indices(A0, A),
-        create_pos_proof(A, N, L0, L1, rule(Nm, Gamma, _, Rs)),
+	rename_bound_variables(A, AA),
+        create_pos_proof(AA, N, L0, L1, rule(Nm, Gamma, _, Rs)),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
 	rename_bound_variables(B, B2),
 	/* put back the formula indices for the conclusion */

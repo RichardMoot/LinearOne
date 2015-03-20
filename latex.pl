@@ -36,7 +36,9 @@ proof_footer :-
     (
 	access_file('latex_proofs.tex', read)
     ->
-	shell('pdflatex latex_proofs.tex > /dev/null'),
+        /* find pdflatex in the user's $PATH */
+	absolute_file_name(path(pdflatex), PdfLaTeX, [access(execute)]),
+	process_create(PdfLaTeX, ['latex_proofs.tex'], [stdout(null)]),
 	format('LaTeX proofs ready~n', [])
      ;
         format('LaTeX proof output failed~n', [])

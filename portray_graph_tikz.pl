@@ -35,7 +35,9 @@ graph_footer(P) :-
 	/* for larger proofs, since lualatex slows down */
 	/* considerably for a trace consisting of several */
         /* larger graphs */    
-%	shell('lualatex graph.tex > /dev/null'),
+        /* find lualatex in the user's $PATH */
+%	absolute_file_name(path(lualatex), LuaLaTeX, [access(execute)]),
+%	process_create(LuaLaTeX, ['graph.tex'], [stdout(null)]),
 	format('LaTeX graphs ready~n', [])
      ;
         format('LaTeX graph output failed~n', [])
@@ -82,7 +84,9 @@ latex_graph(G0) :-
     (
 	access_file('graph.tex', read)
     ->
-	shell('lualatex graph.tex > /dev/null'),
+        /* find lualatex in the user's $PATH */
+	absolute_file_name(path(lualatex), LuaLaTeX, [access(execute)]),
+	process_create(LuaLaTeX, ['graph.tex'], [stdout(null)]),
 	format('LaTeX graphs ready~n', [])
      ;
         format('LaTeX graph output failed~n', [])

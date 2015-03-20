@@ -13,6 +13,11 @@
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
 
+% = adds some likely location for pdflatex/lualatex to the file search path
+
+user:file_search_path(path, '/usr/texbin/').
+user:file_search_path(path, '/opt/local/bin/').
+
 % = some definitions for pretty-printing
 
 portray(neg(F, X, L)) :-
