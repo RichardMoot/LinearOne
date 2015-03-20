@@ -40,10 +40,10 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_neg_axiom(Ps0, Ps1, AtV1, AtO1, _-CL, A, _-LeftProof),
 	A = _-at(_, AtV0, AtO0, _),
-	proof_diagnostics('~NNeg:~2n', RightProof),
+	proof_diagnostics('~NNeg ~D,~D:~2n', [AtV0,AtO0], LeftProof),
 	select_pos_axiom(Ps1, Ps2, AtV0, AtO0, Gamma, _-CR, _-RightProof),
 	Gamma = [_-at(_, AtV1, AtO1, _)],
-	proof_diagnostics('~NPos:~2n', RightProof),
+	proof_diagnostics('~NPos ~D,~D:~2n', [AtV1, AtO1], RightProof),
 	RightProof = rule(_, Ant, D, _),
 	LeftProof = rule(_, Gamma0, _, _),
 	append(Delta1, [_-at(_,AtV1,AtO1,_)|Delta2], Ant), 
@@ -58,7 +58,9 @@ combine_proofs([Next|_], CurrentProofs, Proof) :-
 	/* dump all partial proofs in case of failure (useful for inspection) */
 	format(user_error, '~N{Error: proof generation failed!}~nNext:~p~2n', [Next]),
 	numbervars(CurrentProofs, 0, _),
-	member(Proof, CurrentProofs).
+	keysort(CurrentProofs, SortedProofs),
+	member(N-Proof, SortedProofs),
+        format(latex, '~2n ~D. ', [N]).
 
 % = trivial_cut_elimination(+LeftSubProof, +RightSubProof, +ConclusionAntecedent, +ConclusionSuccedent, -NewProof)
 
@@ -491,15 +493,17 @@ create_neg_proof(N-A, L0, L, Neg, Proof) :-
 
 create_neg_proof(at(A,C,N,Vars), M, [neg(A,C,N,_,Vars)|L], L, at(A,C1,N1,Vars), rule(ax, [M-at(A,C,N,Vars)], M-at(A,C1,N1,Vars), [])) :-
         !.
-create_neg_proof(impl(N-A,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
+create_neg_proof(impl(N-A0,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,ProofB])) :-
         !,
-        create_pos_proof(A, N, L0, L1, ProofA),
+	remove_formula_indices(A0, A),
+        create_pos_proof(A, N, L0, L1, rule(Nm, Gamma, _, Rs)),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
 	rename_bound_variables(B, B2),
-	ProofA = rule(_, Gamma, N-A3, _),
+	/* put back the formula indices for the conclusion */
+	ProofA = rule(Nm, Gamma, N-A0, Rs),
 	ProofB = rule(_, Delta, _, _),
 	select_formula(B2, N, Delta, Delta_B),
-	append(Gamma, [N-impl(N-A3,N-B2)|Delta_B], GD).
+	append(Gamma, [N-impl(N-A0,N-B2)|Delta_B], GD).
 create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, N-Neg, [ProofA])) :-
         !,
 	rename_bound_variables(A, A2),
@@ -510,6 +514,23 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, N-Neg, [ProofA])
 	rename_bound_variable(forall(X,N-A2), X, Y, forall(Y,N-A3)).
 % complex (positive) subformula
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
+
+
+remove_formula_indices(N-F0, N-F) :-
+	remove_formula_indices(F0, F).
+remove_formula_indices(at(A,_,_,Vars), at(A,_,_,Vars)).
+remove_formula_indices(forall(X, A0), forall(X, A)) :-
+	remove_formula_indices(A0, A).
+remove_formula_indices(exists(X, A0), exists(X, A)) :-
+	remove_formula_indices(A0, A).
+remove_formula_indices(impl(A0, B0), impl(A, B)) :-
+	remove_formula_indices(A0, A),
+	remove_formula_indices(B0, B).
+remove_formula_indices(p(A0, B0), p(A, B)) :-
+	remove_formula_indices(A0, A),
+	remove_formula_indices(B0, B).
+
+
 
 % = sequent_to_nd(+SequentProof, -NaturalDeductionProof)
 %
