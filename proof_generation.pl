@@ -265,7 +265,9 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P1 = rule(_, Gamma, N0-exists(var(V),N1-A), _),
 	P2 = rule(_, Delta0, C, _),
 	!,
-	append(Delta1, [_-A|Delta2], Delta0),
+	/* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
+	/* Q: are the node numbers enough to guarantee this? Verify! */
+	append(Delta1, [N1-A|Delta2], Delta0),
 	%split_antecedent(Delta0, _-A, Delta1, Delta2), 
 	append(Delta1, [N1-exists(var(V),N1-A)|Delta2], Delta),
 	append(Delta1, Gamma, GD1),
@@ -277,8 +279,10 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, N1-A, _),
 	P1 = rule(_, Delta, C, _),
-	%append(Delta0, [_-forall(var(V),N1-A)|Delta1], Delta),
-	split_antecedent(Delta, _-forall(var(V),N1-A), Delta0, Delta1),
+	/* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
+	/* Q: are the node numbers enough to guarantee this? Verify! */
+	append(Delta0, [N0-forall(var(V),N1-A)|Delta1], Delta),
+	%split_antecedent(Delta, _-forall(var(V),N1-A), Delta0, Delta1),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
 	/* try to create a cut-free proof */
@@ -295,7 +299,8 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(_, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
-	/* use split_antecedent here */
+	/* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
+	/* Q: are the node numbers enough to guarantee this? Verify! */
 	select_formula(B, N1, Delta0, Delta1),
 	select_formula(A, N1, Delta1, Delta),
 	replace_formula(A, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
@@ -308,6 +313,8 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(_, Gamma, A, _),
 	P2 = rule(_, Delta0, N1-D, _),	
+	/* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
+	/* Q: are the node numbers enough to guarantee this? Verify! */
 	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
 %	split_antecedent(Gamma, N0-impl(N1-C,N1-D), Gamma0, Gamma1),
 	select_formula(C, N1, Delta0, Delta),
@@ -526,9 +533,9 @@ create_pos_proof(exists(X,N-A), N, L0, L, rule(er, Gamma, N-exists(Y,N-A3), [Pro
         !,
 	/* rename to make sure bound variable isn't unified */
 	rename_bound_variables(A, A2),
-	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)),
         create_pos_proof(A, N, L0, L, ProofA),
-        ProofA = rule(_, Gamma, N-A2, _).
+        ProofA = rule(_, Gamma, N-A2, _),
+	rename_bound_variable(exists(X,N-A2), X, Y, exists(Y,N-A3)).
 create_pos_proof(p(N-A,N-B), N, L0, L, rule(pr, GD, N-p(N-A2,N-B2), [P1,P2])) :-
         !,
         create_pos_proof(A, N, L0, L1, P1),
