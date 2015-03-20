@@ -4,7 +4,7 @@
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 
-% generate_diagnostics(true).
+%generate_diagnostics(true).
 generate_diagnostics(false).
 
 % =======================================
@@ -41,10 +41,10 @@ combine_proofs([N0-univ(V,N1)|Rest], Ps0, Proof) :-
 combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	select_neg_axiom(Ps0, Ps1, AtV1, AtO1, _-CL, A, _-LeftProof),
 	A = _-at(_, AtV0, AtO0, _),
-	proof_diagnostics('~NNeg ~D,~D:~2n', [AtV0,AtO0], LeftProof),
+	proof_diagnostics('~NNeg (~D) ~D,~D:~2n', [N0, AtV0,AtO0], LeftProof),
 	select_pos_axiom(Ps1, Ps2, AtV0, AtO0, Gamma, _-CR, _-RightProof),
 	Gamma = [_-at(_, AtV1, AtO1, _)],
-	proof_diagnostics('~NPos ~D,~D:~2n', [AtV1, AtO1], RightProof),
+	proof_diagnostics('~NPos (~D) ~D,~D:~2n', [N1, AtV1, AtO1], RightProof),
 	RightProof = rule(_, Ant, D, _),
 	LeftProof = rule(_, Gamma0, _, _),
 	split_antecedent(Ant, AtV1, AtO1, Delta1, Delta2),
@@ -55,7 +55,8 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	append(GDP1, Delta2, GDP),
 	unify_atoms(_-CL, _-CR),
 	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
-	proof_diagnostics('~NResults:~2n', N0-Rule),
+	proof_diagnostics('~NResults (~D):~2n', [N0], Rule),
+	diagnostics_rule,
 	replace_proofs_labels([N0-Rule|Ps2], N1, N0, Ps),
 	!,
 	combine_proofs(Rest, Ps, Proof).
@@ -319,7 +320,7 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	/* Q: are the node numbers enough to guarantee this? Verify! */
 	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
 %	split_antecedent(Gamma, N0-impl(N1-C,N1-D), Gamma0, Gamma1),
-	select_formula(C, N1, Delta0, Delta),
+	select_same_formula(N1, C, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
 	/* try to create a cut-free proof */
@@ -365,6 +366,13 @@ same_formula1(impl(A0,B0), impl(A,B)) :-
 same_formula1(p(A0,B0), p(A,B)) :-
 	same_formula(A0, A),
 	same_formula(B0, B).
+
+%
+
+select_same_formula(N, F, L0, L) :-
+	select(N-F0, L0, L),
+	same_formula1(F0, F),
+	!.
 
 % = select_neg_proof(+InProofs, -OutProofs, +Vertex, +Order, -Gamma, -A, -Delta, -C, -Proof)
 %
@@ -473,7 +481,8 @@ select_ant_formula([G|Gs], V, O, [G|Gamma], A, Delta) :-
 node_proofs([V|Vs], [P|Ps]) :-
         node_proof1(V, P),
         node_proofs(Vs, Ps).
-node_proofs([], []).
+node_proofs([], []) :-
+	diagnostics_rule.
 
 node_proof1(vertex(N0, As, _, _), N0-Proof) :-
         node_formula(N0, Pol, F),
@@ -680,3 +689,13 @@ proof_diagnostics(Msg, Vs, P) :-
     ;
         true
     ).
+
+diagnostics_rule :-
+   (
+	generate_diagnostics(true)
+    ->
+	format(latex, '~2n\\hrule~n\\medskip~2n', [])
+    ;
+        true
+    ).
+	
