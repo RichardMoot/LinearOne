@@ -10,11 +10,21 @@ option(prolog_like).
 
 output_indices(yes).
 
+% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
+
+% geometry(a2paper).
+geometry(a1paper).
+% geometry('paperwidth=200cm,textwidth=195cm').
+% geometry('paperwidth=300cm,textwidth=295cm').
+% geometry('paperwidth=400cm,textwidth=395cm').
+% geometry('paperwidth=500cm,textwidth=495cm').
+
 proof_header :-
       ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
 	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
-	format(latex, '\\usepackage[a2paper]{geometry}~n', []),
+	geometry(Geometry),
+	format(latex, '\\usepackage[~p]{geometry}~n', [Geometry]),
 	format(latex, '\\usepackage{proof}~n', []),
 	format(latex, '\\usepackage{amsmath}~n', []),
 	format(latex, '\\usepackage{amssymb}~2n', []),

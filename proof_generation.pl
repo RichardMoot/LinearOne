@@ -46,9 +46,10 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	proof_diagnostics('~NPos ~D,~D:~2n', [AtV1, AtO1], RightProof),
 	RightProof = rule(_, Ant, D, _),
 	LeftProof = rule(_, Gamma0, _, _),
-	append(Delta1, [_-at(_,AtV2,AtO2,_)|Delta2], Ant),
-	AtV2 == AtV1,
-	AtO2 == AtO2,
+	split_antecedent(Ant, AtV1, AtO1, Delta1, Delta2),
+%	append(Delta1, [_-at(_,AtV2,AtO2,_)|Delta2], Ant),
+%	AtV2 == AtV1,
+%	AtO2 == AtO1,
         append(Delta1, Gamma0, GDP1),
 	append(GDP1, Delta2, GDP),
 	unify_atoms(_-CL, _-CR),
@@ -61,9 +62,44 @@ combine_proofs([Next|_], CurrentProofs, Proof) :-
 	format(user_error, '~N{Error: proof generation failed!}~nNext:~p~2n', [Next]),
 	numbervars(CurrentProofs, 0, _),
 	keysort(CurrentProofs, SortedProofs),
+	/* exploits the fact that the top-level is a failure-driven loop */
 	member(N-Proof, SortedProofs),
         format(latex, '~2n ~D. ', [N]).
 
+% = split_antecedent(+GammaADelta, +V, +O, Gamma, Delta)
+%
+% split antecedent GammaADelta at the atomic formula indicated by identifier V, O returning
+% the formulas before it in Gamma and thos after it in Delta.
+
+split_antecedent([A|As], V, O, Bs, Delta) :-
+   (
+	A = _-at(_,AtV,AtO,_),
+	AtV == V,
+	AtO == O
+   ->		       
+        Bs = [],
+	Delta = As
+   ;			
+        Bs = [A|Bs0],
+        split_antecedent(As, V, O, Bs0, Delta)
+   ).			
+
+% = split_antecedent(+GammaADelta, +A, Gamma, Delta)
+%
+% split antecedent GammaADelta at the formula A returning
+% the formulas before it in Gamma and thos after it in Delta.
+
+split_antecedent([A0|As], A, Bs, Delta) :-
+   (
+        same_formula(A0, A)		
+    ->
+	Bs = [],
+	Delta = As
+    ;
+        Bs = [A0|Bs0],
+        split_antecedent(As, A, Bs0, Delta)
+    ).
+    
 % = trivial_cut_elimination(+LeftSubProof, +RightSubProof, +ConclusionAntecedent, +ConclusionSuccedent, -NewProof)
 
 trivial_cut_elimination(P1, P2, GDP, C, rule(Nm, GDP, C, R)) :-
@@ -178,13 +214,14 @@ turbo_cut_elimination_left1([R0|Rs0], RightProof, Delta1, Delta2, A, CL0, CR, [R
 
 turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, Proof) :-
     (
-        Delta = [_-CL], Rs0 = []
+        Delta = [_-CL0], same_formula1(CL0, CL), Rs0 = []
     ->
 	/* reached axiom */     
 	Proof = LeftProof    
     ;				      		
-        /* replace CR in the antecedent by Gamma */
-	append(Delta1, [_-CL|Delta2], Delta),
+        /* replace CL in the antecedent by Gamma */
+        split_antecedent(Delta, _-CL, Delta1, Delta2),
+	%append(Delta1, [_-CL|Delta2], Delta),
 	append(Delta1, Gamma, GammaDelta1),
 	append(GammaDelta1, Delta2, GammaDelta),
 	Proof = rule(Nm, GammaDelta, A, Rs),
@@ -192,19 +229,19 @@ turbo_cut_elimination_right(rule(Nm, Delta, A, Rs0), LeftProof, Gamma, CL, CR, P
     ).
 
 % = proceed to the subproof containing CR
-turbo_cut_elimination_right1([R0|Rs0], LeftProof, Gamma, CL, CR, [R|Rs]) :-
+turbo_cut_elimination_right1([R0|Rs0], LeftProof, Gamma, CL0, CR, [R|Rs]) :-
     (
-	antecedent_member(CL, R0)
+	antecedent_member(CL0, CL, R0)
     ->
 	Rs = Rs0,
 	turbo_cut_elimination_right(R0, LeftProof, Gamma, CL, CR, R)
     ;		     
         R = R0,
-        turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL, CR, Rs)
+        turbo_cut_elimination_right1(Rs0, LeftProof, Gamma, CL0, CR, Rs)
     ).
 
 antecedent_member(F, rule(_, Gamma, _, _)) :-
-	memberchk(_-F, Gamma).
+	antecedent_member(F, _, Gamma).
 
 antecedent_member(F0, F, rule(_, Gamma, _, _)) :-
 	antecedent_member1(Gamma, F0, F).
@@ -229,6 +266,7 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 	P2 = rule(_, Delta0, C, _),
 	!,
 	append(Delta1, [_-A|Delta2], Delta0),
+	%split_antecedent(Delta0, _-A, Delta1, Delta2), 
 	append(Delta1, [N1-exists(var(V),N1-A)|Delta2], Delta),
 	append(Delta1, Gamma, GD1),
 	append(GD1, Delta2, GD),
@@ -239,7 +277,8 @@ combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
 combine_univ(P1, P2, N0, N1, V, N1-Rule) :-
         P2 = rule(_, Gamma, N1-A, _),
 	P1 = rule(_, Delta, C, _),
-	append(Delta0, [_-forall(var(V),N1-A)|Delta1], Delta),
+	%append(Delta0, [_-forall(var(V),N1-A)|Delta1], Delta),
+	split_antecedent(Delta, _-forall(var(V),N1-A), Delta0, Delta1),
 	append(Delta0, Gamma, GD0),
 	append(GD0, Delta1, GD),
 	/* try to create a cut-free proof */
@@ -256,6 +295,7 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(_, Gamma, N0-p(N1-A, N1-B), _),
         P2 = rule(_, Delta0, C, _),
 	!,
+	/* use split_antecedent here */
 	select_formula(B, N1, Delta0, Delta1),
 	select_formula(A, N1, Delta1, Delta),
 	replace_formula(A, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
@@ -267,8 +307,9 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 % = right rule for implication
 combine(P1, P2, N0, N1, N1-Rule) :-
 	P1 = rule(_, Gamma, A, _),
-	P2 = rule(_, Delta0, N1-D, _),
+	P2 = rule(_, Delta0, N1-D, _),	
 	append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
+%	split_antecedent(Gamma, N0-impl(N1-C,N1-D), Gamma0, Gamma1),
 	select_formula(C, N1, Delta0, Delta),
 	append(Gamma0, Delta, GD0),
 	append(GD0, Gamma1, GD),
@@ -290,7 +331,19 @@ unify_atoms(_-at(A, _, _, Vs), _-at(A, _, _, Vs)).
 same_formula(_-F0, _-F) :-
 	same_formula1(F0, F).
 
-same_formula1(at(A,Id1,Id2,_), at(A,Id1,Id2,_)).
+same_formula1(F0, F) :-
+	/* variable subformulas unify */
+	var(F0),
+        !,
+	F0 = F.
+same_formula1(F0, F) :-
+	var(F),
+	!,
+	F = F0.
+same_formula1(at(A,Id1,Id2,_), at(A,Id3,Id4,_)) :-
+	/* demain strict identity of atoms */
+	Id1 == Id3,
+	Id2 == Id4.
 same_formula1(forall(X,F0), forall(Y,F)) :-
 	X == Y,
 	same_formula(F0, F).
