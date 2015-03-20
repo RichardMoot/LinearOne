@@ -561,7 +561,7 @@ create_neg_proof(impl(N-A0,N-B), N, L0, L, Neg, rule(il, GD, N-Neg, [ProofA,Proo
         !,
 	remove_formula_indices(A0, A),
 	rename_bound_variables(A, AA),
-        create_pos_proof(AA, N, L0, L1, rule(Nm, Gamma, _, Rs)),
+        create_pos_proof(AA, N, L0, L1, rule(Nm, Gamma, N-A0, Rs)),
 	create_neg_proof(B, N, L1, L, Neg, ProofB),
 	rename_bound_variables(B, B2),
 	/* put back the formula indices for the conclusion */
