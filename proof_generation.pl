@@ -4,8 +4,8 @@
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 
-%generate_diagnostics(true).
-generate_diagnostics(false).
+generate_diagnostics(true).
+%generate_diagnostics(false).
 
 % =======================================
 % =           Proof generation          =
@@ -304,8 +304,8 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	!,
 	/* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
 	/* Q: are the node numbers enough to guarantee this? Verify! */
-	select_formula(B, N1, Delta0, Delta1),
-	select_formula(A, N1, Delta1, Delta),
+	select_same_formula(B, N1, Delta0, Delta1),
+	select_same_formula(A, N1, Delta1, Delta),
 	replace_formula(A, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
 	append(Delta3, [N1-p(N1-A,N1-B)|Delta4], Delta2),
 	append(Gamma, Delta, GD),		  
@@ -369,9 +369,36 @@ same_formula1(p(A0,B0), p(A,B)) :-
 
 %
 
+same_formula2(F0, F) :-
+	/* variable subformulas unify */
+	var(F0),
+        !,
+	F0 = F.
+same_formula2(F0, F) :-
+	var(F),
+	!,
+	F = F0.
+same_formula2(at(A,Id1,Id2,_), at(A,Id3,Id4,_)) :-
+	/* demain strict identity of atoms */
+	Id1 == Id3,
+	Id2 == Id4.
+same_formula2(forall(X,F0), forall(X,F)) :-
+	same_formula(F0, F).
+same_formula2(exists(X,F0), exists(X,F)) :-
+	same_formula(F0, F).
+same_formula2(impl(A0,B0), impl(A,B)) :-
+	same_formula(A0, A),
+	same_formula(B0, B).
+same_formula2(p(A0,B0), p(A,B)) :-
+	same_formula(A0, A),
+	same_formula(B0, B).
+
+
+%
+
 select_same_formula(N, F, L0, L) :-
 	select(N-F0, L0, L),
-	same_formula1(F0, F),
+	same_formula2(F0, F),
 	!.
 
 % = select_neg_proof(+InProofs, -OutProofs, +Vertex, +Order, -Gamma, -A, -Delta, -C, -Proof)
