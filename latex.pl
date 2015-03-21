@@ -5,11 +5,26 @@
 
 option(prolog_like).
 
+% set this option to "yes" to ouput unique identifier indices of atomic formulas (useful for
+% debugging
+
+output_indices(yes).
+
+% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
+
+% geometry(a2paper).
+geometry(a1paper).
+% geometry('paperwidth=200cm,textwidth=195cm').
+% geometry('paperwidth=300cm,textwidth=295cm').
+% geometry('paperwidth=400cm,textwidth=395cm').
+% geometry('paperwidth=500cm,textwidth=495cm').
+
 proof_header :-
       ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
 	open('latex_proofs.tex', write, _Stream, [alias(latex)]),
 	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
-	format(latex, '\\usepackage[a2paper]{geometry}~n', []),
+	geometry(Geometry),
+	format(latex, '\\usepackage[~p]{geometry}~n', [Geometry]),
 	format(latex, '\\usepackage{proof}~n', []),
 	format(latex, '\\usepackage{amsmath}~n', []),
 	format(latex, '\\usepackage{amssymb}~2n', []),
@@ -21,7 +36,9 @@ proof_footer :-
     (
 	access_file('latex_proofs.tex', read)
     ->
-	shell('pdflatex latex_proofs.tex > /dev/null'),
+        /* find pdflatex in the user's $PATH */
+	absolute_file_name(path(pdflatex), PdfLaTeX, [access(execute)]),
+	process_create(PdfLaTeX, ['latex_proofs.tex'], [stdout(null)]),
 	format('LaTeX proofs ready~n', [])
      ;
         format('LaTeX proof output failed~n', [])
@@ -123,10 +140,15 @@ latex_formula(at(F,Vs0), _) :-
 	update_vars(Vs0, Vs),
 	Term =.. [F|Vs],
 	print(latex, Term).
-latex_formula(at(F,_,_,Vs0), _) :-
+latex_formula(at(F,N,E,Vs0), _) :-
 	update_vars(Vs0, Vs),
-	Term =.. [F|Vs],
-	print(latex, Term).
+  (	
+	output_indices(yes)
+  ->
+	format(latex, '~@^{~p,~p}~@', [latex_atom(F),N,E,latex_arguments(Vs)])
+  ;
+	format(latex, '~@~@', [latex_atom(F),latex_arguments(Vs)])
+  ).
 latex_formula(forall(X,F), _) :-
 	!,
 	update_var(X, Y),
@@ -408,6 +430,24 @@ latex_atom(A0) :-
 	atomic_list_concat(List, '_', A0),
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textrm{~w}', [A]).
+
+% = latex_arguments(+ListOfArguments)
+%
+% write a list of arguments to a predicate ie. (t_1, t_2, t3) sending
+% each t_i to print and outputing nothing for a proposition (ie. the
+% empty list of arguments.
+
+latex_arguments([]).
+latex_arguments([A|As]) :-
+	write(latex, '('),
+	latex_arguments(As, A),
+        write(latex, ')').
+
+latex_arguments([], A) :-
+	print(latex, A).
+latex_arguments([A|As], A0) :-
+	format(latex, '~w, ', [A0]),
+	latex_arguments(As, A).
 
 % = unary_term(+Term)
 %

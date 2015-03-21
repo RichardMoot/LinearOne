@@ -12,6 +12,7 @@ graph_header :-
 	format(graph, '\\documentclass{article}~2n', []),
 	format(graph, '\\usepackage[a3paper]{geometry}~n', []),
 	format(graph, '\\usepackage{amsmath}~n', []),
+	format(graph, '\\usepackage{cmll}~n', []),
 	format(graph, '\\usepackage{tikz}~n', []),
 	format(graph, '\\usetikzlibrary{graphs, graphdrawing}~n', []),
 	format(graph, '\\usetikzlibrary{quotes}~n', []),
@@ -35,7 +36,9 @@ graph_footer(P) :-
 	/* for larger proofs, since lualatex slows down */
 	/* considerably for a trace consisting of several */
         /* larger graphs */    
-%	shell('lualatex graph.tex > /dev/null'),
+        /* find lualatex in the user's $PATH */
+%	absolute_file_name(path(lualatex), LuaLaTeX, [access(execute)]),
+%	process_create(LuaLaTeX, ['graph.tex'], [stdout(null)]),
 	format('LaTeX graphs ready~n', [])
      ;
         format('LaTeX graph output failed~n', [])
@@ -73,8 +76,8 @@ latex_graph(G0) :-
  	graph_header,
  	graph_numbervars(G, 0, _),
         format(graph, '{\\tikz \\graph [multi, layered layout, level distance=1.3cm] {~n', []),
-        portray_vertices(G),
-        portray_edges(G),
+        portray_vertices(G, -1, Max),
+        portray_edges(G, Max),
         format(graph, '};~2n', []),
 	format(graph, '\\end{center}~n', []),
 	format(graph, '\\end{document}~n', []),
@@ -82,7 +85,9 @@ latex_graph(G0) :-
     (
 	access_file('graph.tex', read)
     ->
-	shell('lualatex graph.tex > /dev/null'),
+        /* find lualatex in the user's $PATH */
+	absolute_file_name(path(lualatex), LuaLaTeX, [access(execute)]),
+	process_create(LuaLaTeX, ['graph.tex'], [stdout(null)]),
 	format('LaTeX graphs ready~n', [])
      ;
         format('LaTeX graph output failed~n', [])
@@ -96,8 +101,8 @@ portray_graph(G) :-
         /* do temporary numbervars */
 \+ \+ ( graph_numbervars(G, 0, _),
         format(graph, '{\\flushleft ~p\\hfill}~2n\\tikz \\graph [multi, layered layout, level distance=1.3cm] {~n', [N]),
-        portray_vertices(G),
-        portray_edges(G),
+        portray_vertices(G, -1, Max),
+        portray_edges(G, Max),
         format(graph, '};~2n', [])).
 
 graph_numbervars([], N, N).
@@ -119,36 +124,42 @@ atom_numbervars(neg(_, _, _, _, Vars), N0, N) :-
 atom_numbervars(pos(_, _, _, _, Vars), N0, N) :-
     numbervars(Vars, N0, N).
 
-portray_vertices([]).
-portray_vertices([vertex(N,As,FVs,_Ps)|Rest]) :-
-    format(graph, '~w/{$', [N]),
-    portray_fvs(FVs),
-    write(graph, '\\ '),
-    portray_atoms(As),
-    format(graph, '$};~n', []),
-    portray_vertices(Rest).
+portray_vertices([], Max, Max).
+portray_vertices([vertex(N,As,FVs,_Ps)|Rest], Max0, Max) :-
+	format(graph, '~w/{$', [N]),
+	portray_fvs(FVs),
+	write(graph, '\\ '),
+	portray_atoms(As),
+	format(graph, '$};~n', []),
+	Max1 is max(Max0,N),
+	portray_vertices(Rest, Max1, Max).
 
-portray_edges([]).
-portray_edges([vertex(N,_As,_FVs,Ps)|Rest]) :-
-    portray_links(Ps, N),
-    portray_edges(Rest).
+portray_edges([], _).
+portray_edges([vertex(N,_As,_FVs,Ps)|Rest], Max0) :-
+	portray_links(Ps, N, Max0, Max),
+	portray_edges(Rest, Max).
 
 
-portray_links([], _).
-portray_links([P|Ps], N) :-
-    portray_link(P, N),
-    portray_links(Ps, N).
+portray_links([], _, Max, Max).
+portray_links([P|Ps], N, Max0, Max) :-
+	portray_link(P, N, Max0, Max1),
+	portray_links(Ps, N, Max1, Max).
 
-portray_link(univ(A,P), N) :-
-    format(graph, '~w <-["$~@$"] ~w;~n', [N,portray_var(A),P]).
-portray_link(par(P,Q), N) :-
-  (
-    P =:= Q
-  ->
-    format(graph, '~w <-[bend left] ~w;~n~w <-[bend right] ~w;~n', [N,P,N,Q])
-  ;
-    format(graph, '~w <- ~w;~n~w <- ~w;~n', [N,P,N,Q])
-  ).
+portray_link(univ(A,P), N, Max0, Max) :-
+	Max is Max0 + 1,
+	format(graph, '~w/{$\\!~@\\!$} [shape=circle,draw];~n', [Max,portray_var(A)]), 
+	format(graph, '~w <- ~w;~n~w <- ~w;~n', [N,Max,Max,P]).
+portray_link(par(P,Q), N, Max0, Max) :-
+	Max is Max0 + 1,
+	format(graph, '~w/{$\\!\\parr\\!$} [shape=circle,draw];~n', [Max]),
+	format(graph, '~w <- ~w;~n', [N,Max]),
+   (
+        P =:= Q
+   ->
+        format(graph, '~w <-[bend left] ~w;~n~w <-[bend right] ~w;~n', [Max,P,Max,Q])
+   ;
+        format(graph, '~w <- ~w;~n~w <- ~w;~n', [Max,P,Max,Q])
+   ).
 
 portray_atoms([]) :-
     write(graph, '\\emptyset').

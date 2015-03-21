@@ -13,6 +13,11 @@
 :- dynamic '$PROOFS'/1, '$AXIOMS'/1.
 :- dynamic node_formula/3.
 
+% = adds some likely location for pdflatex/lualatex to the file search path
+
+user:file_search_path(path, '/usr/texbin/').
+user:file_search_path(path, '/opt/local/bin/').
+
 % = some definitions for pretty-printing
 
 portray(neg(F, X, L)) :-
@@ -107,7 +112,7 @@ parse(ListOfWords, Goal0) :-
 	N is N0 + 1,
 	retractall('$LOOKUP'(_)),
 	assert('$LOOKUP'(N)),
-        format(user_error, '~N= Lookup ~w~n', [N]),
+        format(user_error, '~N= Lookup ~D~n', [N]),
 	prove0(Formulas, Goal, LexSem),
 	fail.
 parse(_, _) :-
@@ -177,6 +182,7 @@ prove0(Antecedent, Goal) :-
 prove0(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0, Stats),
 	portray_sequent_statistics(Stats),
+	format(user_error, 'Parsing: ', []),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Graph, GraphCopy),
 	portray_graph(Graph),
@@ -241,6 +247,7 @@ prove1(Graph0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	contract(Graph4, Graph, Rest0, Rest, Roots1, Roots),
 	/* verify the result is (at least potentially) connected */
 	connected(Graph),
+	mark_progress(Graph),
 	prove1(Graph, Roots, Rest).
 
 % =======================================
@@ -281,6 +288,7 @@ contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Root
         select(vertex(N0, As, FVsA, Ps0), Graph0, Graph1),
         select(univ(U, N1), Ps0, Ps),
 	select(vertex(N1, Bs, FVsB, Qs), Graph1, Graph2),
+	no_occurrences(Bs, Qs, Graph2, U),
 	no_occurrences1(FVsA, U),
 	no_occurrences(Graph2, U),
 	!,
@@ -289,6 +297,60 @@ contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Root
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_graph(Graph2, Rs0, N0, N1, Graph, Rs),
         update_roots_contraction(Roots0, N0, N1, Roots).
+
+% = no_occurrences
+%
+% verify that the module above the forall link has no remaining occurrences of the eigenvariable
+% of the link in atomic formulas
+%
+% TODO: this can surely be done in a smarter way. For example, it only makes sense to try and
+% contract a forall link after all atomic formulas containing its eigenvariable have been
+% connected.
+
+no_occurrences([], Ps, G, V) :-
+	no_occurrences_pars(Ps, G, V).
+no_occurrences([A|As], Ps, G, V) :-
+	no_atom_occurrences(A, V),
+	no_occurrences(As, Ps, G, V).
+
+no_atom_occurrences(pos(_, _, _, _, Vs), V) :-
+	no_varlist_occurrences(Vs, V).
+no_atom_occurrences(neg(_, _, _, _, Vs), V) :-
+	no_varlist_occurrences(Vs, V).
+
+no_varlist_occurrences([], _).
+no_varlist_occurrences([V|Vs], W) :-
+	V \== var(W),
+	no_varlist_occurrences(Vs, W).
+
+no_occurrences_pars([], _, _).
+no_occurrences_pars([P|Ps], G0, V) :-
+	no_occurrences_par(P, V, G0, G),
+	no_occurrences_pars(Ps, G, V).
+
+no_occurrences_par(univ(_,N1), V, G0, G) :-
+    (
+	selectchk(vertex(N1,Cs,_,Rs), G0, G)
+    ->			 
+	no_occurrences(Cs, Rs, G, V)
+    ;
+        G = G0
+    ).
+no_occurrences_par(par(N1,N2), V, G0, G) :-
+    (
+	selectchk(vertex(N1,Cs,_,Rs), G0, G1)
+    ->			 
+	no_occurrences(Cs, Rs, G1, V)
+    ;
+        G1 = G0
+    ),
+    (
+	selectchk(vertex(N2,Ds,_,Ss), G1, G)
+    ->			 
+	no_occurrences(Ds, Ss, G, V)
+    ;
+        G = G1
+    ).
 
 
 % test for cyclicity
@@ -512,6 +574,12 @@ number_subformulas_pos(impl(A,B), C, N0, N, M, M, C-impl(NA,NB)) :-
 % =======================================
 % =             Input/output            =
 % =======================================
+
+mark_progress(G) :-
+	length(G, L),
+	format(user_error, '~D.', [L]),
+        flush_output(user_error).
+	
 
 % = sequent statistics predicates
 

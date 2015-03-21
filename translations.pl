@@ -454,7 +454,7 @@ exhaustive_test(File, Word, Formula0, Semantics, Sentence, Goal) :-
 	open(File, write, Stream, []),
 	macro_expand(Formula0, Formula),
 	formula_type(Formula, Type),
-	findall(Term, inhabitants(impl(impl(s,s),Type), Term), List),
+	setof(Term, inhabitants(impl(impl(s,s),Type), Term), List),
 	selectchk(Word, Sentence, OtherWords),
 	format(Stream, ':- op(400, xfy, \\).~2n:- abolish(lex/3), abolish(lex/4), abolish(test/1).~2n', []),
 	format(Stream, '% = lexicon~2n', []), 
