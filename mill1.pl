@@ -320,7 +320,7 @@ no_varlist_occurrences([V|Vs], W) :-
 no_occurrences_pars([], _, _).
 no_occurrences_pars([P|Ps], G0, V) :-
 	no_occurrences_par(P, V, G0, G),
-	no_occurences_pars(Ps, G, V).
+	no_occurrences_pars(Ps, G, V).
 
 no_occurrences_par(univ(_,N1), V, G0, G) :-
     (
