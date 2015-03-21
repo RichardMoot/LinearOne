@@ -352,7 +352,7 @@ same_formula1(F0, F) :-
 	!,
 	F = F0.
 same_formula1(at(A,Id1,Id2,_), at(A,Id3,Id4,_)) :-
-	/* demain strict identity of atoms */
+	/* demand strict identity of atoms */
 	Id1 == Id3,
 	Id2 == Id4.
 same_formula1(forall(X,F0), forall(Y,F)) :-
@@ -379,8 +379,8 @@ same_formula2(F0, F) :-
 	var(F),
 	!,
 	F = F0.
-same_formula2(at(A,Id1,Id2,_), at(A,Id3,Id4,_)) :-
-	/* demain strict identity of atoms */
+same_formula2(at(A,Id1,Id2,Vs), at(A,Id3,Id4,Vs)) :-
+	/* demand strict identity of atoms and unify variables */
 	Id1 == Id3,
 	Id2 == Id4.
 same_formula2(forall(X,_-F0), forall(Y,_-F)) :-
