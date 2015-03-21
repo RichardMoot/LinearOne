@@ -286,6 +286,7 @@ contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Root
         select(vertex(N0, As, FVsA, Ps0), Graph0, Graph1),
         select(univ(U, N1), Ps0, Ps),
 	select(vertex(N1, Bs, FVsB, Qs), Graph1, Graph2),
+	no_occurrences(Bs, Qs, Graph2, U),
 	no_occurrences1(FVsA, U),
 	no_occurrences(Graph2, U),
 	!,
@@ -294,6 +295,56 @@ contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Root
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_graph(Graph2, Rs0, N0, N1, Graph, Rs),
         update_roots_contraction(Roots0, N0, N1, Roots).
+
+% = no_occurrences
+%
+% verify that the module above the forall link has no remaining occurrences of the eigenvariable
+% of the link in atomic formulas
+
+no_occurrences([], Ps, G, V) :-
+	no_occurrences_pars(Ps, G, V).
+no_occurrences([A|As], Ps, G, V) :-
+	no_atom_occurrences(A, V),
+	no_occurrences(As, Ps, G, V).
+
+no_atom_occurrences(pos(_, _, _, _, Vs), V) :-
+	no_varlist_occurrences(Vs, V).
+no_atom_occurrences(neg(_, _, _, _, Vs), V) :-
+	no_varlist_occurrences(Vs, V).
+
+no_varlist_occurrences([], _).
+no_varlist_occurrences([V|Vs], W) :-
+	V \== var(W),
+	no_varlist_occurrences(Vs, W).
+
+no_occurrences_pars([], _, _).
+no_occurrences_pars([P|Ps], G0, V) :-
+	no_occurrences_par(P, V, G0, G),
+	no_occurences_pars(Ps, G, V).
+
+no_occurrences_par(univ(_,N1), V, G0, G) :-
+    (
+	selectchk(vertex(N1,Cs,_,Rs), G0, G)
+    ->			 
+	no_occurrences(Cs, Rs, G, V)
+    ;
+        G = G0
+    ).
+no_occurrences_par(par(N1,N2), V, G0, G) :-
+    (
+	selectchk(vertex(N1,Cs,_,Rs), G0, G1)
+    ->			 
+	no_occurrences(Cs, Rs, G, V)
+    ;
+        G1 = G0
+    ),
+    (
+	selectchk(vertex(N2,Ds,_,Ss), G1, G)
+    ->			 
+	no_occurrences(Ds, Ss, G, V)
+    ;
+        G = G1
+    ).
 
 
 % test for cyclicity

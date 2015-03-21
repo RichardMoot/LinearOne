@@ -4,8 +4,8 @@
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 
-generate_diagnostics(true).
-%generate_diagnostics(false).
+%generate_diagnostics(true).
+generate_diagnostics(false).
 
 % =======================================
 % =           Proof generation          =
@@ -53,6 +53,7 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 %	AtO2 == AtO1,
         append(Delta1, Gamma0, GDP1),
 	append(GDP1, Delta2, GDP),
+	print_diagnostics('~NUnifier: ~@~2n', [print_unifier(CL,CR)]),
 	unify_atoms(_-CL, _-CR),
 	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
 	proof_diagnostics('~NResults (~D):~2n', [N0], Rule),
@@ -382,16 +383,18 @@ same_formula2(at(A,Id1,Id2,_), at(A,Id3,Id4,_)) :-
 	/* demain strict identity of atoms */
 	Id1 == Id3,
 	Id2 == Id4.
-same_formula2(forall(X,F0), forall(X,F)) :-
+same_formula2(forall(X,_-F0), forall(Y,_-F)) :-
+	X = Y,
+	same_formula2(F0, F).
+same_formula2(exists(X,_-F0), exists(Y,_-F)) :-
+	X = Y,
 	same_formula(F0, F).
-same_formula2(exists(X,F0), exists(X,F)) :-
-	same_formula(F0, F).
-same_formula2(impl(A0,B0), impl(A,B)) :-
-	same_formula(A0, A),
-	same_formula(B0, B).
-same_formula2(p(A0,B0), p(A,B)) :-
-	same_formula(A0, A),
-	same_formula(B0, B).
+same_formula2(impl(_-A0,_-B0), impl(_-A,_-B)) :-
+	same_formula2(A0, A),
+	same_formula2(B0, B).
+same_formula2(p(_-A0,_-B0), p(_-A,_-B)) :-
+	same_formula2(A0, A),
+	same_formula2(B0, B).
 
 
 %
@@ -704,6 +707,36 @@ insert_rule_list([R|Rs0], Sub1, Sub2, [R|Rs]) :-
 % =======================================
 % =             Input/output            =
 % =======================================
+
+print_unifier(at(At,_,_,Vs0), at(At,_,_,Vs)) :-
+	unifiable(Vs0, Vs, Unifier0),
+	copy_term(Unifier0, Unifier),
+	numbervars(Unifier, 0, _),
+	latex_list(Unifier).
+
+latex_list([]) :-
+	format(latex, '[]', []).
+latex_list([A|As]) :-
+	format(latex, '[', []),
+	latex_list1(As, A).
+
+latex_list1([], A) :-
+	format(latex, '~p]', [A]).
+latex_list1([A|As], B) :-
+	format(latex, '~p,', [B]),
+	latex_list1(As, A).
+
+print_diagnostics(Msg) :-
+	proof_diagnostics(Msg, []).
+print_diagnostics(Msg, Vs) :-
+   (
+	generate_diagnostics(true)
+    ->
+	format(latex, Msg, Vs)
+    ;
+        true
+    ).
+
 
 proof_diagnostics(Msg, P) :-
 	proof_diagnostics(Msg, [], P).
