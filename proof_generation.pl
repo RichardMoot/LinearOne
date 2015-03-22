@@ -19,8 +19,9 @@ generate_diagnostics(false).
 generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
-%	trace,
-%	sequent_to_nd(Proof, _NDProof),
+	trace,
+	sequent_to_nd(Proof, NDProof),
+	latex_proof(NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -643,30 +644,34 @@ remove_formula_indices(p(A0, B0), p(A, B)) :-
 sequent_to_nd(_-R0, R) :-
 	sequent_to_nd(R0, R).
 sequent_to_nd(rule(ax, [M-A1], N-A2, []), rule(ax, [M-A1], N-A2, [])).
-sequent_to_nd(rule(fl, Gamma, _A, [R]), Proof) :-
+sequent_to_nd(rule(fl, Gamma, C, [R]), Proof) :-
 	% find a formula which is of the form forall(X,B) in the conclusion of the rule
 	% and B in the premiss of the rule.
 	member(N1-forall(X,N0-B0), Gamma),
-	antecedent_member(B0, _B, R),
+	antecedent(R, Gamma1),
+	antecedent_member(B0, B1, R),
 	!,
 	sequent_to_nd(R, Proof0),
-	insert_rule(Proof0, rule(ax, [N-B1], M-B2, []), rule(fe, [N-forall(X,N-B1)], M-B2, [rule(ax, [N-forall(X,N-B1)], N1-forall(X,N0-B0), [])]), Proof).
+	try_cut_elimination_right(rule(fe, [N-forall(X,N0-B0)], N0-B1, [rule(ax, [N-forall(X,N-B0)], N1-forall(X,N0-B0), [])]),
+				  Proof0, Gamma, C, Gamma1, N-B0, N-B1, Proof).
+%	insert_rule(Proof0, rule(ax, [N-B1], M-B2, []), rule(fe, [N-forall(X,N-B1)], M-B2, [rule(ax, [N-forall(X,N-B1)], N1-forall(X,N0-B0), [])]), Proof).
 sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, Gamma, A, Rs)) :-
 	sequent_to_nd_list(Rs0, Rs).
 sequent_to_nd(rule(il, GammaDelta, _C, [R1,R2]), Proof) :-
 	member(M-impl(N-A,N-B0), GammaDelta),
-%	R1 = rule(_, _, _-B1, _),
+%	R1 = rule(_, _, _-A0, _),
 	sequent_to_nd(R1, ProofA),
 	ProofA = rule(_, Delta, _, _),
-	ProofC = rule(_, Gamma, _, _),
+	ProofC = rule(_, Gamma, C, _),
 	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
 	sequent_to_nd(R2, ProofC),
 	%	write(B0),write(B1),
 	%antecedent_member(B0, B1, Gamma),
 	antecedent_member(B0, B, ProofC),
 %	trace,
+%	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
 	try_cut_elimination_right(rule(ie, DeltaAB, N-B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
-				  ProofC, GammaDelta, Gamma, N-B0, N-B, Proof).
+				  ProofC, GammaDelta, C, Gamma, N-B0, N-B, Proof).
 %	insert_rule(ProofC, rule(ax, [N1-B1], N-B0, []), rule(ie, B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]), Proof).
 sequent_to_nd(rule(ir, _Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
 	/* TODO: add axiom withdrawal */
@@ -677,18 +682,6 @@ sequent_to_nd_list([R0|Rs0], [R|Rs]) :-
 	sequent_to_nd(R0, R),
 	sequent_to_nd_list(Rs0, Rs).
 
-% = try_cut_elimination_right(+LeftProof, +RightProof, +GammaDelta, +A, +Gamma, +CL, +CR, -Proof)
-%
-% try to perform cut elimination of C (occurring as CL in LeftProof and as CR in RightProof) obtaining a Proof
-% with conclusion GammaDelta |- A.
-% The subproofs are of Gamma |- CL and of  Delta1, CR, Delta2 |- A
-
-% = try_cut_elimination_left(+LeftProof, +RightProof, +GammaDelta, +Delta1, +Delta2, +A, +CL, +CR, -Proof)
-%
-% try to perform cut elimination of C (occurring as CL in LeftProof and as CR in RightProof) obtaining a Proof
-% which conclusion GammaDelta |- A.
-% More specifically, the RightProof has conclusion Delta1, CR, Delta2 |- A, LeftProof has conclusion Gamma |- CL
-% and GammaDelta is equal to Delta1, Gamma, Delta2
 
 
 insert_rule(rule(Nm, _Gamma, A, Rs), rule(Nm, _Delta, B, Rs), Proof, Proof) :-
