@@ -644,38 +644,64 @@ remove_formula_indices(p(A0, B0), p(A, B)) :-
 sequent_to_nd(_-R0, R) :-
 	sequent_to_nd(R0, R).
 sequent_to_nd(rule(ax, [M-A1], N-A2, []), rule(ax, [M-A1], N-A2, [])).
-sequent_to_nd(rule(fl, Gamma, C, [R]), Proof) :-
+
+%             R                   forall(X,B) |- forall(X,B)       Proof0
+%                                 --------------------------
+%        Gamma, B |- C            forall(X,B) |- B              Gamma, B |- C
+%   -----------------------       -------------------------------------------
+%   Gamma, forall(X,B) |- C            Gamma, forall(X,B) |- C
+%
+
+sequent_to_nd(rule(fl, Gamma0, C, [R]), Proof) :-
 	% find a formula which is of the form forall(X,B) in the conclusion of the rule
 	% and B in the premiss of the rule.
-	member(N1-forall(X,N0-B0), Gamma),
-%	antecedent(R, Gamma1),
-	antecedent_member(B0, B1, R),
+	member(N1-forall(X,N0-B0), Gamma0),
+	antecedent_member(B0, B1, R),	
 	!,
 	sequent_to_nd(R, Proof0),
-	antecedent(Proof0, Gamma1),
-%	replace_formula(B0, N0, N1-forall(X,N0-B0), Gamma1, Gamma2),
+	antecedent(Proof0, GammaB),
+	select_same_formula(_NB, B1, GammaB, Gamma),
+	GammaDelta = [N1-forall(X,N0-B0)|Gamma],
 	try_cut_elimination_right(rule(fe, [N-forall(X,N0-B0)], N0-B1, [rule(ax, [N-forall(X,N-B0)], N1-forall(X,N0-B0), [])]),
-				  Proof0, Gamma1, C, Gamma1, N-B0, N-B1, Proof).
-%	insert_rule(Proof0, rule(ax, [N-B1], M-B2, []), rule(fe, [N-forall(X,N-B1)], M-B2, [rule(ax, [N-forall(X,N-B1)], N1-forall(X,N0-B0), [])]), Proof).
+				  Proof0, GammaDelta, C, Gamma, N-B0, N-B1, Proof).
+
 sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, Gamma, A, Rs)) :-
 	sequent_to_nd_list(Rs0, Rs).
+
+%                                         ProofA                        ProofC
+%
+%      R1              R2               Delta |- A   A -o B |- A -o B
+%                                       -----------------------------
+%  Delta |- A   Gamma, B |- C               Delta, A -o B |- B        Gamma, B |- C
+%  --------------------------               ---------------------------------------
+%   Gamma, Delta, A -o B |- C                      Gamma, Delta, A -o B |- C
+%
+
 sequent_to_nd(rule(il, Ant, C, [R1,R2]), Proof) :-
 	member(M-impl(N-A,N-B0), Ant),
 %	R1 = rule(_, _, _-A0, _),
 	sequent_to_nd(R1, ProofA),
 	sequent_to_nd(R2, ProofC),
-	ProofA = rule(_, Delta, _, _),
-	ProofC = rule(_, Gamma, _, _),
-	append(Gamma, Delta, GammaDelta),
-	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
-	%	write(B0),write(B1),
-	%antecedent_member(B0, B1, Gamma),
+	ProofA = rule(_, Delta, _NA0, _),
+	ProofC = rule(_, GammaB, _, _),
 	antecedent_member(B0, B, R2),
-%	trace,
-%	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
-	try_cut_elimination_right(rule(ie, DeltaAB, N-B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
-				  ProofC, GammaDelta, C, Gamma, N-B0, N-B, Proof).
-%	insert_rule(ProofC, rule(ax, [N1-B1], N-B0, []), rule(ie, B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]), Proof).
+	select_same_formula(_NB, B, GammaB, Gamma),
+	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
+	append(Gamma, DeltaAB, GammaDeltaAB),
+	try_cut_elimination_right(rule(ie, DeltaAB, N-B0, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
+				  ProofC, GammaDeltaAB, C, DeltaAB, N-B0, N-B, Proof).
+
+	%% P1 = rule(_, Gamma, A, _),
+	%% P2 = rule(_, Delta0, N1-D, _),	
+	%% /* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
+	%% /* Q: are the node numbers enough to guarantee this? Verify! */
+	%% append(Gamma0, [N0-impl(N1-C,N1-D)|Gamma1], Gamma),
+	%% select_same_formula(N1, C, Delta0, Delta),
+	%% append(Gamma0, Delta, GD0),
+	%% append(GD0, Gamma1, GD),
+	%% /* try to create a cut-free proof */
+	%% try_cut_elimination_right(rule(ir, Delta, N0-impl(N1-C,N1-D), [P2]), P1, GD, A, Delta, N0-impl(N1-C,N1-D), N0-impl(N1-C,N1-D), Rule).
+
 sequent_to_nd(rule(ir, _Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
 	/* TODO: add axiom withdrawal */
 	sequent_to_nd(R0, R).
