@@ -389,7 +389,7 @@ same_formula2(forall(X,_-F0), forall(Y,_-F)) :-
 	same_formula2(F0, F).
 same_formula2(exists(X,_-F0), exists(Y,_-F)) :-
 	X = Y,
-	same_formula(F0, F).
+	same_formula2(F0, F).
 same_formula2(impl(_-A0,_-B0), impl(_-A,_-B)) :-
 	same_formula2(A0, A),
 	same_formula2(B0, B).
