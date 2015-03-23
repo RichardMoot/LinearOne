@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
+:- module(latex, [latex_proof/1,latex_nd/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 
 % set this option to "prolog_like" for a Prolog-like output; this will portray terms like
 % ((f y) x) as f(x,y)
@@ -81,6 +81,7 @@ latex_proofs1([P|Ps], Q, Tab) :-
 %latex_rule_name(ax) :-
 %	write('Axiom').
 latex_rule_name(ax).
+latex_rule_name(hyp(_)).
 latex_rule_name(cut) :-
 	write(latex, 'Cut').
 latex_rule_name(fl) :-
@@ -105,9 +106,13 @@ latex_rule_name(fe) :-
 	write(latex, '\\forall E').
 latex_rule_name(ei) :-
 	write(latex, '\\exists I').
+latex_rule_name(ee(_)) :-
+	write(latex, '\\exists E').
 latex_rule_name(ee) :-
 	write(latex, '\\exists E').
 latex_rule_name(ii) :-
+	write(latex, '\\multimap I').
+latex_rule_name(ii(_)) :-
 	write(latex, '\\multimap I').
 latex_rule_name(ie) :-
 	write(latex, '\\multimap E').
@@ -115,7 +120,20 @@ latex_rule_name(pi) :-
 	write(latex, '\\otimes I').
 latex_rule_name(pe) :-
 	write(latex, '\\otimes E').
+latex_rule_name(pe(_)) :-
+	write(latex, '\\otimes E').
 
+latex_rule_name_i(ii(I)) :-
+	format(latex, '\\multimap I_{~w}', [I]),
+	!.
+latex_rule_name_i(pe(I)) :-
+	format(latex, '\\otimes E_{~w}', [I]),
+	!.
+latex_rule_name_i(ee(I)) :-
+	format(latex, '\\exists E_{~w}', [I]),
+	!.
+latex_rule_name_i(Name) :-
+	latex_rule_name(Name).
 
 latex_sequent(Ant, Suc) :-
 	format(latex, '~@ \\vdash ~@', [latex_antecedent(Ant),latex_formula(Suc)]).
@@ -130,6 +148,43 @@ latex_antecedent([A|As], B) :-
 	latex_formula(B),
 	write(latex, ','),
 	latex_antecedent(As, A).
+
+
+%
+
+latex_nd(Proof0) :-
+	copy_term(Proof0, Proof),
+	numbervars(Proof, 0, _),
+	latex_nd(Proof, 0),
+        format(latex, '~n\\bigskip~n', []).
+
+latex_nd(_-Proof, Tab) :-
+        latex_nd(Proof, Tab).
+latex_nd(rule(Name, _, Formula, SubProofs), Tab) :-
+	latex_nd(SubProofs, Name, Formula, Tab).
+
+latex_nd([], Name, Formula, _Tab) :-
+     ( Name = hyp(I) ->  format(latex, '[~@]^{~w} ', [latex_formula(Formula),I]) ; format(latex, '~@ ', [latex_formula(Formula)])).
+latex_nd([S|Ss], Name, Formula, Tab0) :-
+	format(latex, '\\infer[~@]{~@}{', [latex_rule_name_i(Name),latex_formula(Formula)]),
+	Tab is Tab0 + 6,
+	nl(latex),
+	tab(latex, Tab),
+	latex_nds(Ss, S, Tab),
+	tab(latex,Tab0),
+        format(latex, '}~n', []).
+
+latex_nds([], P, Tab) :-
+	latex_nd(P, Tab).
+latex_nds([P|Ps], Q, Tab) :-
+	latex_nd(Q, Tab),
+	tab(latex, Tab),
+	format(latex, '&~n', []),
+	tab(latex, Tab),
+	latex_nds(Ps, P, Tab).
+
+%
+
 
 latex_formula(F) :-
 	latex_formula(F, 0).
