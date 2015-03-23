@@ -6,9 +6,11 @@
 option(prolog_like).
 
 % set this option to "yes" to ouput unique identifier indices of atomic formulas (useful for
-% debugging
+% debugging)
 
-output_indices(yes).
+%output_indices(yes).
+
+output_indices(no).
 
 % the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
 
@@ -45,6 +47,10 @@ proof_footer :-
      ).
 
 
+% = latex_proof(+Proof)
+%
+% produces LaTeX output of Proof to the stream "latex".
+
 latex_proof(Proof0) :-
 	copy_term(Proof0, Proof),
 	numbervars(Proof, 0, _),
@@ -77,9 +83,13 @@ latex_proofs1([P|Ps], Q, Tab) :-
 	tab(latex, Tab),
 	latex_proofs1(Ps, P, Tab).
 
+% = latex_rule_name(+RuleName)
+%
+% output RuleName to LaTeX stream "latex"
 
 %latex_rule_name(ax) :-
 %	write('Axiom').
+% don't print "Axiom" to save space (replace by the code commented out above if you want the axioms to be explicitly named)
 latex_rule_name(ax).
 latex_rule_name(hyp(_)).
 latex_rule_name(cut) :-
@@ -150,7 +160,9 @@ latex_antecedent([A|As], B) :-
 	latex_antecedent(As, A).
 
 
+% = latex_nd(+Proof)
 %
+% this version of latex_proof output natural deduction proofs with implicit antecedents (and coindexing between rules and withdrawn hypotheses)
 
 latex_nd(Proof0) :-
 	copy_term(Proof0, Proof),
@@ -183,8 +195,9 @@ latex_nds([P|Ps], Q, Tab) :-
 	tab(latex, Tab),
 	latex_nds(Ps, P, Tab).
 
+% = latex_formula(+Formula)
 %
-
+% 
 
 latex_formula(F) :-
 	latex_formula(F, 0).
@@ -276,6 +289,11 @@ print_var1(1, y).
 print_var1(2, z).
 print_var1(3, v).
 print_var1(4, w).
+
+% = latex_semantics(+LambdaTerm)
+%
+% output LambdaTerm to LaTeX stream "latex
+% supports several convenient abbreviations to make the output look more like first-order/higher-order logic
 
 latex_semantics(Sem) :-
 	format(latex, '~2n\\begin{equation}~n', []),	

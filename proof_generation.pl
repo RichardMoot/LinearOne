@@ -49,9 +49,6 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	RightProof = rule(_, Ant, D, _),
 	LeftProof = rule(_, Gamma0, _, _),
 	split_antecedent(Ant, AtV1, AtO1, Delta1, Delta2),
-%	append(Delta1, [_-at(_,AtV2,AtO2,_)|Delta2], Ant),
-%	AtV2 == AtV1,
-%	AtO2 == AtO1,
         append(Delta1, Gamma0, GDP1),
 	append(GDP1, Delta2, GDP),
 	print_diagnostics('~NUnifier: ~@~2n', [print_unifier(CL,CR)]),
@@ -523,6 +520,10 @@ max_neg(forall(_,_-F0), F) :-
 	max_neg(F0, F).
 max_neg(F, F).
 
+% = max_neg(+Formula, -Conclusion)
+%
+% as max_neg, but erases the node id if the maximal negative formula is an atom
+
 max_neg_noid(at(At, _, _, FVs), at(At, _, _, FVs)) :-
 	!.
 max_neg_noid(impl(_,_-F0), F) :-
@@ -532,9 +533,6 @@ max_neg_noid(forall(_,_-F0), F) :-
 	!,
 	max_neg_noid(F0, F).
 max_neg_noid(F, F).
-
-
-
 
 % = create_pos_proof(+NumberedPositiveFormula, +/-AtomsDL, -Proof)
 
@@ -594,6 +592,10 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, N-Neg, [ProofA])
 % complex (positive) subformula
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
+% = remove_formula_indices(+FormulaId, -FormulaNoId)
+%
+% remove node identifier information on the atomic subformulas of FormulaId
+% to produce FormulaNoId
 
 remove_formula_indices(N-F0, N-F) :-
 	remove_formula_indices(F0, F).
@@ -613,7 +615,7 @@ remove_formula_indices(p(A0, B0), p(A, B)) :-
 
 % = sequent_to_nd(+SequentProof, -NaturalDeductionProof)
 %
-% Q: is it easier to generate natural deduction proofs directly?
+% translate a sequent proof to a natural deduction proof
 
 sequent_to_nd(SequentProof, NDproof) :-
 	sequent_to_nd(SequentProof, NDproof, 1, _NewIndex).
@@ -697,6 +699,16 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 	sequent_to_nd(R1, Proof1, I0, I1),
 	sequent_to_nd(R2, Proof2, I1, I).
 
+
+% = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)
+%
+% replace the axiom rule of Atom by a hypothesis rule indexed with I; ensures that when
+% the proof is output using latex_nd/1 (instead of latex_proof/1) it will be portrayed
+% as
+%
+% [ Atom ]^{Index}
+%
+% where Index will be shared with the rule introducing the hypothesis.
 
 withdraw_hypothesis(rule(ax, [N-A0], B, []), I, A, rule(hyp(I), [N-A0], B, [])) :-
 	same_formula2(A0, A),
