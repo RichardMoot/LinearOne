@@ -70,8 +70,9 @@ test(12) :-
 	/* 3,014,184,930,660 inferences, 375241.334 CPU in 375357.875 seconds (100% CPU, 8032657 Lips) */
 	/*    59 proofs */
 	/* with first dancing links version */
-	/*         3,142,516 axioms */
-       /*        100,274,098 inferences,     24.442 CPU in     26.802 seconds  (91% CPU, 4102589 Lips) */
+	/*        24,757,440 axioms */
+	/*    42 proofs (why this difference?) */
+        /*       100,274,098 inferences,  19610.310 CPU in  22963.585 seconds  (85% CPU, 5220552 Lips) */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
 

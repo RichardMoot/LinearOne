@@ -19,8 +19,9 @@ generate_diagnostics(false).
 generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
-%	trace,
-%	sequent_to_nd(Proof, _NDProof),
+	sequent_to_nd(Proof, NDProof),
+	latex_nd(NDProof),
+	latex_proof(NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -48,9 +49,6 @@ combine_proofs([ax(N1,AtV1,AtO1,N0,AtV0,AtO0)|Rest], Ps0, Proof) :-
 	RightProof = rule(_, Ant, D, _),
 	LeftProof = rule(_, Gamma0, _, _),
 	split_antecedent(Ant, AtV1, AtO1, Delta1, Delta2),
-%	append(Delta1, [_-at(_,AtV2,AtO2,_)|Delta2], Ant),
-%	AtV2 == AtV1,
-%	AtO2 == AtO1,
         append(Delta1, Gamma0, GDP1),
 	append(GDP1, Delta2, GDP),
 	print_diagnostics('~NUnifier: ~@~2n', [print_unifier(CL,CR)]),
@@ -305,8 +303,8 @@ combine(P1, P2, N0, N1, N1-Rule) :-
 	!,
 	/* TODO: guarantee this is the same formula occurrence, split_antecedent is too strict of a condition */
 	/* Q: are the node numbers enough to guarantee this? Verify! */
-	select_same_formula(B, N1, Delta0, Delta1),
-	select_same_formula(A, N1, Delta1, Delta),
+	select_same_formula(N1, B, Delta0, Delta1),
+	select_same_formula(N1, A, Delta1, Delta),
 	replace_formula(A, N1, N1-p(N1-A,N1-B), Delta1, Delta2),
 	append(Delta3, [N1-p(N1-A,N1-B)|Delta4], Delta2),
 	append(Gamma, Delta, GD),		  
@@ -388,7 +386,7 @@ same_formula2(forall(X,_-F0), forall(Y,_-F)) :-
 	same_formula2(F0, F).
 same_formula2(exists(X,_-F0), exists(Y,_-F)) :-
 	X = Y,
-	same_formula(F0, F).
+	same_formula2(F0, F).
 same_formula2(impl(_-A0,_-B0), impl(_-A,_-B)) :-
 	same_formula2(A0, A),
 	same_formula2(B0, B).
@@ -404,26 +402,14 @@ select_same_formula(N, F, L0, L) :-
 	same_formula2(F0, F),
 	!.
 
-% = select_neg_proof(+InProofs, -OutProofs, +Vertex, +Order, -Gamma, -A, -Delta, -C, -Proof)
+% = select_neg_axiom(+InProofs, -OutProofs, +Vertex, +Order, -C, -A, -Proof)
 %
 % select the negative atomic formula indicated by the unique identifier Vertex-Order from InProofs, that is
-% we are seeking a Proof with conclusion
+% we are seeking a Proof with axiom
 %
-%   Gamma, A, Delta |- C
+%   C |- A
 %
-% such that A is the formula indicated by Vertex-Order and OutProofs are the other proofs.
-
-
-%% select_neg_proof([P|Ps], Ps, V, O, Gamma, A, Delta, C, Proof) :-
-%% 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, Proof),
-%% 	!.
-%% select_neg_proof([P|Ps], [P|Rs], V, O, Gamma, A, Delta, C, Proof) :-
-%% 	select_neg_proof(Ps, Rs, V, O, Gamma, A, Delta, C, Proof).
-
-%% select_neg_proof1(N-P, V, O, Gamma, A, Delta, C, N-R) :-
-%% 	select_neg_proof1(P, V, O, Gamma, A, Delta, C, R).
-%% select_neg_proof1(rule(Nm, GammaADelta, C, Ps), V, O, Gamma, A, Delta, C, rule(Nm, GammaADelta, C, Ps)) :-
-%% 	select_ant_formula(GammaADelta, V, O, Gamma, A, Delta).
+% such that C is the formula indicated by Vertex-Order and OutProofs are the other proofs.
 
 select_neg_axiom([Proof|Ps], Ps, V, O, C, A, Proof) :-
 	select_neg_axiom1(Proof, V, O, C, A),
@@ -446,7 +432,7 @@ select_neg_axiom_list([R|_], V, O, C, A) :-
 select_neg_axiom_list([_|Rs], V, O, C, A) :-
 	select_neg_axiom_list(Rs, V, O, C, A).
 
-% = select_pos_proof(+InProofs, -Outproof, +Vertex, +Order, -Delta, -A, -Proof)
+% = select_pos_axiom(+InProofs, -Outproof, +Vertex, +Order, -Delta, -A, -Proof)
 %
 % select the positive atomic indicated by the unique identifier Vertex-Order from InProofs, that is
 % we are seeking a Proof with conclusion
@@ -475,20 +461,6 @@ select_pos_axiom_list([R|_], V, O, Delta, A) :-
 	!.
 select_pos_axiom_list([_|Rs], V, O, Delta, A) :-
 	select_pos_axiom_list(Rs, V, O, Delta, A).
-	
-%% select_pos_proof([P|Ps], Ps, V, O, Delta, A, Proof) :-
-%% 	select_pos_proof1(P, V, O, Delta, A, Proof),
-%% 	!.
-%% select_pos_proof([P|Ps], [P|Rs], V, O, Delta, A, Proof) :-
-%% 	select_pos_proof(Ps, Rs, V, O, Delta, A, Proof).
-
-%% select_pos_proof1(_-P, V, O, Delta, A, R) :-
-%% 	select_pos_proof1(P, V, O, Delta, A, R).
-%% select_pos_proof1(rule(Nm, Delta, N-at(At,V1,O1,Vars), Rs), V, O, Delta, N-at(At,V,O,Vars), rule(Nm, Delta, N-at(At,V,O,Vars), Rs)) :-
-%% 	V1 == V,
-%% 	O1 == O,
-%% 	!.
-%select_pos_proof1(rule(_, _, _, Rs), V, O, Delta, A, Proof) :-
 
 % = select_ant_formula(+Antecedent, +Vertex, +Order, -Gamma, -A, -Delta)
 %
@@ -548,6 +520,10 @@ max_neg(forall(_,_-F0), F) :-
 	max_neg(F0, F).
 max_neg(F, F).
 
+% = max_neg(+Formula, -Conclusion)
+%
+% as max_neg, but erases the node id if the maximal negative formula is an atom
+
 max_neg_noid(at(At, _, _, FVs), at(At, _, _, FVs)) :-
 	!.
 max_neg_noid(impl(_,_-F0), F) :-
@@ -557,9 +533,6 @@ max_neg_noid(forall(_,_-F0), F) :-
 	!,
 	max_neg_noid(F0, F).
 max_neg_noid(F, F).
-
-
-
 
 % = create_pos_proof(+NumberedPositiveFormula, +/-AtomsDL, -Proof)
 
@@ -619,6 +592,10 @@ create_neg_proof(forall(X,N-A), N, L0, L, Neg, rule(fl, GammaP, N-Neg, [ProofA])
 % complex (positive) subformula
 create_neg_proof(F, N, L, L, _, rule(ax, [N-F], N-F, [])).
 
+% = remove_formula_indices(+FormulaId, -FormulaNoId)
+%
+% remove node identifier information on the atomic subformulas of FormulaId
+% to produce FormulaNoId
 
 remove_formula_indices(N-F0, N-F) :-
 	remove_formula_indices(F0, F).
@@ -638,72 +615,117 @@ remove_formula_indices(p(A0, B0), p(A, B)) :-
 
 % = sequent_to_nd(+SequentProof, -NaturalDeductionProof)
 %
-% Q: is it easier to generate natural deduction proofs directly?
+% translate a sequent proof to a natural deduction proof
 
-sequent_to_nd(_-R0, R) :-
-	sequent_to_nd(R0, R).
-sequent_to_nd(rule(ax, [M-A1], N-A2, []), rule(ax, [M-A1], N-A2, [])).
-sequent_to_nd(rule(fl, Gamma, _A, [R]), Proof) :-
+sequent_to_nd(SequentProof, NDproof) :-
+	sequent_to_nd(SequentProof, NDproof, 1, _NewIndex).
+
+sequent_to_nd(_-R0, R, I0, I) :-
+	sequent_to_nd(R0, R, I0, I).
+sequent_to_nd(rule(ax, [M-A1], N-A2, []), rule(ax, [M-A1], N-A2, []), I, I).
+
+sequent_to_nd(rule(el, Gamma, C, [R]), rule(ee, Gamma, C, [rule(ax,[N1-exists(X,N0-B0)], N1-exists(X,N0-B0), []), Proof]), I0, I) :-
+	member(N1-exists(X,N0-B0), Gamma),
+	antecedent_member(B0, _B1, R),
+	!,
+	sequent_to_nd(R, Proof0, I0, I1),
+	I is I1 + 1,
+	withdraw_hypothesis(Proof0, I1, B0, Proof).
+
+sequent_to_nd(rule(er, Gamma, N-A, [R0]), rule(ei, Gamma, N-A, [R]), I0, I) :-
+	sequent_to_nd(R0, R, I0, I).
+
+%             R                   forall(X,B) |- forall(X,B)       Proof0
+%                                 --------------------------
+%        Gamma, B |- C            forall(X,B) |- B              Gamma, B |- C
+%   -----------------------       -------------------------------------------
+%   Gamma, forall(X,B) |- C            Gamma, forall(X,B) |- C
+%
+
+sequent_to_nd(rule(fl, Gamma0, C, [R]), Proof, I0, I) :-
 	% find a formula which is of the form forall(X,B) in the conclusion of the rule
 	% and B in the premiss of the rule.
-	member(N1-forall(X,N0-B0), Gamma),
-	antecedent_member(B0, _B, R),
+	member(N1-forall(X,N0-B0), Gamma0),
+	antecedent_member(B0, B1, R),	
 	!,
-	sequent_to_nd(R, Proof0),
-	insert_rule(Proof0, rule(ax, [N-B1], M-B2, []), rule(fe, [N-forall(X,N-B1)], M-B2, [rule(ax, [N-forall(X,N-B1)], N1-forall(X,N0-B0), [])]), Proof).
-sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, Gamma, A, Rs)) :-
-	sequent_to_nd_list(Rs0, Rs).
-sequent_to_nd(rule(il, GammaDelta, _C, [R1,R2]), Proof) :-
-	member(M-impl(N-A,N-B0), GammaDelta),
-%	R1 = rule(_, _, _-B1, _),
-	sequent_to_nd(R1, ProofA),
-	ProofA = rule(_, Delta, _, _),
-	ProofC = rule(_, Gamma, _, _),
+	sequent_to_nd(R, Proof0, I0, I),
+	antecedent(Proof0, GammaB),
+	select_same_formula(_NB, B1, GammaB, Gamma),
+	GammaDelta = [N1-forall(X,N0-B0)|Gamma],
+	try_cut_elimination_right(rule(fe, [N-forall(X,N0-B0)], N0-B1, [rule(ax, [N-forall(X,N-B0)], N1-forall(X,N0-B0), [])]),
+				  Proof0, GammaDelta, C, [N-forall(X,N0-B0)], N-B0, N-B1, Proof).
+
+sequent_to_nd(rule(fr, Gamma, N-A, [R0]), rule(fi, Gamma, N-A, [R]), I0, I) :-
+	sequent_to_nd(R0, R, I0, I).
+
+%                                         ProofA                        ProofC
+%
+%      R1              R2               Delta |- A   A -o B |- A -o B
+%                                       -----------------------------
+%  Delta |- A   Gamma, B |- C               Delta, A -o B |- B        Gamma, B |- C
+%  --------------------------               ---------------------------------------
+%   Gamma, Delta, A -o B |- C                      Gamma, Delta, A -o B |- C
+%
+
+sequent_to_nd(rule(il, Ant, C, [R1,R2]), Proof, I0, I) :-
+	member(M-impl(N-A,N-B0), Ant),
+	sequent_to_nd(R1, ProofA, I0, I1),
+	sequent_to_nd(R2, ProofC, I1, I),
+	ProofA = rule(_, Delta, _NA0, _),
+	ProofC = rule(_, GammaB, _, _),
+	antecedent_member(B0, B, R2),
+	select_same_formula(_NB, B, GammaB, Gamma),
 	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
-	sequent_to_nd(R2, ProofC),
-	%	write(B0),write(B1),
-	%antecedent_member(B0, B1, Gamma),
-	antecedent_member(B0, B, ProofC),
-%	trace,
-	try_cut_elimination_right(rule(ie, DeltaAB, N-B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
-				  ProofC, GammaDelta, Gamma, N-B0, N-B, Proof).
-%	insert_rule(ProofC, rule(ax, [N1-B1], N-B0, []), rule(ie, B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]), Proof).
-sequent_to_nd(rule(ir, _Gamma, _-impl(_-A,_-B), [R0]), rule(ii, impl(A,B), [R])) :-
-	/* TODO: add axiom withdrawal */
-	sequent_to_nd(R0, R).
+	append(Gamma, DeltaAB, GammaDeltaAB),
+	try_cut_elimination_right(rule(ie, DeltaAB, N-B0, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
+				  ProofC, GammaDeltaAB, C, DeltaAB, N-B0, N-B, Proof).
 
-sequent_to_nd_list([], []).
-sequent_to_nd_list([R0|Rs0], [R|Rs]) :-
-	sequent_to_nd(R0, R),
-	sequent_to_nd_list(Rs0, Rs).
+sequent_to_nd(rule(ir, Gamma, _-impl(_-A,_-B), [R0]), rule(ii(I1), Gamma, impl(A,B), [R]), I0, I) :-
+	sequent_to_nd(R0, R1, I0, I1),
+	I is I1 + 1,
+        withdraw_hypothesis(R1, I1, A, R).
 
-% = try_cut_elimination_right(+LeftProof, +RightProof, +GammaDelta, +A, +Gamma, +CL, +CR, -Proof)
-%
-% try to perform cut elimination of C (occurring as CL in LeftProof and as CR in RightProof) obtaining a Proof
-% with conclusion GammaDelta |- A.
-% The subproofs are of Gamma |- CL and of  Delta1, CR, Delta2 |- A
-
-% = try_cut_elimination_left(+LeftProof, +RightProof, +GammaDelta, +Delta1, +Delta2, +A, +CL, +CR, -Proof)
-%
-% try to perform cut elimination of C (occurring as CL in LeftProof and as CR in RightProof) obtaining a Proof
-% which conclusion GammaDelta |- A.
-% More specifically, the RightProof has conclusion Delta1, CR, Delta2 |- A, LeftProof has conclusion Gamma |- CL
-% and GammaDelta is equal to Delta1, Gamma, Delta2
-
-
-insert_rule(rule(Nm, _Gamma, A, Rs), rule(Nm, _Delta, B, Rs), Proof, Proof) :-
-	same_formula1(A, B),
-	!.
-insert_rule(rule(Nm, Gamma, A, Rs0), Sub1, Sub2, rule(Nm, Gamma, A, Rs)) :-
-	insert_rule_list(Rs0, Sub1, Sub2, Rs).
-
-insert_rule_list([R0|Rs0], Sub1, Sub2, [R|Rs]) :-
-	insert_rule(R0, Sub1, Sub2, R),
+sequent_to_nd(rule(pl, Gamma, C, [R]), rule(pe(I1), Gamma, C, [rule(ax,[N0-p(N1-A0,N2-B0)], N0-p(N1-A,N2-B), []), Proof]), I0, I) :-
+	member(N0-p(N1-A0,N2-B0), Gamma),
+	antecedent_member(A0, A, R),
+	antecedent_member(B0, B, R),
 	!,
-	Rs0 = Rs.
-insert_rule_list([R|Rs0], Sub1, Sub2, [R|Rs]) :-
-	insert_rule_list(Rs0, Sub1, Sub2, Rs).
+	sequent_to_nd(R, Proof0, I0, I1),
+	I is I1 + 1,
+        withdraw_hypothesis(Proof0, I1, A, Proof1),
+	withdraw_hypothesis(Proof1, I1, B, Proof).
 
+sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]), I0, I) :-
+	sequent_to_nd(R1, Proof1, I0, I1),
+	sequent_to_nd(R2, Proof2, I1, I).
+
+
+% = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)
+%
+% replace the axiom rule of Atom by a hypothesis rule indexed with I; ensures that when
+% the proof is output using latex_nd/1 (instead of latex_proof/1) it will be portrayed
+% as
+%
+% [ Atom ]^{Index}
+%
+% where Index will be shared with the rule introducing the hypothesis.
+
+withdraw_hypothesis(rule(ax, [N-A0], B, []), I, A, rule(hyp(I), [N-A0], B, [])) :-
+	same_formula2(A0, A),
+	!.
+withdraw_hypothesis(rule(Nm, Ant, F, Rs0), I, A, rule(Nm, Ant, F, Rs)) :-
+	withdraw_hypothesis_list(Rs0, I, A, Rs).
+
+withdraw_hypothesis_list([R0|Rs0], I, A, [R|Rs]) :-
+   (
+	withdraw_hypothesis(R0, I, A, R)
+   ->	
+        Rs = Rs0
+   ;			 
+        R = R0,
+        withdraw_hypothesis_list(Rs0, I, A, Rs)
+   ).
+	
 % =======================================
 % =             Input/output            =
 % =======================================
