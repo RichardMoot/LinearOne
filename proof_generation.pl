@@ -648,26 +648,29 @@ sequent_to_nd(rule(fl, Gamma, C, [R]), Proof) :-
 	% find a formula which is of the form forall(X,B) in the conclusion of the rule
 	% and B in the premiss of the rule.
 	member(N1-forall(X,N0-B0), Gamma),
-	antecedent(R, Gamma1),
+%	antecedent(R, Gamma1),
 	antecedent_member(B0, B1, R),
 	!,
 	sequent_to_nd(R, Proof0),
+	antecedent(Proof0, Gamma1),
+%	replace_formula(B0, N0, N1-forall(X,N0-B0), Gamma1, Gamma2),
 	try_cut_elimination_right(rule(fe, [N-forall(X,N0-B0)], N0-B1, [rule(ax, [N-forall(X,N-B0)], N1-forall(X,N0-B0), [])]),
-				  Proof0, Gamma, C, Gamma1, N-B0, N-B1, Proof).
+				  Proof0, Gamma1, C, Gamma1, N-B0, N-B1, Proof).
 %	insert_rule(Proof0, rule(ax, [N-B1], M-B2, []), rule(fe, [N-forall(X,N-B1)], M-B2, [rule(ax, [N-forall(X,N-B1)], N1-forall(X,N0-B0), [])]), Proof).
 sequent_to_nd(rule(fr, Gamma, _-A, Rs0), rule(fi, Gamma, A, Rs)) :-
 	sequent_to_nd_list(Rs0, Rs).
-sequent_to_nd(rule(il, GammaDelta, _C, [R1,R2]), Proof) :-
-	member(M-impl(N-A,N-B0), GammaDelta),
+sequent_to_nd(rule(il, Ant, C, [R1,R2]), Proof) :-
+	member(M-impl(N-A,N-B0), Ant),
 %	R1 = rule(_, _, _-A0, _),
 	sequent_to_nd(R1, ProofA),
-	ProofA = rule(_, Delta, _, _),
-	ProofC = rule(_, Gamma, C, _),
-	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
 	sequent_to_nd(R2, ProofC),
+	ProofA = rule(_, Delta, _, _),
+	ProofC = rule(_, Gamma, _, _),
+	append(Gamma, Delta, GammaDelta),
+	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
 	%	write(B0),write(B1),
 	%antecedent_member(B0, B1, Gamma),
-	antecedent_member(B0, B, ProofC),
+	antecedent_member(B0, B, R2),
 %	trace,
 %	try_cut_elimination_right(LeftProof, RightProof, GDP, D, Gamma0, _-CL, _-CR, Rule),
 	try_cut_elimination_right(rule(ie, DeltaAB, N-B, [ProofA,rule(ax, [M-impl(N-A,N-B0)], M-impl(N-A,N-B0), [])]),
