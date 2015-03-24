@@ -24,6 +24,9 @@
 % c/d*b/c = ((c/d)*b)/c
 % which corresponds to a left-to-right evaluation of the
 % mathematical functions of division and multiplication.
+%
+% It also means that (s|s|np) = (s|(s|np))
+%
 % However, we do have the familiar a/b/c = (a/b)/c and
 % c\b\a = (c\(b\a) and even a\b/c = (a\b)/c.
 
@@ -74,7 +77,6 @@ test(12) :-
 	/*    42 proofs (why this difference?) */
         /*       100,274,098 inferences,  19610.310 CPU in  22963.585 seconds  (85% CPU, 5220552 Lips) */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
-
 
 % =======================
 % =       Lexicon       =
@@ -139,3 +141,5 @@ lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(Z,appl(a
 
 lex(than2, cp/s, than2, lambda(X,X)).
 lex(more2, ((s|(cp|h_det))|(s|h_det)), lambda(Rho1,lambda(Rho2,lambda(Z,appl(appl(Rho2,lambda(Phi,lambda(Sigma,appl(Sigma,lambda(V,appl(more2,appl(Phi,V))))))),appl(appl(Rho1,lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z))))), lambda(F,lambda(G,bool(number_of(appl(G,lambda(P,lambda(Q,lambda(X,bool(appl(P,X),&,appl(Q,X))))))),gneq,number_of(appl(F,lambda(P2,lambda(Q2,lambda(Y,bool(appl(P2,Y),&,appl(Q2,Y))))))))))).
+
+

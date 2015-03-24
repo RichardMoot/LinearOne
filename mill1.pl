@@ -201,6 +201,29 @@ prove0(Antecedent, Goal, LexSem) :-
 	/* generate a LaTeX proof */
 	generate_proof(GraphCopy, Trace).
 
+% = first_parse(+ListOfWords, +GoalFormula)
+%
+% a version of parse which finds only the first solution.
+
+first_parse(ListOfWords, Goal0) :-
+	initialisation,
+	retractall('$LOOKUP'(_)),
+	assert('$LOOKUP'(0)),
+	lookup(ListOfWords, Formulas, LexSem, Goal0, Goal),
+	/* update lookup statistics */
+	'$LOOKUP'(N0),
+	N is N0 + 1,
+	retractall('$LOOKUP'(_)),
+	assert('$LOOKUP'(N)),
+        format(user_error, '~N= Lookup ~D~n', [N]),
+	prove0(Formulas, Goal, LexSem),
+	!,
+        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
+	'$LOOKUP'(L),
+	write_lookups(L),
+        final_statistics.
+
+
 % = prove1(+Graph, +Roots, -Trace)
 %
 % true if Graph (with root nodes Roots) is a proof net, as justified by
@@ -798,4 +821,7 @@ test_h1(F) :-
 test_h2(F) :-
 	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), everyone, 0, 1, F).
 
-	
+% = generate exhaustive test file	
+
+test_and :-
+	exhaustive_test('and.pl', and, ((((s| np)| np)| (s| np)| np)| (s| np)| np), lambda(M, lambda(J, lambda(K, lambda(L, bool(appl(appl(J, K), L), &, appl(appl(M, K), L)))))), [and], (((np\s)/np)\((np\s)/np))/((np\s)/np)).
