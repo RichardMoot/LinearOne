@@ -366,6 +366,10 @@ atom_type(sneg, impl(impl(s,s),impl(s,s))) :-
 atom_type(_, impl(s,s)).
 
 
+% = principal_type(+Term, -PrincipalType)
+%
+% compute the PrincipalType of linear lambda term Term.
+
 principal_type(Term, Type) :-
 	format_debug('~N= before principal type computation=~n Term: ~p~n Type: ~p~n===~n', [Term, Type]), 
 	principal_type(Term, Type, _List).
@@ -384,7 +388,7 @@ principal_type(At, impl(TypeZ,TypeS), [At-impl(TypeZ,TypeS)]) :-
 	verify_non_compound(TypeZ, TypeS, At, 'atom of').
 principal_type(A+B, impl(TypeZ,TypeS), List) :-
 	!,
-        /* allow explicit concatenation using +, though only of terms sigma->sigma */
+        /* allow explicit concatenation using +, though only of terms typed sigma->sigma */
 	verify_non_compound(TypeZ, TypeS, A+B, 'concatenation producing'),
 	principal_type(lambda(Z,appl(A,appl(B,Z))), impl(TypeZ,TypeS), List).
 principal_type(appl(A,B), TypeA, ABlist) :-
