@@ -28,6 +28,16 @@ reduce_quine(active).
 
 reduce_eta(active).
 
+% basic types
+	
+e_type(e).
+t_type(t).
+s_type(s).
+
+semantic_set_type(E, _T, E).
+% semantic_set_type(E, T, E->T).
+
+
 % reduce_sem(+LambdaTerm, -BetaEtaReducedLambdaTerm)
 %
 % true if BetaEtaReducedLambdaTerm is the beta-eta normal form of
@@ -760,44 +770,6 @@ syntactic_to_semantic_type(Syn, W, _, _) :-
 	format('{Formula Error(~w): unknown syntactic formula ~w}~n', [W,Syn]),
 	format(log, '{Formula Error(~w): unknown syntactic formula ~w}~n', [W,Syn]),
 	fail.
-	
-e_type(E) :-
-    (
-	user:entity_type(_)
-    ->
-	user:entity_type(E)
-    ;
-        E = e
-    ).
-
-drs_type(Drs) :-
-    (
-        user:drs_type(_)
-    ->
-        user:drs_type(Drs)
-    ;
-        t_type(Drs)
-    ).
-
-t_type(Bool) :-
-    (
-	user:boolean_type(_)
-    ->
-	user:boolean_type(Bool)
-	
-    ;
-        Bool = t
-    ).
-
-s_type(State) :-
-    (
-	user:state_type(_)
-    ->
-	user:state_type(State)
-    ;
-        State = s
-    ).
-
 
 get_atomic_types(Tree) :-
 	findall(D, user:atomic_formula(D), Atoms0),
