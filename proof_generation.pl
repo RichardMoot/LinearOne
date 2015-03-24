@@ -1,6 +1,6 @@
 :- module(proof_generation, [generate_proof/2]).
 
-:- use_module(latex, [latex_proof/1]).
+:- use_module(latex, [latex_proof/1, latex_nd/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 

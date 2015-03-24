@@ -467,9 +467,15 @@ exhaustive_test(File, Word, Formula0, Semantics, Sentence, Goal) :-
 
 export_lexicon([], _).
 export_lexicon([W|Ws], Stream) :-
-	lex(W, A, B, C),
-	portray_clause(Stream, (lex(W,A,B,C) :- true)),
-	export_lexicon(Ws, Stream).
+   (	
+	current_predicate(lex/4),	
+	lex(W, A, B, C)
+   ->
+	portray_clause(Stream, (lex(W,A,B,C) :- true))
+   ;
+	format(user_error, '~N{Warning: no lexical entry found for "~w"}~n', [W]) 
+   ),  
+        export_lexicon(Ws, Stream).
 
 export_lexicon([], _, _, _, _, _).
 export_lexicon([lambda(W,Term)|Rest], Stream, Formula, Word, N0, Semantics) :-
