@@ -201,6 +201,23 @@ prove0(Antecedent, Goal, LexSem) :-
 	/* generate a LaTeX proof */
 	generate_proof(GraphCopy, Trace).
 
+% = first_proof
+%
+% a version of the prover predicate which only finds the first proof.
+
+first_proof(Antecedent, Goal, Sem) :-
+	first_proof(Antecedent, Goal, [], Sem).
+
+first_proof(Antecedent, Goal, LexSem, Sem) :-
+	graph_header,
+        unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0, _Stats),
+        prove1(Graph, Roots, _Trace),
+	!,
+	substitute_sem(LexSem, Sem0, Sem1),
+	reduce_sem(Sem1, Sem),
+        graph_footer(1).
+
+
 % = first_parse(+ListOfWords, +GoalFormula)
 %
 % a version of parse which finds only the first solution.

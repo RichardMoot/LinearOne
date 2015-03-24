@@ -1,4 +1,14 @@
-:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3,principal_type/2,formula_type/2,inhabitants/2,inhabitants/3,exhaustive_test/6]).
+:- module(translations, [translate_lambek/3,
+			 linear_to_lambek/3,
+			 translate_displacement/3,
+			 translate_hybrid/6,
+			 linear_to_hybrid/4,
+			 translate/3,
+			 principal_type/2,
+			 formula_type/2,
+			 inhabitants/2,
+			 inhabitants/3,
+			 exhaustive_test/6]).
 
 :- use_module(lexicon, [macro_expand/2]).
 :- use_module(auxiliaries, [non_member/2]).
@@ -30,6 +40,48 @@ translate_lambek(p(A0,B0), [X,Z], exists(Y,p(A,B))) :-
 	translate_lambek(A0, [X,Y], A),
 	translate_lambek(B0, [Y,Z], B).
 
+% = linear_to_lambek(-LinearLogicFormula, Positions, LambekFormula)
+%
+% the inverse of translate_lambek, works correctly even when LinearLogicFormula
+% is not a ground term (for example when it contains first-order quantifiers).
+% We can obtain the same result by
+%
+% copy_term(F0, F), translate_lambek(Lambek, Pos, F)
+
+linear_to_lambek(forall(Z,impl(A,B)), [X,Y], F) :-
+	linear_to_lambek(A, [VA,WA], FA),
+	linear_to_lambek(B, [VB,WB], FB),
+   (
+        /* it is important to use strict identity rather than unification here */
+	/* and elsewhere to avoid accidentally unifying positions (which would */
+	/* give an incorrect Lambek connective) */   
+	VA == VB,
+	VB == Z
+   ->
+	WA = X,
+	Y = WB,
+	F = dl(FA,FB)
+    ;
+        WA == WB,
+        WB == Z
+   ->
+	VA = Y,
+	VB = X,
+	F = dr(FB,FA)
+   ).
+linear_to_lambek(exists(Y, p(A,B)), [X,Z], F) :-
+	linear_to_lambek(A, [VA,WA], FA),
+	linear_to_lambek(B, [VB,WB], FB),
+   (
+        WA == Y,
+	VB == Y
+   ->
+        VA = X,
+	WB = Z,
+	F = p(FA,FB)
+   ).
+linear_to_lambek(at(A,[X,Y]), [X,Y], A).
+			
 % =============================
 % =   Displacement calculus   =
 % =============================
@@ -285,6 +337,30 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 % ====================================
 % =   Hybrid type-logical grammars   =
 % ====================================
+
+
+% = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -HybridFormula)
+
+linear_to_hybrid(at(A, Vs), Vs, Impl, A) :-
+	list_to_impl(Vs, Impl).
+linear_to_hybrid(forall(Z,impl(A,B)), [X,Y], impl(at(Y,[]),at(X,[])), F) :-
+	linear_to_lambek(forall(Z,impl(A,B)), [X,Y], F).
+linear_to_hybrid(exists(Y, p(A,B)), [X,Z], impl(at(Z,[]),at(X,[])), F) :-
+	linear_to_lambek(exists(Y, p(A,B)), [X,Z], F).
+linear_to_hybrid(impl(A,B), Vars, impl(TA,TB), h(FB,FA)) :-
+	linear_to_hybrid(A, Vars0, TA, FA),
+	linear_to_hybrid(B, Vars1, TB, FB),
+	append(Vars0, Vars1, Vars).
+
+list_to_impl([V1,V2], impl(at(V2,[]),at(V1,[]))).
+
+
+
+% = translate_hybrid(+HybridFormula, +ProsodicTerm, +Word, +LeftPos, +RightPos, -LinearFormula)
+%
+% translate HybridFormula with ProsodicTerm (of Word with LeftPos/RightPos) to LinearFormula.
+% We use ProsodicTerm to compute the principal type, then use the principal type to compute the
+% first-order arguments of the atomic subformulas.
 
 translate_hybrid(Formula, Term, Word, L, R, LinearFormula) :-
 	formula_type(Formula, Type),
