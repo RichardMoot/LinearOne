@@ -1,5 +1,6 @@
 :- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3,principal_type/2,formula_type/2,inhabitants/2,inhabitants/3,exhaustive_test/6]).
 
+:- use_module(lexicon, [macro_expand/2]).
 :- use_module(auxiliaries, [non_member/2]).
 
 translate(F0, [X,Y], F) :-
