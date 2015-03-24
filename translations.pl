@@ -1,4 +1,4 @@
-:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3,principal_type/2,formula_type/2,inhabitants/2,inhabitants/3,exhaustive_test/6]).
+:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3,principal_type/2,formula_type/2,inhabitants/2,inhabitants/3,exhaustive_test/6,linear_to_lambek/3]).
 
 :- use_module(lexicon, [macro_expand/2]).
 :- use_module(auxiliaries, [non_member/2]).
@@ -30,6 +30,48 @@ translate_lambek(p(A0,B0), [X,Z], exists(Y,p(A,B))) :-
 	translate_lambek(A0, [X,Y], A),
 	translate_lambek(B0, [Y,Z], B).
 
+% = linear_to_lambek(-LinearLogicFormula, Positions, LambekFormula)
+%
+% the inverse of translate_lambek, works correctly even when LinearLogicFormula
+% is not a ground term (for example when it contains first-order quantifiers).
+% We can obtain the same result by
+%
+% copy_term(F0, F), translate_lambek(Lambek, Pos, F)
+
+linear_to_lambek(forall(Z,impl(A,B)), [X,Y], F) :-
+	linear_to_lambek(A, [VA,WA], FA),
+	linear_to_lambek(B, [VB,WB], FB),
+   (
+        /* it is important to use strict identity rather than unification here */
+	/* and elsewhere to avoid accidentally unifying positions (which would */
+	/* give an incorrect Lambek connective) */   
+	VA == VB,
+	VB == Z
+   ->
+	WA = X,
+	Y = WB,
+	F = dl(FA,FB)
+    ;
+        WA == WB,
+        WB == Z
+   ->
+	VA = Y,
+	VB = X,
+	F = dr(FB,FA)
+   ).
+linear_to_lambek(exists(Y, p(A,B)), [X,Z], F) :-
+	linear_to_lambek(A, [VA,WA], FA),
+	linear_to_lambek(B, [VB,WB], FB),
+   (
+        WA == Y,
+	VB == Y
+   ->
+        VA = X,
+	WB = Z,
+	F = p(FA,FB)
+   ).
+linear_to_lambek(at(A,[X,Y]), [X,Y], A).
+
 % =============================
 % =   Displacement calculus   =
 % =============================
@@ -38,9 +80,9 @@ translate_lambek(p(A0,B0), [X,Z], exists(Y,p(A,B))) :-
 %
 % true if Sort is the sort of Displacement calculus formula DFormula
 % (according to the definition of sort on p. 11, Figure 2 of
-% Morril, Valentin & Fadda (2011).
+% Morril, Valentin & Fadda, 2011).
 % requires the sorts of atomic formulas to be defined by the
-% predicate d_atom_sort/2.
+% predicate d_atom_sort/2 (which defaults to 0).
 
 displacement_sort(at(A), S) :-
 	d_atom_sort(A, S).
