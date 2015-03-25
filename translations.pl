@@ -2,6 +2,8 @@
 			 linear_to_lambek/3,
 			 translate_displacement/3,
 			 translate_hybrid/6,
+			 linear_to_hybrid/2,
+			 linear_to_hybrid/3,
 			 linear_to_hybrid/4,
 			 translate/3,
 			 principal_type/2,
@@ -338,8 +340,24 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 % =   Hybrid type-logical grammars   =
 % ====================================
 
+linear_to_hybrid(at(A, _), A).
+linear_to_hybrid(forall(Z,impl(A,B)), F) :-
+	linear_to_lambek(forall(Z,impl(A,B)), [_,_], F).
+linear_to_hybrid(exists(Y, p(A,B)), F) :-
+	linear_to_lambek(exists(Y, p(A,B)), [_,_], F).
+linear_to_hybrid(impl(A,B), h(FB,FA)) :-
+	linear_to_hybrid(A, FA),
+	linear_to_hybrid(B, FB).
 
-% = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -HybridFormula)
+
+linear_to_hybrid(Formula, HybridFormula, LambdaTerm) :-
+	linear_to_hybrid(Formula, VarList, PrincipalFormula, HybridFormula),
+	numbervars(VarList, 0, _),
+	first_proof(PrincipalFormula, LambdaTerm).
+
+% = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -PrincipalFormula, -HybridFormula)
+%
+% PrincipalFormula is of the correct
 
 linear_to_hybrid(at(A, Vs), Vs, Impl, A) :-
 	list_to_impl(Vs, Impl).

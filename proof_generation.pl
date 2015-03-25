@@ -1,8 +1,9 @@
 :- module(proof_generation, [generate_proof/2]).
 
-:- use_module(latex, [latex_proof/1]).
+:- use_module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
+:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3]).
 
 %generate_diagnostics(true).
 generate_diagnostics(false).
@@ -20,7 +21,9 @@ generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
 	sequent_to_nd(Proof, NDProof),
+	nd_to_hybrid(NDProof, HProof),
 	latex_nd(NDProof),
+	latex_hybrid(HProof),
 	latex_proof(NDProof),
 	latex_proof(Proof).
 
@@ -611,7 +614,19 @@ remove_formula_indices(p(A0, B0), p(A, B)) :-
 	remove_formula_indices(A0, A),
 	remove_formula_indices(B0, B).
 
-
+remove_formula_nodes(_-F0, F) :-
+	remove_formula_nodes(F0, F).
+remove_formula_nodes(at(A,_,_,Vars), at(A,Vars)).
+remove_formula_nodes(forall(X,A0), forall(X, A)) :-
+	remove_formula_nodes(A0, A).
+remove_formula_nodes(exists(X,A0), exists(X, A)) :-
+	remove_formula_nodes(A0, A).
+remove_formula_nodes(impl(A0,B0), impl(A,B)) :-
+	remove_formula_nodes(A0, A),
+	remove_formula_nodes(B0, B).
+remove_formula_nodes(p(A0,B0), p(A,B)) :-
+	remove_formula_nodes(A0, A),
+	remove_formula_nodes(B0, B).
 
 % = sequent_to_nd(+SequentProof, -NaturalDeductionProof)
 %
@@ -699,6 +714,65 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 	sequent_to_nd(R1, Proof1, I0, I1),
 	sequent_to_nd(R2, Proof2, I1, I).
 
+
+nd_to_hybrid(rule(hyp(I), _, C0, []), rule(hyp(I), _, HF, [])) :-
+	remove_formula_node(C0, C),
+	linear_to_hybrid(C, HF).
+nd_to_hybrid(rule(ax, _, C0, []), rule(ax, Lambda, HF, [])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_hybrid(C, HF, Lambda).
+nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, P2)]), Rule) :-
+	!,
+	P2 = rule(_, _, C0, _),
+	nd_to_hybrid(P1, Proof1),
+	nd_to_hybrid(P2, Proof2),
+	antecedent(Proof1, Term1),
+	antecedent(Proof2, Term2),
+	remove_formula_nodes(C0, C),
+	linear_to_lambek(C, LF),
+	lambek_rule(LF, Term1, Term2, Proof1, Proof2, Rule).
+nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), rule(Nm, Term, LF, [Proof1])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_lambek(C, LF),
+	nd_to_hybrid(P1, Proof1),
+	antecedent(Proof1, Term1),
+	find_premiss_variable(Proof1, I, X),
+	reduce_sem(appl(lambda(X,Term1),lambda(Z,Z)), Term),
+        lambek_rule_name(LF, I, Nm).
+nd_to_hybrid(rule(ie, _, C0, [P1,P2]), rule(he, Term, HF, [Proof1,Proof2])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_hybrid(C, HF),
+	nd_to_hybrid(P1, Proof1),
+	nd_to_hybrid(P2, Proof2),
+	antecedent(Proof1, Term1),
+	antecedent(Proof2, Term2),
+        reduce_sem(appl(Term2,Term1), Term).
+nd_to_hybrid(rule(ii(I), _, C0, [P1]), rule(hi(I), lambda(X,Term), HF, [Proof1])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_hybrid(C, HF),
+	nd_to_hybrid(P1, Proof1),
+	antecedent(Proof1, Term),
+	find_premiss_variable(Proof1, I, X).
+
+lambek_rule_name(dl(_,_), I, dli(I)).
+lambek_rule_name(dr(_,_), I, dri(I)).
+
+lambek_rule(dl(A,B), Term1, Term2, Proof1, Proof2, rule(dle, Term1+Term2, dl(A,B), [Proof1, Proof2])).
+lambek_rule(dr(B,A), Term1, Term2, Proof1, Proof2, rule(dre, Term2+Term1, dr(B,A), [Proof2, Proof1])).
+
+find_premiss_variable(rule(hyp(I), X, _, []), I, X) :-
+	!.
+find_premiss_variable(rule(_, _, _, Rs), I, X) :-
+	find_premiss_variable_list(Rs, I, X).
+
+find_premiss_variable_list([R|Rs], I, X) :-
+   (
+	find_premiss_variable(R, I, X)
+    ->
+	true
+   ;
+        find_premiss_variable(Rs, I, X)
+   ).		
 
 % = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)
 %

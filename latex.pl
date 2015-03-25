@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,latex_nd/1,proof_header/0,proof_footer/0,latex_semantics/1]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1]).
 
 % set this option to "prolog_like" for a Prolog-like output; this will portray terms like
 % ((f y) x) as f(x,y)
@@ -124,6 +124,16 @@ latex_rule_name(ii) :-
 	write(latex, '\\multimap I').
 latex_rule_name(ii(_)) :-
 	write(latex, '\\multimap I').
+latex_rule_name(dre) :-
+	write(latex, '/ E').
+latex_rule_name(dle) :-
+	write(latex, '\\backslash E').
+latex_rule_name(he) :-
+	write(latex, '| E').
+latex_rule_name(hi) :-
+	write(latex, '| I').
+latex_rule_name(hi(_)) :-
+	write(latex, '| I').
 latex_rule_name(ie) :-
 	write(latex, '\\multimap E').
 latex_rule_name(pi) :-
@@ -132,9 +142,30 @@ latex_rule_name(pe) :-
 	write(latex, '\\otimes E').
 latex_rule_name(pe(_)) :-
 	write(latex, '\\otimes E').
+latex_rule_name_(dri(_)) :-
+	format(latex, '/ I', []),
+	!.
+latex_rule_name_(dli(_)) :-
+	format(latex, '\\backslash I', []),
+	!.
+latex_rule_name_(dri) :-
+	format(latex, '/ I', []),
+	!.
+latex_rule_name_(dli) :-
+	format(latex, '\\backslash I', []),
+	!.
 
 latex_rule_name_i(ii(I)) :-
 	format(latex, '\\multimap I_{~w}', [I]),
+	!.
+latex_rule_name_i(dri(I)) :-
+	format(latex, '/ I_{~w}', [I]),
+	!.
+latex_rule_name_i(dli(I)) :-
+	format(latex, '\\backslash I_{~w}', [I]),
+	!.
+latex_rule_name_i(hi(I)) :-
+	format(latex, '| I_{~w}', [I]),
 	!.
 latex_rule_name_i(pe(I)) :-
 	format(latex, '\\otimes E_{~w}', [I]),
@@ -194,6 +225,43 @@ latex_nds([P|Ps], Q, Tab) :-
 	format(latex, '&~n', []),
 	tab(latex, Tab),
 	latex_nds(Ps, P, Tab).
+
+
+% = latex_hybrid(+Proof)
+%
+% this version of latex_proof output natural deduction proofs with implicit antecedents (and coindexing between rules and withdrawn hypotheses)
+
+latex_hybrid(Proof0) :-
+	copy_term(Proof0, Proof),
+	numbervars(Proof, 0, _),
+	latex_hybrid(Proof, 0),
+        format(latex, '~n\\bigskip~n', []).
+
+latex_hybrid(_-Proof, Tab) :-
+        latex_hybrid(Proof, Tab).
+latex_hybrid(rule(Name, Term, Formula, SubProofs), Tab) :-
+	latex_hybrid(SubProofs, Name, Term, Formula, Tab).
+
+latex_hybrid([], Name, Term, Formula, _Tab) :-
+     ( Name = hyp(I) ->  format(latex, '[~@:~@]^{~w} ', [latex_semantics(Term,0),latex_formula(Formula),I]) ; format(latex, '~@:~@ ', [latex_semantics(Term,0),latex_formula(Formula)])).
+latex_hybrid([S|Ss], Name, Term, Formula, Tab0) :-
+	format(latex, '\\infer[~@]{~@:~@}{', [latex_rule_name_i(Name),latex_semantics(Term,0),latex_formula(Formula)]),
+	Tab is Tab0 + 6,
+	nl(latex),
+	tab(latex, Tab),
+	latex_hybrids(Ss, S, Tab),
+	tab(latex,Tab0),
+        format(latex, '}~n', []).
+
+latex_hybrids([], P, Tab) :-
+	latex_hybrid(P, Tab).
+latex_hybrids([P|Ps], Q, Tab) :-
+	latex_hybrid(Q, Tab),
+	tab(latex, Tab),
+	format(latex, '&~n', []),
+	tab(latex, Tab),
+	latex_hybrids(Ps, P, Tab).
+
 
 % = latex_formula(+Formula)
 %
