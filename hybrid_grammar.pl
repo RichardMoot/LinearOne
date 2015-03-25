@@ -139,8 +139,8 @@ lex(or, ((((s|h_det)|tv)|((s|h_det)|tv))|((s|h_det)|tv)), lambda(Rho2,lambda(Rho
 % lexical entries for "split scope"
 
 lex(no2, (s|sneg), lambda(S,lambda(Z,appl(appl(S,no2),Z))), neg).
-lex(or2, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V,lambda(W,lambda(TV,bool(appl(W,TV),\/,appl(V,TV)))))).
-lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(Z,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),Z))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(or2, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V1,lambda(W1,lambda(TV,bool(appl(W1,TV),\/,appl(V1,TV)))))).
+lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(W,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),W))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 
 
 % attempt to recreate the Morrill e.a. analysis

@@ -12,6 +12,9 @@
 
 option(prolog_like).
 
+%lexicon_separator(' - ').
+lexicon_separator(' :: ').
+
 % =====================================================
 % = parameters for hybrid type-logical grammar output =
 % =====================================================
@@ -83,17 +86,20 @@ proof_footer :-
 
 latex_lexicon :-
    ( stream_property(Stream, alias(latex)) -> close(Stream) ; true),
-   (	
+    (	
 	current_predicate(lex/3)
-   ->			    
+    ->			    
         findall(mill1_lex(X,Y,Z), lex(X,Y,Z), List1)
-   ;	   
+    ;
+        List1 = []
+    ),
+    (
 	current_predicate(lex/4)
-   ->
+    ->
         findall(hybrid_lex(X,Y,Z,V), lex(X,Y,Z,V), List2)
-   ;
-        true
-   ),     
+    ;
+        List2 = []
+    ),     
         append(List1, List2, List),
       ( exists_file('lexicon.tex') -> delete_file('lexicon.tex') ; true),
 	open('lexicon.tex', write, _Stream, [alias(latex)]),
@@ -128,14 +134,16 @@ latex_lexicon([A|As]) :-
 latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
 	macro_expand(Formula0, Formula),
 	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
 	!,
-	format(latex, '~w &-- ~@ -- ~@\\\\~n', [Word, latex_formula(Formula), latex_semantics(Semantics,0)]).
+	format(latex, '~w &~w ~@ ~w ~@\\\\~n', [Word, Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
 latex_lexical_entry(hybrid_lex(Word, Formula0, ProsTerm0, SemTerm)) :-
 	macro_expand(Formula0, Formula),
 	numbervars(SemTerm, 0, _),
 	compute_pros_term(ProsTerm0, Formula, ProsTerm),
+	lexicon_separator(Sep),
 	!,
-	format(latex, '~w &-- ~@ -- ~@ -- ~@\\\\~n', [Word,latex_hybrid_formula(Formula),latex_pros_term(ProsTerm),latex_semantics(SemTerm,0)]). 
+	format(latex, '~w &~w ~@ ~w ~@ ~w ~@\\\\~n', [Word,Sep,latex_hybrid_formula(Formula),Sep,latex_pros_term(ProsTerm),Sep,latex_semantics(SemTerm,0)]). 
   
 % = latex_proof(+Proof)
 %

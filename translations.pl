@@ -21,7 +21,7 @@
 
 :- use_module(lexicon, [macro_expand/2]).
 :- use_module(auxiliaries, [non_member/2]).
-
+:- use_module(ordset, [ord_key_union_u/3, ord_key_insert/4, ord_key_member/3]).
 
 % = hybrid_pros
 %
@@ -587,10 +587,10 @@ pure_to_simple(PureTerm, Type, SimpleTerm) :-
 pure_to_simple(Atom, Tree, impl(s,s), Atom) :-
 	atomic(Atom),
 	!,
-	get_type(Tree, Atom, impl(s,s)).
+	ord_key_member(Atom, Tree, impl(s,s)).
 pure_to_simple('$VAR'(N), Tree, Type, '$VAR'(N)) :-
 	!,
-	get_type(Tree, '$VAR'(N), Type).
+	ord_key_member('$VAR'(N), Tree, Type).
 pure_to_simple(lambda(Z,Term0), Tree, impl(s,s), Term) :-
 	translate_string_concat(Term0, Z, Tree, Term),
 	!.
@@ -598,7 +598,7 @@ pure_to_simple(appl(X0,Y0), Tree, TXY, appl(X,Y)) :-
 	pure_to_simple(X0, Tree, impl(TY,TXY), X),
 	pure_to_simple(Y0, Tree, TY, Y).
 pure_to_simple(lambda(X,Y0), Tree, impl(TX,TY), lambda(X,Term)) :-
-	get_type(Tree, X, TX),
+	ord_key_member(X, Tree, TX),
 	pure_to_simple(Y0, Tree, TY, Term).
 
 translate_string_concat(Z, Z, _, epsilon) :-
@@ -692,10 +692,8 @@ principal_type(Term, Type, _) :-
         format(user_error, '~N{Error: unknown subterm ~w (~w/~w) of type ~p}~n', [Term, F, A, Type]),
 	fail.
 
-get_type(_, '$VAR'(N), Type) :-
-	current_predicate(proof_generation:free_var/2),
-	proof_generation:free_var(N, Type),
-	!.
+
+
 get_type(List, Term, Type) :-
 	get_type(List, Term, Type, _).
 
@@ -712,6 +710,14 @@ get_type([A-TypeA|Rest], B, TypeB, New) :-
          New = [A-TypeA|New0],
          get_type(Rest, B, TypeB, New0)
      ).
+
+
+get_type_premisses(_, '$VAR'(N), Type) :-
+	current_predicate(proof_generation:free_var/2),
+	proof_generation:free_var(N, Type),
+	!.
+get_type_premisses(OrdSet, Term, Type) :-
+	ord_key_member(Term, OrdSet, Type).
 
 % = compute_type(+Term, -PrincipalType)
 %
@@ -739,17 +745,19 @@ compute_types(At, impl(s,s), [At-impl(s,s)]) :-
 compute_types(A+B, impl(s,s), List) :-
 	!,
 	compute_types(lambda(Z,appl(A,appl(B,Z))), impl(s,s), List).
-compute_types(appl(A,B), TypeA, [appl(A,B)-TypeA|ABlist]) :-
+compute_types(appl(A,B), TypeA, ABlist) :-
         !,
 	compute_types(A, impl(TypeB,TypeA), Alist),
 	compute_types(B, TypeB, Blist),
 	/* might be doable with difference lists, though the abstraction */
         /* case below requires us to select from the constructed list */
-	append(Alist, Blist, ABlist).
-compute_types(lambda(A,B), impl(TypeA,TypeB), [lambda(A,B)-impl(TypeA,TypeB)|BList]) :-
+	ord_key_union_u(Alist, Blist, ABlist0),
+	ord_key_insert(ABlist0, appl(A,B), TypeA, ABlist).
+compute_types(lambda(A,B), impl(TypeA,TypeB), BList) :-
         !,
-	compute_types(B, TypeB, BList),
-	get_type(BList, A, TypeA),
+	compute_types(B, TypeB, BList0),
+	ord_key_member(A, BList0, TypeA),
+	ord_key_insert(BList0, lambda(A,B), impl(TypeA,TypeB), BList),
 	format_debug(' ~p = ~p~n', [A,TypeA]).
 compute_types(Term, Type, _) :-
         /* unknown term, print error message (helps correct typos, such as subterms of the form lambda/3 or appl/1) */
