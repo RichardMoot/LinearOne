@@ -3,7 +3,7 @@
 :- use_module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
-:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3]).
+:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3,linear_to_hybrid/4,linear_to_lambek/3]).
 
 %generate_diagnostics(true).
 generate_diagnostics(false).
@@ -721,7 +721,11 @@ nd_to_hybrid(rule(hyp(I), _, C0, []), rule(hyp(I), _, HF, [])) :-
 nd_to_hybrid(rule(ax, _, C0, []), rule(ax, Lambda, HF, [])) :-
 	remove_formula_nodes(C0, C),
 	/* recover lexical lambda term here */
-	linear_to_hybrid(C, HF, Lambda).
+	linear_to_hybrid(C, VarList, _, HF),
+	numbervars(VarList, 0, _),
+	lexicon:hybrid_lookup(N0, HF, Lambda),
+	memberchk(N0, VarList),
+	!.
 nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Rule) :-
 	!,
 	P2 = rule(_, _, C0, _),
@@ -738,7 +742,7 @@ nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), rule(Nm, Term, LF, [Pro
 	nd_to_hybrid(P1, Proof1),
 	antecedent(Proof1, Term1),
 	find_premiss_variable(Proof1, I, X),
-	reduce_sem(appl(lambda(X,Term1),lambda(Z,Z)), Term),
+	reduce_sem(appl(lambda(X,Term1),epsilon), Term),
         lambek_rule_name(LF, I, Nm).
 nd_to_hybrid(rule(ie, _, C0, [P1,P2]), rule(he, Term, HF, [Proof1,Proof2])) :-
 	remove_formula_nodes(C0, C),
@@ -772,7 +776,7 @@ find_premiss_variable_list([R|Rs], I, X) :-
     ->
 	true
    ;
-        find_premiss_variable(Rs, I, X)
+        find_premiss_variable_list(Rs, I, X)
    ).		
 
 % = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)

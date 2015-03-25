@@ -82,7 +82,7 @@ linear_to_lambek(exists(Y, p(A,B)), [X,Z], F) :-
 	WB = Z,
 	F = p(FA,FB)
    ).
-linear_to_lambek(at(A,[X,Y]), [X,Y], A).
+linear_to_lambek(at(A,[X,Y]), [X,Y], at(A)).
 			
 % =============================
 % =   Displacement calculus   =
@@ -340,7 +340,7 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 % =   Hybrid type-logical grammars   =
 % ====================================
 
-linear_to_hybrid(at(A, _), A).
+linear_to_hybrid(at(A, _), at(A)).
 linear_to_hybrid(forall(Z,impl(A,B)), F) :-
 	linear_to_lambek(forall(Z,impl(A,B)), [_,_], F).
 linear_to_hybrid(exists(Y, p(A,B)), F) :-
@@ -373,7 +373,7 @@ find_positions([V|Vs], Ps0) :-
 %
 % PrincipalFormula is of the correct
 
-linear_to_hybrid(at(A, Vs), Vs, Impl, A) :-
+linear_to_hybrid(at(A, Vs), Vs, Impl, at(A)) :-
 	list_to_impl(Vs, Impl).
 linear_to_hybrid(forall(Z,impl(A,B)), [X,Y], impl(at(Y,[]),at(X,[])), F) :-
 	linear_to_lambek(forall(Z,impl(A,B)), [X,Y], F).

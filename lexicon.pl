@@ -26,11 +26,13 @@
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
 
+:- dynamic hybrid_lookup/3.
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-
 	lookup(Words, Formulas, _, Goal, ExpandedGoal).
 
 lookup(Words, Formulas, Semantics, Goal0, ExpandedGoal) :-
+	retractall(hybrid_lookup(_, _, _)),
 	sentence_lookup(Words, Formulas, Semantics, 0, N),
 	macro_expand(Goal0, Goal),
 	translate(Goal, [0, N], ExpandedGoal).
@@ -57,7 +59,9 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         /* hybrid entry */
         lex(Word, Formula0, ProsTerm, Semantics),
 	macro_expand(Formula0, Formula1),
-	translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula)
+	translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
+	retractall(hybrid_lookup(N0, _, _)),
+	assert(hybrid_lookup(N0, Formula1, ProsTerm))
     ;
         /* first-order linear logic entry */
 	current_predicate(lex/5),	

@@ -243,9 +243,9 @@ latex_hybrid(rule(Name, Term, Formula, SubProofs), Tab) :-
 	latex_hybrid(SubProofs, Name, Term, Formula, Tab).
 
 latex_hybrid([], Name, Term, Formula, _Tab) :-
-     ( Name = hyp(I) ->  format(latex, '[~@:~@]^{~w} ', [latex_semantics(Term,0),latex_formula(Formula),I]) ; format(latex, '~@:~@ ', [latex_semantics(Term,0),latex_formula(Formula)])).
+     ( Name = hyp(I) ->  format(latex, '[~@:~@]^{~w} ', [latex_pros_term(Term),latex_hybrid_formula(Formula),I]) ; format(latex, '~@:~@ ', [latex_pros_term(Term),latex_hybrid_formula(Formula)])).
 latex_hybrid([S|Ss], Name, Term, Formula, Tab0) :-
-	format(latex, '\\infer[~@]{~@:~@}{', [latex_rule_name_i(Name),latex_semantics(Term,0),latex_formula(Formula)]),
+	format(latex, '\\infer[~@]{~@:~@}{', [latex_rule_name_i(Name),latex_pros_term(Term),latex_hybrid_formula(Formula)]),
 	Tab is Tab0 + 6,
 	nl(latex),
 	tab(latex, Tab),
@@ -262,7 +262,63 @@ latex_hybrids([P|Ps], Q, Tab) :-
 	tab(latex, Tab),
 	latex_hybrids(Ps, P, Tab).
 
+latex_pros_term(epsilon) :-
+	!,
+	format(latex, '\\epsilon ').
+latex_pros_term(A+epsilon) :-
+	!,
+	latex_pros_term(A).
+latex_pros_term(epsilon+A) :-
+	!,
+	latex_pros_term(A).
+latex_pros_term(A+B) :-
+	!,
+	format(latex, '~@ + ~@ ', [latex_pros_term(A),latex_pros_term(B)]).
+latex_pros_term('$VAR'(N)) :-
+	!,
+	pros_variable_atom(N, At),
+	write(latex, At).
+latex_pros_term(Atom) :-
+	atomic(Atom),
+	!,
+	latex_pros_atom(Atom).
+latex_pros_term(lambda(X,Y)) :-
+	!,
+	format(latex, '\\lambda ~@ . ~@ ', [latex_pros_term(X),latex_pros_term(Y)]).
+latex_pros_term(appl(X,Y)) :-
+	!,
+	format(latex, '(~@\\,~@)', [latex_pros_term(X),latex_pros_term(Y)]).
 
+
+pros_variable_atom(N, At) :-
+	VN is N mod 5,
+	VI is N//5,
+	print_pros_var1(VI, V),
+	atomic_list_concat([V, '_{', VN, '}'], At).
+    
+print_pros_var1(0, p).
+print_pros_var1(1, q).
+print_pros_var1(2, r).
+print_pros_var1(3, s).
+print_pros_var1(4, t).
+
+latex_pros_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textrm{~w}', [A]).
+
+latex_hybrid_formula(F) :-
+	latex_hybrid_formula(F, 0).
+latex_hybrid_formula(at(A), _) :-
+	print(latex,A).
+latex_hybrid_formula(h(A,B), N) :-
+	format(latex, '(~@|~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
+latex_hybrid_formula(dr(A,B), N) :-
+	format(latex, '(~@/~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
+latex_hybrid_formula(dl(A,B), N) :-
+	format(latex, '(~@\\backslash~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
+			
 % = latex_formula(+Formula)
 %
 % 
