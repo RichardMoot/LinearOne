@@ -474,6 +474,10 @@ type_skeleton(impl(A0,B0), impl(A,B)) :-
 	type_skeleton(A0, A),
 	type_skeleton(B0, B).
 
+% = formula_type(+HybridFormula, -ProsodicType)
+%
+% computed the prosodic type of a hybrid formula
+
 formula_type(h(B,A), impl(TA,TB)) :-
 	formula_type(A, TA),
 	formula_type(B, TB).

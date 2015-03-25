@@ -4,10 +4,25 @@
 			     generate_nd_proof/2,
 			     generate_hybrid_proof/2]).
 
-:- use_module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1]).
-:- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
-:- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
-:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3,linear_to_hybrid/4,linear_to_lambek/3,simple_to_pure/4,pure_to_simple/3,compute_pros_term/5]).
+:- use_module(latex,        [latex_proof/1,
+			     latex_nd/1,
+			     latex_hybrid/1]).
+:- use_module(replace,      [rename_bound_variable/4,
+			     rename_bound_variables/2,
+			     replace_proofs_labels/4]).
+:- use_module(auxiliaries,  [select_formula/4,
+			     subproofs/2,
+			     rulename/2,
+			     is_axiom/1,
+			     antecedent/2]).
+:- use_module(translations, [linear_to_hybrid/2,
+			     linear_to_hybrid/3,
+			     linear_to_hybrid/4,
+			     linear_to_lambek/3,
+			     simple_to_pure/4,
+			     pure_to_simple/3,
+			     compute_pros_term/5,
+			     formula_type/2]).
 
 % set this flag to true to obtain a proof trace of the sequent proof generation
 %
@@ -73,8 +88,16 @@ generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
 	sequent_to_nd(Proof, NDProof),
+    (
+        /* use presence of (hybrid grammar) lex/4 predicate as indication */
+	/* that the current grammar is a hybrid grammar */    
+	current_predicate(lex/4)
+    ->	
 	nd_to_hybrid(NDProof, HProof),
-	latex_hybrid(HProof),
+	latex_hybrid(HProof)
+     ;
+        true
+     ),
 	latex_nd(NDProof),
 	latex_proof(Proof).
 
