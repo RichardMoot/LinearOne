@@ -1,10 +1,16 @@
-:- module(proof_generation, [generate_proof/2]).
+:- module(proof_generation, [generate_proof/2,
+			     generate_sequent_proof/2,
+			     generate_natural_deduction_proof/2,
+			     generate_nd_proof/2,
+			     generate_hybrid_proof/2]).
 
 :- use_module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
 :- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3,linear_to_hybrid/4,linear_to_lambek/3,simple_to_pure/4,pure_to_simple/3,compute_pros_term/5]).
 
+% set this flag to true to obtain a proof trace of the sequent proof generation
+%
 %generate_diagnostics(true).
 generate_diagnostics(false).
 
@@ -12,10 +18,56 @@ generate_diagnostics(false).
 % =           Proof generation          =
 % =======================================
 
-% = generate_proof(+InitialGraph, +ProofTrace)
+% = generate_sequent_proof(+InitialGraph, +ProofTrace)
 %
 % generate a sequent proof from the initial graph and proof trace
 % given as arguments, and set the output to LaTeX.
+
+generate_sequent_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	latex_proof(Proof).
+
+
+% = generate_natural_deduction_proof(+InitialGraph, +ProofTrace)
+%
+% generate a natural deduction proof from the initial graph and proof trace
+% given as arguments, and set the output to LaTeX.
+
+generate_natural_deduction_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	latex_proof(NDProof).
+
+% = generate_nd_proof(+InitialGraph, +ProofTrace)
+%
+% as generate_natural_deduction_proof/2, but output the natural deduction
+% proof with implicit antecedents and explicit hypothesis cancellation.
+
+generate_nd_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	latex_nd(NDProof).
+
+% = generate_hybrid_proof(+InitialGraph, +ProofTrace)
+%
+% generate a proof in hybrid type-logical grammars based on the first-order
+% linear logic proof. This predicate presupposed the lexical entries are
+% all hybrid lexical entries.
+
+generate_hybrid_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	nd_to_hybrid(NDProof, HProof),
+	latex_hybrid(HProof).
+
+% = generate_proof(+InitialGraph, +ProofTrace)
+%
+% generate a sequent proof, natural deduction proof and hybrid proof of the
+% same (hybrid) sequent.
 
 generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),

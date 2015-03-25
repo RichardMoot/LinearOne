@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/0]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0]).
 
 :- use_module(translations, [compute_pros_term/3]).
 :- use_module(lexicon, [macro_expand/2]).
@@ -84,8 +84,54 @@ proof_footer :-
 
 % =
 
-latex_lexicon :-
+lexicon_header :-
    ( stream_property(Stream, alias(latex)) -> close(Stream) ; true),
+      ( exists_file('lexicon.tex') -> delete_file('lexicon.tex') ; true),
+	open('lexicon.tex', write, _Stream, [alias(latex)]),
+	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
+	geometry(Geometry),
+	format(latex, '\\usepackage[~p]{geometry}~n', [Geometry]),
+	format(latex, '\\usepackage{proof}~n', []),
+	format(latex, '\\usepackage{amsmath}~n', []),
+	format(latex, '\\usepackage{amssymb}~2n', []),
+	format(latex, '\\begin{document}~2n', []),
+	format(latex, '\\begin{align*}~n', []).
+
+lexicon_footer :-
+	format(latex, '\\end{align*}~2n', []),
+	format(latex, '~n\\end{document}~n', []),
+	close(latex),
+    (
+	access_file('lexicon.tex', read)
+    ->
+        /* find pdflatex in the user's $PATH */
+	absolute_file_name(path(pdflatex), PdfLaTeX, [access(execute)]),
+	process_create(PdfLaTeX, ['lexicon.tex'], [stdout(null)]),
+	format('LaTeX lexicon ready~n', [])
+     ;
+        format('LaTeX lexicon output failed~n', [])
+    ).
+
+latex_lexicon1 :-
+	latex_lexicon(mill1).
+
+latex_lexicon(displacement) :-
+	latex_lexicon(d).
+
+latex_lexicon(d) :-
+	lexicon_header,
+    (	
+	current_predicate(lex/3)
+    ->			    
+        findall(d_lex(X,Y,Z), lex(X,Y,Z), List)
+    ;
+        List = []
+    ),
+        latex_lexicon_d(List),
+	lexicon_footer.
+
+latex_lexicon(mill1) :-
+	lexicon_header,
     (	
 	current_predicate(lex/3)
     ->			    
@@ -101,34 +147,60 @@ latex_lexicon :-
         List2 = []
     ),     
         append(List1, List2, List),
-      ( exists_file('lexicon.tex') -> delete_file('lexicon.tex') ; true),
-	open('lexicon.tex', write, _Stream, [alias(latex)]),
-	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
-	geometry(Geometry),
-	format(latex, '\\usepackage[~p]{geometry}~n', [Geometry]),
-	format(latex, '\\usepackage{proof}~n', []),
-	format(latex, '\\usepackage{amsmath}~n', []),
-	format(latex, '\\usepackage{amssymb}~2n', []),
-	format(latex, '\\begin{document}~2n', []),
-	format(latex, '\\begin{align*}~n', []),
-	latex_lexicon(List),
-	format(latex, '\\end{align*}~2n', []),
-	format(latex, '~n\\end{document}~n', []),
-	close(latex),
-    (
-	access_file('lexicon.tex', read)
-    ->
-        /* find pdflatex in the user's $PATH */
-	absolute_file_name(path(pdflatex), PdfLaTeX, [access(execute)]),
-	process_create(PdfLaTeX, ['lexicon.tex'], [stdout(null)]),
-	format('LaTeX lexicon ready~n', [])
-     ;
-        format('LaTeX lexicon output failed~n', [])
-    ).
+	latex_lexicon_list(List),
+	lexicon_footer.
 
-latex_lexicon([]).
-latex_lexicon([A|As]) :-
-	latex_lexical_entry(A),
+latex_lexicon(hybrid) :-
+	lexicon_header,
+    (
+	current_predicate(lex/4)
+    ->
+        findall(hybrid_lex(X,Y,Z,V), lex(X,Y,Z,V), List)
+    ;
+        List = []
+    ),     
+	latex_lexicon_hybrid(List),
+	lexicon_footer.
+
+latex_lexicon_d([]).
+latex_lexicon_d([d_lex(A,B,C)|As]) :-
+	latex_d_item(A,B,C),
+	latex_lexicon_d(As).
+
+latex_d_item(Word, Formula0, Semantics) :-
+	macro_expand(Formula0, Formula),
+	lexicon_separator(Sep),
+	numbervars(Semantics, 0, _),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_d_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+	
+
+latex_lexicon_list([]).
+latex_lexicon_list([A|As]) :-
+	latex_mill1_item(A),
+	latex_lexicon(As).
+
+latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics)) :-
+	macro_expand(Formula0, Formula1),
+	translate_hybrid(Formula1, ProsTerm, Word, l, r, Formula),
+	numbervars(Formula, 0, _),
+	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+latex_mill1_item(lex(Word,Formula0,Semantics)) :-
+	macro_expand(Formula0, Formula1),
+	translate(Formula1, [l, r], Formula),
+	numbervars(Formula, 0, _),
+	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+	
+
+latex_lexicon_hybrid([]).
+latex_lexicon_hybrid([hybrid_lex(A,B,C,D)|As]) :-
+	latex_lexical_entry(A, B, C, D),
 	latex_lexicon(As).
 
 latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
@@ -136,14 +208,14 @@ latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
 	numbervars(Semantics, 0, _),
 	lexicon_separator(Sep),
 	!,
-	format(latex, '~w &~w ~@ ~w ~@\\\\~n', [Word, Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
-latex_lexical_entry(hybrid_lex(Word, Formula0, ProsTerm0, SemTerm)) :-
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+latex_lexical_entry(Word, Formula0, ProsTerm0, SemTerm) :-
 	macro_expand(Formula0, Formula),
 	numbervars(SemTerm, 0, _),
 	compute_pros_term(ProsTerm0, Formula, ProsTerm),
 	lexicon_separator(Sep),
 	!,
-	format(latex, '~w &~w ~@ ~w ~@ ~w ~@\\\\~n', [Word,Sep,latex_hybrid_formula(Formula),Sep,latex_pros_term(ProsTerm),Sep,latex_semantics(SemTerm,0)]). 
+	format(latex, '~@ &~w ~@ ~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word),Sep,latex_hybrid_formula(Formula),Sep,latex_pros_term(ProsTerm),Sep,latex_semantics(SemTerm,0)]). 
   
 % = latex_proof(+Proof)
 %
@@ -362,6 +434,10 @@ latex_hybrids([P|Ps], Q, Tab) :-
 	tab(latex, Tab),
 	latex_hybrids(Ps, P, Tab).
 
+% = latex_pros_term(+Prosodics)
+%
+% output a prosodic term, as used in lambda grammars/ACGs and hybrid type-logical grammars to LaTeX
+
 latex_pros_term(epsilon) :-
 	!,
 	hybrid_epsilon(Epsilon),
@@ -385,6 +461,9 @@ latex_pros_term(appl(X,Y)) :-
 	!,
 	format(latex, '(~@\\,~@)', [latex_pros_term(X),latex_pros_term(Y)]).
 
+% = pros_variable_atom(+Number, -LaTeXAtom)
+%
+% translates a Number into a Prolog atom printed as a LaTeX variable with a subscript
 
 pros_variable_atom(N, At) :-
 	VI is N mod 5,
@@ -403,6 +482,10 @@ latex_pros_atom(A0) :-
 	atomic_list_concat(List, '_', A0),
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textrm{~w}', [A]).
+
+% = latex_hybrid_formula(+Formula)
+%
+% outputs a formula of hybrid type-logical grammars to LaTeX
 
 latex_hybrid_formula(F) :-
 	latex_hybrid_formula(F, 0).
@@ -434,6 +517,78 @@ latex_hybrid_formula(dl(A,B), N) :-
         format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
    ).
 
+% = latex_d_formula
+
+latex_d_formula(F) :-
+	latex_d_formula(F, 0).
+
+latex_d_formula(at(A), _) :-
+	latex_it_atom(A).
+latex_d_formula(bridge(A), _) :-
+	!,
+	format(latex, '\\,\\hat{\\,}(~@ )', [latex_d_formula(A, 0)]).
+latex_d_formula(lproj(A), _) :-
+	!,
+	format(latex, '\\triangleleft^{-1}( ~@ )', [latex_d_formula(A, 0)]).
+latex_d_formula(rproj(A), _) :-
+	!,
+	format(latex, '\\triangleright^{-1}( ~@ )', [latex_d_formula(A, 0)]).
+latex_d_formula(p(A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\bullet ~@', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\bullet ~@)', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dl(A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\backslash ~@', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\backslash ~@)', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dr(A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ / ~@', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ / ~@)', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ).
+latex_d_formula(p(K,A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\odot_{~w} ~@', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\odot_{~w} ~@)', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dl(K,A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\downarrow_{~w} ~@', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\downarrow_{~w} ~@)', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dr(K,A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\uparrow_{~w} ~@', [latex_d_formula(A, 1),K,latex_d_formula(B, 0)])
+   ;
+	format(latex, '(~@ \\uparrow_{~w} ~@)', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ).
+
+
 % = latex_formula(+Formula)
 %
 % 
@@ -445,8 +600,7 @@ latex_formula(_-F, N) :-
 	latex_formula(F, N).
 latex_formula(at(F,Vs0), _) :-
 	update_vars(Vs0, Vs),
-	Term =.. [F|Vs],
-	print(latex, Term).
+	format(latex, '~@~@', [latex_atom(F),latex_arguments(Vs)]).
 latex_formula(at(F,N,E,Vs0), _) :-
 	update_vars(Vs0, Vs),
   (	
@@ -742,6 +896,19 @@ latex_atom(A0) :-
 	atomic_list_concat(List, '_', A0),
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textrm{~w}', [A]).
+
+latex_rm_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textrm{~w}', [A]).
+
+latex_it_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textit{~w}', [A]).
+
 
 % = latex_arguments(+ListOfArguments)
 %
