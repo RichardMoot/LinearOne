@@ -715,49 +715,87 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 	sequent_to_nd(R2, Proof2, I1, I).
 
 
-nd_to_hybrid(rule(hyp(I), _, C0, []), rule(hyp(I), _, HF, [])) :-
+
+max_hypothesis(rule(hyp(I), _, _, _), Max0, Max) :-
+	!,
+        Max is max(I,Max0).
+max_hypothesis(rule(_, _, _, Rs), Max0, Max) :-
+	max_hypothesis_list(Rs, Max0, Max).
+
+max_hypothesis_list([], Max, Max).
+max_hypothesis_list([R|Rs], Max0, Max) :-
+	max_hypothesis(R, Max0, Max1),
+	max_hypothesis_list(Rs, Max1, Max).
+
+nd_to_hybrid(Proof0, Proof) :-
+	max_hypothesis(Proof0, 0, Max0),
+	nd_to_hybrid(Proof0, Max0, Max, Proof),
+	numbervars(Proof, Max, _).
+
+nd_to_hybrid(rule(hyp(I), _, C0, []), Max, Max, rule(hyp(I), '$VAR'(I), HF, [])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_hybrid(C, HF).
-nd_to_hybrid(rule(ax, _, C0, []), rule(ax, Lambda, HF, [])) :-
+nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, rule(ax, Lambda, HF, [])) :-
 	remove_formula_nodes(C0, C),
 	/* recover lexical lambda term here */
 	linear_to_hybrid(C, VarList, _, HF),
 	numbervars(VarList, 0, _),
-	lexicon:hybrid_lookup(N0, HF, Lambda),
-	memberchk(N0, VarList),
+        get_positions(VarList, N0, _R),
+	lexicon:hybrid_lookup(N0, HF, Lambda0),
+	numbervars(Lambda0, Max0, Max),
+	normalize_pros(Lambda0, Lambda),
 	!.
-nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Rule) :-
+nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Max0, Max, Rule) :-
 	!,
 	P2 = rule(_, _, C0, _),
-	nd_to_hybrid(P1, Proof1),
-	nd_to_hybrid(P2, Proof2),
+	nd_to_hybrid(P1, Max0, Max1, Proof1),
+	nd_to_hybrid(P2, Max1, Max, Proof2),
 	antecedent(Proof1, Term1),
 	antecedent(Proof2, Term2),
 	remove_formula_nodes(C0, C),
 	linear_to_lambek(C, [_, _], LF),
 	lambek_rule(LF, Term1, Term2, Proof1, Proof2, Rule).
-nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), rule(Nm, Term, LF, [Proof1])) :-
+nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), Max0, Max, rule(Nm, Term, LF, [Proof1])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_lambek(C, [_, _], LF),
-	nd_to_hybrid(P1, Proof1),
+	nd_to_hybrid(P1, Max0, Max, Proof1),
 	antecedent(Proof1, Term1),
-	find_premiss_variable(Proof1, I, X),
-	reduce_sem(appl(lambda(X,Term1),epsilon), Term),
+	normalize_pros(appl(lambda('$VAR'(I),Term1),epsilon),Term),
         lambek_rule_name(LF, I, Nm).
-nd_to_hybrid(rule(ie, _, C0, [P1,P2]), rule(he, Term, HF, [Proof1,Proof2])) :-
+nd_to_hybrid(rule(ie, _, C0, [P1,P2]), Max0, Max, rule(he, Term, HF, [Proof1,Proof2])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_hybrid(C, HF),
-	nd_to_hybrid(P1, Proof1),
-	nd_to_hybrid(P2, Proof2),
+	nd_to_hybrid(P1, Max0, Max1, Proof1),
+	nd_to_hybrid(P2, Max1, Max, Proof2),
 	antecedent(Proof1, Term1),
 	antecedent(Proof2, Term2),
-        reduce_sem(appl(Term2,Term1), Term).
-nd_to_hybrid(rule(ii(I), _, C0, [P1]), rule(hi(I), lambda(X,Term), HF, [Proof1])) :-
+        normalize_pros(appl(Term2,Term1),Term).
+nd_to_hybrid(rule(ii(I), _, C0, [P1]), Max0, Max, rule(hi(I), lambda('$VAR'(I),Term), HF, [Proof1])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_hybrid(C, HF),
-	nd_to_hybrid(P1, Proof1),
-	antecedent(Proof1, Term),
-	find_premiss_variable(Proof1, I, X).
+	nd_to_hybrid(P1, Max0, Max, Proof1),
+	antecedent(Proof1, Term).
+
+
+get_positions(VarList0, L, R) :-
+	msort(VarList0, VarList),
+	get_positions1(VarList, L, R).
+
+get_positions1([A,A|Rest], L, R) :-
+	!,
+	get_positions1(Rest, L, R).
+get_positions1([L|Rest], L, R) :-
+	get_positions2(Rest, R).
+
+get_positions2([A,A|Rest], R) :-
+	!,
+	get_positions2(Rest, R).
+get_positions2([R|Rest], R) :-
+	get_positions3(Rest).
+
+get_positions3([]).
+get_positions3([A,A|Rest]) :-
+	get_positions3(Rest).
 
 lambek_rule_name(dl(_,_), I, dli(I)).
 lambek_rule_name(dr(_,_), I, dri(I)).
@@ -765,19 +803,74 @@ lambek_rule_name(dr(_,_), I, dri(I)).
 lambek_rule(dl(A,B), Term1, Term2, Proof1, Proof2, rule(dle, Term1+Term2, dl(A,B), [Proof1, Proof2])).
 lambek_rule(dr(B,A), Term1, Term2, Proof1, Proof2, rule(dre, Term2+Term1, dr(B,A), [Proof2, Proof1])).
 
-find_premiss_variable(rule(hyp(I), X, _, []), I, X) :-
-	!.
-find_premiss_variable(rule(_, _, _, Rs), I, X) :-
-	find_premiss_variable_list(Rs, I, X).
 
-find_premiss_variable_list([R|Rs], I, X) :-
-   (
-	find_premiss_variable(R, I, X)
-    ->
-	true
-   ;
-        find_premiss_variable_list(Rs, I, X)
-   ).		
+normalize_pros(Term0, Term) :-
+	normalize_pros(Term0, Term, []).
+
+normalize_pros(X+epsilon, Term, As) :-
+	!,
+	normalize_pros(X, Term, As).
+normalize_pros(epsilon+X, Term, As) :-
+	!,
+	normalize_pros(X, Term, As).
+normalize_pros(appl(X,Y), Term, As) :-
+	!,
+	/* WARNING: there is no alpha conversion here! */
+	normalize_pros(X, Term, [Y|As]).
+normalize_pros(lambda(X, appl(Term0, X)), Term, []) :-
+        /* shouldn't be necessary if all lambda terms are linear */
+	\+ subterm(Term0, X),
+	!,
+	normalize_pros(Term0, Term).
+normalize_pros(lambda(Z,Term0), Term, []) :-
+	term_to_string(Term0, Z, Term),
+	!.
+normalize_pros(lambda(X,Term0), Term, [A|As]) :-
+	!,
+	replace(Term0, X, A, Term1),
+	normalize_pros(Term1, Term, As).
+normalize_pros(lambda(X, Term0), lambda(X, Term), []) :-
+	!,
+	normalize_pros(Term0, Term).
+normalize_pros(Term, appl(Term,B), [A|As]) :-
+	normalize_pros(A, B, As).
+normalize_pros(Term, Term, []).
+
+term_to_string(appl(A,Z), Z, A) :-
+	atomic(A),
+	!.
+term_to_string(appl(A,Term), Z, A+B) :-
+	atomic(A),
+	term_to_string(Term, Z, B).
+	
+
+subterm(X, X).
+subterm(appl(X,_), Z) :-
+	subterm(X, Z).
+subterm(appl(_,Y), Z) :-
+	subterm(Y, Z).
+subterm(X+_, Z) :-
+	subterm(X, Z).
+subterm(_+Y, Z) :-
+	subterm(Y, Z).
+subterm(lambda(_,X), Z) :-
+	subterm(X, Z).
+
+
+replace(X, X, Y, Y) :-
+	!.
+replace(appl(X0,Y0), V, W, appl(X,Y)) :-
+	!,
+	replace(X0, V, W, X),
+	replace(Y0, V, W, Y).
+replace(X0+Y0, V, W, X+Y) :-
+	!,
+	replace(X0, V, W, X),
+	replace(Y0, V, W, Y).
+replace(lambda(X, Y0), V, W, lambda(X, Y)) :-
+	!,
+   ( X = V -> Y = Y0 ; replace(Y0, V, W, Y)).
+replace(A, _, _, A).
 
 % = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)
 %

@@ -231,9 +231,7 @@ latex_nds([P|Ps], Q, Tab) :-
 %
 % this version of latex_proof output natural deduction proofs with implicit antecedents (and coindexing between rules and withdrawn hypotheses)
 
-latex_hybrid(Proof0) :-
-	copy_term(Proof0, Proof),
-	numbervars(Proof, 0, _),
+latex_hybrid(Proof) :-
 	latex_hybrid(Proof, 0),
         format(latex, '~n\\bigskip~n', []).
 
@@ -264,13 +262,7 @@ latex_hybrids([P|Ps], Q, Tab) :-
 
 latex_pros_term(epsilon) :-
 	!,
-	format(latex, '\\epsilon ').
-latex_pros_term(A+epsilon) :-
-	!,
-	latex_pros_term(A).
-latex_pros_term(epsilon+A) :-
-	!,
-	latex_pros_term(A).
+	format(latex, '\\epsilon ', []).
 latex_pros_term(A+B) :-
 	!,
 	format(latex, '~@ + ~@ ', [latex_pros_term(A),latex_pros_term(B)]).
@@ -291,8 +283,8 @@ latex_pros_term(appl(X,Y)) :-
 
 
 pros_variable_atom(N, At) :-
-	VN is N mod 5,
-	VI is N//5,
+	VI is N mod 5,
+	VN is N//5,
 	print_pros_var1(VI, V),
 	atomic_list_concat([V, '_{', VN, '}'], At).
     
@@ -317,7 +309,7 @@ latex_hybrid_formula(h(A,B), N) :-
 latex_hybrid_formula(dr(A,B), N) :-
 	format(latex, '(~@/~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
 latex_hybrid_formula(dl(A,B), N) :-
-	format(latex, '(~@\\backslash~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
+	format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
 			
 % = latex_formula(+Formula)
 %
