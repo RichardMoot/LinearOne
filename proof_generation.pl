@@ -1,9 +1,16 @@
-:- module(proof_generation, [generate_proof/2]).
+:- module(proof_generation, [generate_proof/2,
+			     generate_sequent_proof/2,
+			     generate_natural_deduction_proof/2,
+			     generate_nd_proof/2,
+			     generate_hybrid_proof/2]).
 
-:- use_module(latex, [latex_proof/1, latex_nd/1]).
+:- use_module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
+:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3,linear_to_hybrid/4,linear_to_lambek/3,simple_to_pure/4,pure_to_simple/3,compute_pros_term/5]).
 
+% set this flag to true to obtain a proof trace of the sequent proof generation
+%
 %generate_diagnostics(true).
 generate_diagnostics(false).
 
@@ -11,17 +18,64 @@ generate_diagnostics(false).
 % =           Proof generation          =
 % =======================================
 
-% = generate_proof(+InitialGraph, +ProofTrace)
+% = generate_sequent_proof(+InitialGraph, +ProofTrace)
 %
 % generate a sequent proof from the initial graph and proof trace
 % given as arguments, and set the output to LaTeX.
+
+generate_sequent_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	latex_proof(Proof).
+
+
+% = generate_natural_deduction_proof(+InitialGraph, +ProofTrace)
+%
+% generate a natural deduction proof from the initial graph and proof trace
+% given as arguments, and set the output to LaTeX.
+
+generate_natural_deduction_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	latex_proof(NDProof).
+
+% = generate_nd_proof(+InitialGraph, +ProofTrace)
+%
+% as generate_natural_deduction_proof/2, but output the natural deduction
+% proof with implicit antecedents and explicit hypothesis cancellation.
+
+generate_nd_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	latex_nd(NDProof).
+
+% = generate_hybrid_proof(+InitialGraph, +ProofTrace)
+%
+% generate a proof in hybrid type-logical grammars based on the first-order
+% linear logic proof. This predicate presupposed the lexical entries are
+% all hybrid lexical entries.
+
+generate_hybrid_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	nd_to_hybrid(NDProof, HProof),
+	latex_hybrid(HProof).
+
+% = generate_proof(+InitialGraph, +ProofTrace)
+%
+% generate a sequent proof, natural deduction proof and hybrid proof of the
+% same (hybrid) sequent.
 
 generate_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
 	sequent_to_nd(Proof, NDProof),
+	nd_to_hybrid(NDProof, HProof),
+	latex_hybrid(HProof),
 	latex_nd(NDProof),
-	latex_proof(NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -611,7 +665,19 @@ remove_formula_indices(p(A0, B0), p(A, B)) :-
 	remove_formula_indices(A0, A),
 	remove_formula_indices(B0, B).
 
-
+remove_formula_nodes(_-F0, F) :-
+	remove_formula_nodes(F0, F).
+remove_formula_nodes(at(A,_,_,Vars), at(A,Vars)).
+remove_formula_nodes(forall(X,A0), forall(X, A)) :-
+	remove_formula_nodes(A0, A).
+remove_formula_nodes(exists(X,A0), exists(X, A)) :-
+	remove_formula_nodes(A0, A).
+remove_formula_nodes(impl(A0,B0), impl(A,B)) :-
+	remove_formula_nodes(A0, A),
+	remove_formula_nodes(B0, B).
+remove_formula_nodes(p(A0,B0), p(A,B)) :-
+	remove_formula_nodes(A0, A),
+	remove_formula_nodes(B0, B).
 
 % = sequent_to_nd(+SequentProof, -NaturalDeductionProof)
 %
@@ -699,6 +765,101 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 	sequent_to_nd(R1, Proof1, I0, I1),
 	sequent_to_nd(R2, Proof2, I1, I).
 
+
+
+max_hypothesis(rule(hyp(I), _, _, _), Max0, Max) :-
+	!,
+        Max is max(I,Max0).
+max_hypothesis(rule(_, _, _, Rs), Max0, Max) :-
+	max_hypothesis_list(Rs, Max0, Max).
+
+max_hypothesis_list([], Max, Max).
+max_hypothesis_list([R|Rs], Max0, Max) :-
+	max_hypothesis(R, Max0, Max1),
+	max_hypothesis_list(Rs, Max1, Max).
+
+nd_to_hybrid(Proof0, Proof) :-
+	max_hypothesis(Proof0, 0, Max0),
+	Max1 is Max0 + 1,
+	nd_to_hybrid(Proof0, Max1, Max, Proof),
+	numbervars(Proof, Max, _).
+
+nd_to_hybrid(rule(hyp(I), _, C0, []), Max, Max, rule(hyp(I), '$VAR'(I), HF, [])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_hybrid(C, HF),
+	formula_type(HF, Type),
+	retractall(free_var(I, _)),
+	assert(free_var(I, Type)).
+nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, rule(ax, Lambda, HF, [])) :-
+	remove_formula_nodes(C0, C),
+	/* recover lexical lambda term here */
+	linear_to_hybrid(C, VarList, _, HF),
+	numbervars(VarList, 0, _),
+        get_positions(VarList, N0, _R),
+	lexicon:hybrid_lookup(N0, HF, Lambda0),
+	compute_pros_term(Lambda0, HF, Lambda, Max0, Max),
+	!.
+nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Max0, Max, Rule) :-
+	!,
+	P2 = rule(_, _, C0, _),
+	nd_to_hybrid(P1, Max0, Max1, Proof1),
+	nd_to_hybrid(P2, Max1, Max2, Proof2),
+	antecedent(Proof1, Term1),
+	antecedent(Proof2, Term2),
+	remove_formula_nodes(C0, C),
+	linear_to_lambek(C, [_, _], LF),
+	lambek_rule(LF, Term1, Term2, Max2, Max, Proof1, Proof2, Rule).
+nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), Max0, Max, rule(Nm, Term, LF, [Proof1])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_lambek(C, [_, _], LF),
+	nd_to_hybrid(P1, Max0, Max1, Proof1),
+	antecedent(Proof1, Term1),
+	retractall(free_var(I, _)),
+	compute_pros_term(appl(lambda('$VAR'(I),Term1),epsilon), LF, Term, Max1, Max),
+        lambek_rule_name(LF, I, Nm).
+nd_to_hybrid(rule(ie, _, C0, [P1,P2]), Max0, Max, rule(he, Term, HF, [Proof1,Proof2])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_hybrid(C, HF),
+	nd_to_hybrid(P1, Max0, Max1, Proof1),
+	nd_to_hybrid(P2, Max1, Max2, Proof2),
+	antecedent(Proof1, Term1),
+	antecedent(Proof2, Term2),
+	compute_pros_term(appl(Term2,Term1), HF, Term, Max2, Max).
+nd_to_hybrid(rule(ii(I), _, C0, [P1]), Max0, Max, rule(hi(I), Term, HF, [Proof1])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_hybrid(C, HF),
+	nd_to_hybrid(P1, Max0, Max1, Proof1),
+	antecedent(Proof1, Term0),
+	retractall(free_var(I, _)),
+	compute_pros_term(lambda('$VAR'(I),Term0), HF, Term, Max1, Max).
+	
+get_positions(VarList0, L, R) :-
+	msort(VarList0, VarList),
+	get_positions1(VarList, L, R).
+
+get_positions1([A,A|Rest], L, R) :-
+	!,
+	get_positions1(Rest, L, R).
+get_positions1([L|Rest], L, R) :-
+	get_positions2(Rest, R).
+
+get_positions2([A,A|Rest], R) :-
+	!,
+	get_positions2(Rest, R).
+get_positions2([R|Rest], R) :-
+	get_positions3(Rest).
+
+get_positions3([]).
+get_positions3([A,A|Rest]) :-
+	get_positions3(Rest).
+
+lambek_rule_name(dl(_,_), I, dli(I)).
+lambek_rule_name(dr(_,_), I, dri(I)).
+
+lambek_rule(dl(_,A), Term1, Term2, Max0, Max, Proof1, Proof2, rule(dle, Term, A, [Proof1, Proof2])) :-
+	compute_pros_term(Term1+Term2, A, Term, Max0, Max).
+lambek_rule(dr(A,_), Term1, Term2, Max0, Max, Proof1, Proof2, rule(dre, Term, A, [Proof2, Proof1])) :-
+	compute_pros_term(Term2+Term1, A, Term, Max0, Max).
 
 % = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)
 %

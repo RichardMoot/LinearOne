@@ -48,6 +48,7 @@
 	ord_key_intersect/3,    %  Set x Set -> Set
 	ord_key_union/3,        %  Set x Set -> Set
 	ord_key_union_i/3,      %  Set x Set -> Set
+	ord_key_union_u/3,      %  Set x Set -> Set
 	ord_key_select/4,       %  Key x Set -> Value x Set
 	ord_key_delete/3,       %  Set x Key -> Set
         ord_key_insert/4, %  Set x Key x Value -> Set
@@ -440,6 +441,28 @@ ord_key_union_i3(=, H1, V1, T1, _, V2, T2, [H1-V|Union]) :-
 	ord_key_union_i(T1, T2, Union).
 ord_key_union_i3(>, H1, V1, T1, H2, V2, T2, [H2-V2|Union]) :-
 	ord_key_union_i2(T2, H1, V1, T1, Union).
+
+% = ord_key_union_u(+Map1, +Map2, ?Map3)
+%
+% as ord_union/3, but for ordered sets of Key-Value pairs, where Value
+% is itself an ordered set. If Map1 and Map2 contain the same Key,
+% Map3 will unify the two values (and fail in case of conflic).     RM
+
+ord_key_union_u([], Set2, Set2).
+ord_key_union_u([H1-V1|T1], Set2, Union) :-
+	ord_key_union_u2(Set2, H1, V1, T1, Union).
+
+ord_key_union_u2([], H1, V1, T1, [H1-V1|T1]).
+ord_key_union_u2([H2-V2|T2], H1, V1, T1, Union) :-
+	compare(Order, H1, H2),
+	ord_key_union_u3(Order, H1, V1, T1, H2, V2, T2, Union).
+
+ord_key_union_u3(<, H1, V1, T1, H2, V2, T2, [H1-V1|Union]) :-
+	ord_key_union_u2(T1, H2, V2, T2, Union).
+ord_key_union_u3(=, H1, V, T1, _, V, T2, [H1-V|Union]) :-
+	ord_key_union_u(T1, T2, Union).
+ord_key_union_u3(>, H1, V1, T1, H2, V2, T2, [H2-V2|Union]) :-
+	ord_key_union_u2(T2, H1, V1, T1, Union).
 
 
 % = ord_key_intersect(+Map1, +Map2, ?Map3)

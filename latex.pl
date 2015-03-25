@@ -1,9 +1,41 @@
-:- module(latex, [latex_proof/1,latex_nd/1,proof_header/0,proof_footer/0,latex_semantics/1]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0]).
+
+:- use_module(translations, [compute_pros_term/3]).
+:- use_module(lexicon, [macro_expand/2]).
+
+% =====================================================
+% =          parameters for semantic output           =
+% =====================================================
 
 % set this option to "prolog_like" for a Prolog-like output; this will portray terms like
 % ((f y) x) as f(x,y)
 
 option(prolog_like).
+
+%lexicon_separator(' - ').
+lexicon_separator(' :: ').
+
+% =====================================================
+% = parameters for hybrid type-logical grammar output =
+% =====================================================
+
+
+% this option allows you to choose how to display the ACG/lambda grammar/hybrid type-logical
+% grammar "|" or "-o" connective.
+% A connective h(A,B) will be displayed by portraying, from left-to-right one of the
+% subformulas (A or B) then a Prolog atom (passed to LaTeX directly), then the other
+% subformula.
+
+hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar style
+%hybrid_connective(h(A,B), B, '\\multimap ', A).   % ACG/lambda grammar style
+
+hybrid_epsilon('\\epsilon').
+hybrid_concat('\\circ').
+
+% =====================================================
+% =          parameters for axiom link trace          =
+% =====================================================
+
 
 % set this option to "yes" to ouput unique identifier indices of atomic formulas (useful for
 % debugging)
@@ -12,8 +44,12 @@ option(prolog_like).
 
 output_indices(no).
 
-% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
+% =====================================================
+% =            parameters LaTeX paper size            =
+% =====================================================
 
+% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
+% so very wide page lenghts are preset; comment out all but the desired choice.
 % geometry(a2paper).
 geometry(a1paper).
 % geometry('paperwidth=200cm,textwidth=195cm').
@@ -46,7 +82,141 @@ proof_footer :-
         format('LaTeX proof output failed~n', [])
      ).
 
+% =
 
+lexicon_header :-
+   ( stream_property(Stream, alias(latex)) -> close(Stream) ; true),
+      ( exists_file('lexicon.tex') -> delete_file('lexicon.tex') ; true),
+	open('lexicon.tex', write, _Stream, [alias(latex)]),
+	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
+	geometry(Geometry),
+	format(latex, '\\usepackage[~p]{geometry}~n', [Geometry]),
+	format(latex, '\\usepackage{proof}~n', []),
+	format(latex, '\\usepackage{amsmath}~n', []),
+	format(latex, '\\usepackage{amssymb}~2n', []),
+	format(latex, '\\begin{document}~2n', []),
+	format(latex, '\\begin{align*}~n', []).
+
+lexicon_footer :-
+	format(latex, '\\end{align*}~2n', []),
+	format(latex, '~n\\end{document}~n', []),
+	close(latex),
+    (
+	access_file('lexicon.tex', read)
+    ->
+        /* find pdflatex in the user's $PATH */
+	absolute_file_name(path(pdflatex), PdfLaTeX, [access(execute)]),
+	process_create(PdfLaTeX, ['lexicon.tex'], [stdout(null)]),
+	format('LaTeX lexicon ready~n', [])
+     ;
+        format('LaTeX lexicon output failed~n', [])
+    ).
+
+latex_lexicon1 :-
+	latex_lexicon(mill1).
+
+latex_lexicon(displacement) :-
+	latex_lexicon(d).
+
+latex_lexicon(d) :-
+	lexicon_header,
+    (	
+	current_predicate(lex/3)
+    ->			    
+        findall(d_lex(X,Y,Z), lex(X,Y,Z), List)
+    ;
+        List = []
+    ),
+        latex_lexicon_d(List),
+	lexicon_footer.
+
+latex_lexicon(mill1) :-
+	lexicon_header,
+    (	
+	current_predicate(lex/3)
+    ->			    
+        findall(mill1_lex(X,Y,Z), lex(X,Y,Z), List1)
+    ;
+        List1 = []
+    ),
+    (
+	current_predicate(lex/4)
+    ->
+        findall(hybrid_lex(X,Y,Z,V), lex(X,Y,Z,V), List2)
+    ;
+        List2 = []
+    ),     
+        append(List1, List2, List),
+	latex_lexicon_list(List),
+	lexicon_footer.
+
+latex_lexicon(hybrid) :-
+	lexicon_header,
+    (
+	current_predicate(lex/4)
+    ->
+        findall(hybrid_lex(X,Y,Z,V), lex(X,Y,Z,V), List)
+    ;
+        List = []
+    ),     
+	latex_lexicon_hybrid(List),
+	lexicon_footer.
+
+latex_lexicon_d([]).
+latex_lexicon_d([d_lex(A,B,C)|As]) :-
+	latex_d_item(A,B,C),
+	latex_lexicon_d(As).
+
+latex_d_item(Word, Formula0, Semantics) :-
+	macro_expand(Formula0, Formula),
+	lexicon_separator(Sep),
+	numbervars(Semantics, 0, _),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_d_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+	
+
+latex_lexicon_list([]).
+latex_lexicon_list([A|As]) :-
+	latex_mill1_item(A),
+	latex_lexicon(As).
+
+latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics)) :-
+	macro_expand(Formula0, Formula1),
+	translate_hybrid(Formula1, ProsTerm, Word, l, r, Formula),
+	numbervars(Formula, 0, _),
+	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+latex_mill1_item(lex(Word,Formula0,Semantics)) :-
+	macro_expand(Formula0, Formula1),
+	translate(Formula1, [l, r], Formula),
+	numbervars(Formula, 0, _),
+	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+	
+
+latex_lexicon_hybrid([]).
+latex_lexicon_hybrid([hybrid_lex(A,B,C,D)|As]) :-
+	latex_lexical_entry(A, B, C, D),
+	latex_lexicon(As).
+
+latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
+	macro_expand(Formula0, Formula),
+	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+latex_lexical_entry(Word, Formula0, ProsTerm0, SemTerm) :-
+	macro_expand(Formula0, Formula),
+	numbervars(SemTerm, 0, _),
+	compute_pros_term(ProsTerm0, Formula, ProsTerm),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word),Sep,latex_hybrid_formula(Formula),Sep,latex_pros_term(ProsTerm),Sep,latex_semantics(SemTerm,0)]). 
+  
 % = latex_proof(+Proof)
 %
 % produces LaTeX output of Proof to the stream "latex".
@@ -124,6 +294,19 @@ latex_rule_name(ii) :-
 	write(latex, '\\multimap I').
 latex_rule_name(ii(_)) :-
 	write(latex, '\\multimap I').
+latex_rule_name(dre) :-
+	write(latex, '/ E').
+latex_rule_name(dle) :-
+	write(latex, '\\backslash E').
+latex_rule_name(he) :-
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w E', [C]).
+latex_rule_name(hi) :-
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w I', [C]).
+latex_rule_name(hi(_)) :-
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w I', [C]).
 latex_rule_name(ie) :-
 	write(latex, '\\multimap E').
 latex_rule_name(pi) :-
@@ -132,9 +315,31 @@ latex_rule_name(pe) :-
 	write(latex, '\\otimes E').
 latex_rule_name(pe(_)) :-
 	write(latex, '\\otimes E').
+latex_rule_name_(dri(_)) :-
+	format(latex, '/ I', []),
+	!.
+latex_rule_name_(dli(_)) :-
+	format(latex, '\\backslash I', []),
+	!.
+latex_rule_name_(dri) :-
+	format(latex, '/ I', []),
+	!.
+latex_rule_name_(dli) :-
+	format(latex, '\\backslash I', []),
+	!.
 
 latex_rule_name_i(ii(I)) :-
 	format(latex, '\\multimap I_{~w}', [I]),
+	!.
+latex_rule_name_i(dri(I)) :-
+	format(latex, '/ I_{~w}', [I]),
+	!.
+latex_rule_name_i(dli(I)) :-
+	format(latex, '\\backslash I_{~w}', [I]),
+	!.
+latex_rule_name_i(hi(I)) :-
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w I_{~w}', [C,I]),
 	!.
 latex_rule_name_i(pe(I)) :-
 	format(latex, '\\otimes E_{~w}', [I]),
@@ -195,6 +400,195 @@ latex_nds([P|Ps], Q, Tab) :-
 	tab(latex, Tab),
 	latex_nds(Ps, P, Tab).
 
+
+% = latex_hybrid(+Proof)
+%
+% this version of latex_proof outputs hybrid type-logical grammar natural deduction proofs (with implicit antecedents and coindexing between rules and withdrawn hypotheses)
+
+latex_hybrid(Proof) :-
+	latex_hybrid(Proof, 0),
+        format(latex, '~n\\bigskip~n', []).
+
+latex_hybrid(_-Proof, Tab) :-
+        latex_hybrid(Proof, Tab).
+latex_hybrid(rule(Name, Term, Formula, SubProofs), Tab) :-
+	latex_hybrid(SubProofs, Name, Term, Formula, Tab).
+
+latex_hybrid([], Name, Term, Formula, _Tab) :-
+     ( Name = hyp(I) ->  format(latex, '[~@:~@]^{~w} ', [latex_pros_term(Term),latex_hybrid_formula(Formula),I]) ; format(latex, '~@:~@ ', [latex_pros_term(Term),latex_hybrid_formula(Formula)])).
+latex_hybrid([S|Ss], Name, Term, Formula, Tab0) :-
+	format(latex, '\\infer[~@]{~@:~@}{', [latex_rule_name_i(Name),latex_pros_term(Term),latex_hybrid_formula(Formula)]),
+	Tab is Tab0 + 6,
+	nl(latex),
+	tab(latex, Tab),
+	latex_hybrids(Ss, S, Tab),
+	tab(latex,Tab0),
+        format(latex, '}~n', []).
+
+latex_hybrids([], P, Tab) :-
+	latex_hybrid(P, Tab).
+latex_hybrids([P|Ps], Q, Tab) :-
+	latex_hybrid(Q, Tab),
+	tab(latex, Tab),
+	format(latex, '&~n', []),
+	tab(latex, Tab),
+	latex_hybrids(Ps, P, Tab).
+
+% = latex_pros_term(+Prosodics)
+%
+% output a prosodic term, as used in lambda grammars/ACGs and hybrid type-logical grammars to LaTeX
+
+latex_pros_term(epsilon) :-
+	!,
+	hybrid_epsilon(Epsilon),
+	format(latex, '~w ', [Epsilon]).
+latex_pros_term(A+B) :-
+	!,
+	hybrid_concat(Conc),
+	format(latex, '~@ ~w ~@ ', [latex_pros_term(A),Conc,latex_pros_term(B)]).
+latex_pros_term('$VAR'(N)) :-
+	!,
+	pros_variable_atom(N, At),
+	write(latex, At).
+latex_pros_term(Atom) :-
+	atomic(Atom),
+	!,
+	latex_pros_atom(Atom).
+latex_pros_term(lambda(X,Y)) :-
+	!,
+	format(latex, '\\lambda ~@ . ~@ ', [latex_pros_term(X),latex_pros_term(Y)]).
+latex_pros_term(appl(X,Y)) :-
+	!,
+	format(latex, '(~@\\,~@)', [latex_pros_term(X),latex_pros_term(Y)]).
+
+% = pros_variable_atom(+Number, -LaTeXAtom)
+%
+% translates a Number into a Prolog atom printed as a LaTeX variable with a subscript
+
+pros_variable_atom(N, At) :-
+	VI is N mod 5,
+	VN is N//5,
+	print_pros_var1(VI, V),
+	atomic_list_concat([V, '_{', VN, '}'], At).
+    
+print_pros_var1(0, p).
+print_pros_var1(1, q).
+print_pros_var1(2, r).
+print_pros_var1(3, s).
+print_pros_var1(4, t).
+
+latex_pros_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textrm{~w}', [A]).
+
+% = latex_hybrid_formula(+Formula)
+%
+% outputs a formula of hybrid type-logical grammars to LaTeX
+
+latex_hybrid_formula(F) :-
+	latex_hybrid_formula(F, 0).
+latex_hybrid_formula(at(A), _) :-
+	print(latex,A).
+latex_hybrid_formula(h(A,B), N) :-
+	hybrid_connective(h(A,B), L, C, R),
+   (
+	N = 0
+   ->
+        format(latex, '~@~w~@ ', [latex_hybrid_formula(L,1),C,latex_hybrid_formula(R,1)])
+   ;
+        format(latex, '(~@~w~@)', [latex_hybrid_formula(L,1),C,latex_hybrid_formula(R,1)])
+   ).
+latex_hybrid_formula(dr(A,B), N) :-
+   (
+	N = 0
+   ->
+	format(latex, '~@/~@ ', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ;
+        format(latex, '(~@/~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ).
+latex_hybrid_formula(dl(A,B), N) :-
+   (
+	N = 0
+   ->
+	format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ;
+        format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ).
+
+% = latex_d_formula
+
+latex_d_formula(F) :-
+	latex_d_formula(F, 0).
+
+latex_d_formula(at(A), _) :-
+	latex_it_atom(A).
+latex_d_formula(bridge(A), _) :-
+	!,
+	format(latex, '\\,\\hat{\\,}(~@ )', [latex_d_formula(A, 0)]).
+latex_d_formula(lproj(A), _) :-
+	!,
+	format(latex, '\\triangleleft^{-1}( ~@ )', [latex_d_formula(A, 0)]).
+latex_d_formula(rproj(A), _) :-
+	!,
+	format(latex, '\\triangleright^{-1}( ~@ )', [latex_d_formula(A, 0)]).
+latex_d_formula(p(A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\bullet ~@', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\bullet ~@)', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dl(A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\backslash ~@', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\backslash ~@)', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dr(A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ / ~@', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ / ~@)', [latex_d_formula(A, 1),latex_d_formula(B, 1)])
+   ).
+latex_d_formula(p(K,A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\odot_{~w} ~@', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\odot_{~w} ~@)', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dl(K,A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\downarrow_{~w} ~@', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ;
+	format(latex, '(~@ \\downarrow_{~w} ~@)', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ).
+latex_d_formula(dr(K,A,B), NB) :-
+	!,
+   (
+        NB =:= 0
+   ->
+	format(latex, '~@ \\uparrow_{~w} ~@', [latex_d_formula(A, 1),K,latex_d_formula(B, 0)])
+   ;
+	format(latex, '(~@ \\uparrow_{~w} ~@)', [latex_d_formula(A, 1),K,latex_d_formula(B, 1)])
+   ).
+
+
 % = latex_formula(+Formula)
 %
 % 
@@ -206,8 +600,7 @@ latex_formula(_-F, N) :-
 	latex_formula(F, N).
 latex_formula(at(F,Vs0), _) :-
 	update_vars(Vs0, Vs),
-	Term =.. [F|Vs],
-	print(latex, Term).
+	format(latex, '~@~@', [latex_atom(F),latex_arguments(Vs)]).
 latex_formula(at(F,N,E,Vs0), _) :-
 	update_vars(Vs0, Vs),
   (	
@@ -503,6 +896,19 @@ latex_atom(A0) :-
 	atomic_list_concat(List, '_', A0),
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textrm{~w}', [A]).
+
+latex_rm_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textrm{~w}', [A]).
+
+latex_it_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(latex, '\\textit{~w}', [A]).
+
 
 % = latex_arguments(+ListOfArguments)
 %

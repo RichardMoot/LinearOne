@@ -78,6 +78,12 @@ test(12) :-
         /*       100,274,098 inferences,  19610.310 CPU in  22963.585 seconds  (85% CPU, 5220552 Lips) */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
+
+
+test_and :-
+	exhaustive_test('and.pl', and, ((((s| np)| np)| (s| np)| np)| (s| np)| np), lambda(M, lambda(J, lambda(K, lambda(L, bool(appl(appl(J, K), L), &, appl(appl(M, K), L)))))), [and], (((np\s)/np)\((np\s)/np))/((np\s)/np)).
+
+
 % =======================
 % =       Lexicon       =
 % =======================
@@ -101,8 +107,8 @@ lex(walks, np\s, walks, walk).
 lex(eat, tv, eat, eat).
 lex(a, ((s|(s|np))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(every, ((s|(s|np))|n), lambda(N, lambda(P,appl(P,every+N))), lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
-lex(someone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
-lex(everyone, (s|(s|np)), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
+lex(someone, (s|(s|np)), lambda(Pr,lambda(Z,appl(appl(Pr,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
+lex(everyone, (s|(s|np)), lambda(Pr,lambda(Z,appl(appl(Pr,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(yesterday, (np\s)\(np\s), yesterday, lambda(X,lambda(Y,appl(yesterday,appl(X,Y))))).
 lex(fish, n, fish, fish).
 lex(dog, n, dog, dog).
@@ -133,8 +139,8 @@ lex(or, ((((s|h_det)|tv)|((s|h_det)|tv))|((s|h_det)|tv)), lambda(Rho2,lambda(Rho
 % lexical entries for "split scope"
 
 lex(no2, (s|sneg), lambda(S,lambda(Z,appl(appl(S,no2),Z))), neg).
-lex(or2, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V,lambda(W,lambda(TV,bool(appl(W,TV),\/,appl(V,TV)))))).
-lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(Z,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),Z))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(or2, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V1,lambda(W1,lambda(TV,bool(appl(W1,TV),\/,appl(V1,TV)))))).
+lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(W,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),W))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 
 
 % attempt to recreate the Morrill e.a. analysis

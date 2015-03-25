@@ -1,4 +1,4 @@
-:- module(lexicon, [lookup/4, lookup/5, macro_expand/2]).
+:- module(lexicon, [lookup/4, lookup/5, macro_expand/2, lexical_lookup/5]).
 
 :- use_module(translations, [translate/3, translate_hybrid/6]).
 
@@ -26,50 +26,53 @@
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
 
+:- dynamic hybrid_lookup/3.
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-
 	lookup(Words, Formulas, _, Goal, ExpandedGoal).
 
 lookup(Words, Formulas, Semantics, Goal0, ExpandedGoal) :-
-	lexical_lookup(Words, Formulas, Semantics, 0, N),
+	retractall(hybrid_lookup(_, _, _)),
+	sentence_lookup(Words, Formulas, Semantics, 0, N),
 	macro_expand(Goal0, Goal),
 	translate(Goal, [0, N], ExpandedGoal).
 
-lexical_lookup([], [], [], N, N).
-lexical_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
+sentence_lookup([], [], [], N, N).
+sentence_lookup([W|Ws], [F|Fs], [N0-S|Ss], N0, N) :-
+        N1 is N0 + 1,
+	lexical_lookup(W, F, S, N0, N1),
+	sentence_lookup(Ws, Fs, Ss, N1, N).
+
+lexical_lookup(Word, Formula, Semantics, N0, N1) :-
     (
 	current_predicate(lex/3),	
-	lex(W, _, _)
+	lex(Word, _, _)
     ->	     
         /* Lambek/Displacement entry */
-	lex(W, F0, S),
-	N1 is N0 + 1,
-	macro_expand(F0, F1),
-	translate(F1, [N0,N1], F),
-	lexical_lookup(Ws, Fs, Ss, N1, N)
+	lex(Word, Formula0, Semantics),
+	macro_expand(Formula0, Formula1),
+	translate(Formula1, [N0,N1], Formula)
     ;
 	current_predicate(lex/4),	
-        lex(W, _, _, _)
+        lex(Word, _, _, _)
     ->
         /* hybrid entry */
-        lex(W, F0, L, S),
-	N1 is N0 + 1,
-	macro_expand(F0, F1),
-	translate_hybrid(F1, L, W, N0, N1, F),
-	lexical_lookup(Ws, Fs, Ss, N1, N)
+        lex(Word, Formula0, ProsTerm, Semantics),
+	macro_expand(Formula0, Formula1),
+	translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
+	retractall(hybrid_lookup(N0, _, _)),
+	assert(hybrid_lookup(N0, Formula1, ProsTerm))
     ;
         /* first-order linear logic entry */
 	current_predicate(lex/5),	
-        lex(W, _, _, _, _)
+        lex(Word, _, _, _, _)
     ->
-        N1 is N0 + 1,
-	lex(W, F, N0, N1, S),
-	lexical_lookup(Ws, Fs, Ss, N1, N)
+	lex(Word, Formula, N0, N1, Semantics)
     ;
-        format(user_error, '~N{Error: No lexical entry for "~w"}~n', [W]),
+        format(user_error, '~N{Error: No lexical entry for "~w"}~n', [Word]),
         fail
     ).
-
+	
 macro_expand(d_q, F) :-
 	!,
 	macro_expand(((s/<n)\<s)/cn, F).

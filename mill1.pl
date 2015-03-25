@@ -1,14 +1,34 @@
 
-:- use_module(dancing_links, [compute_axioms/4, update_roots_axiom/4, update_roots_contraction/4]).
-:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
-%:- use_module(portray_graph_none, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
-:- use_module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,exhaustive_test/6]).
-:- use_module(proof_generation, [generate_proof/2]).
-:- use_module(latex, [latex_proof/1,proof_header/0,proof_footer/0,latex_semantics/1]).
-:- use_module(sem_utils, [substitute_sem/3,reduce_sem/2]).
-:- use_module(replace, [replace_graph/6,replace_proofs_labels/4,replace_formula/5]).
-:- use_module(lexicon, [lookup/5]).
-:- use_module(auxiliaries, [merge_fvs/3, free_vars_n/2, free_vars_p/2]).
+:- use_module(dancing_links,       [compute_axioms/4,
+				    update_roots_axiom/4,
+				    update_roots_contraction/4]).
+%:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+:- use_module(portray_graph_none,  [portray_graph/1,
+				    graph_header/0,
+				    graph_footer/1,
+				    latex_graph/1]).
+:- use_module(translations,        [translate_lambek/3,
+				    translate_displacement/3,
+				    translate_hybrid/6,
+				    exhaustive_test/6]).
+:- use_module(proof_generation,    [generate_proof/2,
+				    generate_sequent_proof/2,
+				    generate_natural_deduction_proof/2,
+				    generate_nd_proof/2,
+				    generate_hybrid_proof/2]).
+:- use_module(latex,               [latex_proof/1,
+				    proof_header/0,
+				    proof_footer/0,
+				    latex_semantics/1]).
+:- use_module(sem_utils,           [substitute_sem/3,
+				    reduce_sem/2]).
+:- use_module(replace,             [replace_graph/6,
+				    replace_proofs_labels/4,
+				    replace_formula/5]).
+:- use_module(lexicon,             [lookup/5]).
+:- use_module(auxiliaries,         [merge_fvs/3,
+				    free_vars_n/2,
+				    free_vars_p/2]).
 
 :- dynamic '$PROOFS'/2, '$AXIOMS'/1, '$LOOKUP'/1.
 :- dynamic node_formula/3.
@@ -202,6 +222,22 @@ prove0(Antecedent, Goal, LexSem) :-
 	assert('$PROOFS'(N, [Sem|SemList])),
 	/* generate a LaTeX proof */
 	generate_proof(GraphCopy, Trace).
+
+% = first_proof
+%
+% a version of the prover predicate which only finds the first proof.
+
+first_proof(Antecedent, Goal, Sem) :-
+	first_proof(Antecedent, Goal, [], Sem).
+
+first_proof(Antecedent, Goal, LexSem, Sem) :-
+	( is_stream(graph) -> true ; open_null_stream(Stream), set_stream(Stream, alias(graph))),
+        unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0, _Stats),
+        prove1(Graph, Roots, _Trace),
+	!,
+	substitute_sem(LexSem, Sem0, Sem1),
+	reduce_sem(Sem1, Sem).
+
 
 % = first_parse(+ListOfWords, +GoalFormula)
 %
@@ -824,6 +860,3 @@ test_h2(F) :-
 	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), everyone, 0, 1, F).
 
 % = generate exhaustive test file	
-
-test_and :-
-	exhaustive_test('and.pl', and, ((((s| np)| np)| (s| np)| np)| (s| np)| np), lambda(M, lambda(J, lambda(K, lambda(L, bool(appl(appl(J, K), L), &, appl(appl(M, K), L)))))), [and], (((np\s)/np)\((np\s)/np))/((np\s)/np)).

@@ -1,7 +1,43 @@
-:- module(translations, [translate_lambek/3,translate_displacement/3,translate_hybrid/6,translate/3,principal_type/2,formula_type/2,inhabitants/2,inhabitants/3,exhaustive_test/6,linear_to_lambek/3]).
+
+:- module(translations, [translate_lambek/3,
+			 linear_to_lambek/3,
+			 translate_displacement/3,
+			 translate_hybrid/6,
+			 linear_to_hybrid/2,
+			 linear_to_hybrid/3,
+			 linear_to_hybrid/4,
+			 translate/3,
+			 principal_type/2,
+			 compute_pros_term/3,
+			 compute_pros_term/5,
+			 compute_type/2,
+			 compute_types/3,
+			 pure_to_simple/3,
+			 simple_to_pure/2,
+			 simple_to_pure/4,
+			 formula_type/2,
+			 inhabitants/2,
+			 inhabitants/3,
+			 exhaustive_test/6]).
+
 
 :- use_module(lexicon, [macro_expand/2]).
 :- use_module(auxiliaries, [non_member/2]).
+:- use_module(ordset, [ord_key_union_u/3, ord_key_insert/4, ord_key_member/3]).
+
+% = hybrid_pros
+%
+% This flag controls how the prosodic lambda term of hybrid type-logical grammars are output to LaTeX.
+%
+% When set of "pure", lambda terms are converted to pure lambda terms (without either the empty string
+% "epsilon" or the explicit concatenation operation "+".
+%
+% When set to "simple", pure lambda terms are converted, whenever possible, to simple lambda terms
+% using concatenation "+" and the empty string "epsilon".
+
+%hybrid_pros(pure).
+hybrid_pros(simple).
+
 
 translate(F0, [X,Y], F) :-
 	translate_lambek(F0, [X,Y], F),
@@ -70,7 +106,7 @@ linear_to_lambek(exists(Y, p(A,B)), [X,Z], F) :-
 	WB = Z,
 	F = p(FA,FB)
    ).
-linear_to_lambek(at(A,[X,Y]), [X,Y], A).
+linear_to_lambek(at(A,[X,Y]), [X,Y], at(A)).
 
 % =============================
 % =   Displacement calculus   =
@@ -328,6 +364,60 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 % =   Hybrid type-logical grammars   =
 % ====================================
 
+linear_to_hybrid(at(A, _), at(A)).
+linear_to_hybrid(forall(Z,impl(A,B)), F) :-
+	linear_to_lambek(forall(Z,impl(A,B)), [_,_], F).
+linear_to_hybrid(exists(Y, p(A,B)), F) :-
+	linear_to_lambek(exists(Y, p(A,B)), [_,_], F).
+linear_to_hybrid(impl(A,B), h(FB,FA)) :-
+	linear_to_hybrid(A, FA),
+	linear_to_hybrid(B, FB).
+
+
+linear_to_hybrid(Formula, HybridFormula, LambdaTerm) :-
+	linear_to_hybrid(Formula, VarList, PrincipalFormula, HybridFormula),
+	numbervars(VarList, 0, _),
+	find_positions(VarList, Ps0),
+	sort(Ps0, Ps),
+	Ps = [L, R],
+	first_proof([impl(at(R,[]),at(L,[]))], PrincipalFormula, LambdaTerm).
+
+find_positions([], []).
+find_positions([V|Vs], Ps0) :-
+    (
+	integer(V)
+     ->
+        Ps0 = [V|Ps]
+     ;
+        Ps0 = Ps
+     ),		   
+        find_positions(Vs, Ps).
+    
+% = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -PrincipalFormula, -HybridFormula)
+%
+% PrincipalFormula is of the correct
+
+linear_to_hybrid(at(A, Vs), Vs, Impl, at(A)) :-
+	list_to_impl(Vs, Impl).
+linear_to_hybrid(forall(Z,impl(A,B)), [X,Y], impl(at(Y,[]),at(X,[])), F) :-
+	linear_to_lambek(forall(Z,impl(A,B)), [X,Y], F).
+linear_to_hybrid(exists(Y, p(A,B)), [X,Z], impl(at(Z,[]),at(X,[])), F) :-
+	linear_to_lambek(exists(Y, p(A,B)), [X,Z], F).
+linear_to_hybrid(impl(A,B), Vars, impl(TA,TB), h(FB,FA)) :-
+	linear_to_hybrid(A, Vars0, TA, FA),
+	linear_to_hybrid(B, Vars1, TB, FB),
+	append(Vars0, Vars1, Vars).
+
+list_to_impl([V1,V2], impl(at(V2,[]),at(V1,[]))).
+
+
+
+% = translate_hybrid(+HybridFormula, +ProsodicTerm, +Word, +LeftPos, +RightPos, -LinearFormula)
+%
+% translate HybridFormula with ProsodicTerm (of Word with LeftPos/RightPos) to LinearFormula.
+% We use ProsodicTerm to compute the principal type, then use the principal type to compute the
+% first-order arguments of the atomic subformulas.
+
 translate_hybrid(Formula, Term, Word, L, R, LinearFormula) :-
 	formula_type(Formula, Type),
 	type_skeleton(Type, TypeS),
@@ -407,6 +497,163 @@ atom_type(sneg, impl(impl(s,s),impl(s,s))) :-
 	!.
 atom_type(_, impl(s,s)).
 
+% = 
+
+compute_pros_term(Lambda0, Formula, Lambda) :-
+	compute_pros_term(Lambda0, Formula, Lambda, 0, _).
+
+compute_pros_term(Lambda0, Formula, Lambda, Max0, Max) :-
+	numbervars(Lambda0, Max0, Max1),
+	formula_type(Formula, Type),
+	simple_to_pure(Lambda0, Max1, Max2, Lambda1),
+	normalize_pros_pure(Lambda1, Lambda2),
+  (
+	hybrid_pros(pure)
+  ->
+	Lambda = Lambda2,
+	Max = Max2  
+  ;
+        pure_to_simple(Lambda2, Type, Lambda),
+        numbervars(Lambda, Max2, Max)
+  ).
+
+% = normalization of prosodic term
+
+normalize_pros_pure(Term0, Term) :-
+	normalize_pros_pure(Term0, Term, []).
+
+normalize_pros_pure(appl(X,Y), Term, As) :-
+	/* WARNING: there is no alpha conversion here! */
+	normalize_pros_pure(X, Term, [Y|As]),
+	/* cut must be at the end to allow backtracking */
+	!.
+normalize_pros_pure(lambda(X, appl(Term0, X)), Term, []) :-
+        /* subterm check shouldn't be necessary if all lambda terms are linear */
+	\+ subterm(Term0, X),
+	!,
+	normalize_pros_pure(Term0, Term).
+normalize_pros_pure(lambda(X,Term0), Term, [A|As]) :-
+	!,
+	replace(Term0, X, A, Term1),
+	normalize_pros_pure(Term1, Term, As).
+normalize_pros_pure(lambda(X, Term0), lambda(X, Term), []) :-
+	!,
+	normalize_pros_pure(Term0, Term).
+normalize_pros_pure(Term, appl(Term,B), [A]) :-
+	normalize_pros_pure(A, B, []).
+normalize_pros_pure(Term, Term, []).
+
+
+
+subterm(X, X).
+subterm(appl(X,_), Z) :-
+	subterm(X, Z).
+subterm(appl(_,Y), Z) :-
+	subterm(Y, Z).
+subterm(X+_, Z) :-
+	subterm(X, Z).
+subterm(_+Y, Z) :-
+	subterm(Y, Z).
+subterm(lambda(_,X), Z) :-
+	subterm(X, Z).
+
+
+replace(X, X, Y, Y) :-
+	!.
+replace(appl(X0,Y0), V, W, appl(X,Y)) :-
+	!,
+	replace(X0, V, W, X),
+	replace(Y0, V, W, Y).
+replace(X0+Y0, V, W, X+Y) :-
+	!,
+	replace(X0, V, W, X),
+	replace(Y0, V, W, Y).
+replace(lambda(X, Y0), V, W, lambda(X, Y)) :-
+	!,
+   ( X = V -> Y = Y0 ; replace(Y0, V, W, Y)).
+replace(A, _, _, A).
+
+
+% = translate pure lambda term to simplified lambda term (requires types)
+%
+
+pure_to_simple_formula(PureTerm, Formula0, SimpleTerm) :-
+	macro_expand(Formula0, Formula),
+	formula_type(Formula, Type),
+	pure_to_simple(PureTerm, Type, SimpleTerm).
+
+pure_to_simple(PureTerm, Type, SimpleTerm) :-
+	compute_types(PureTerm, Type, Tree),
+	pure_to_simple(PureTerm, Tree, Type, SimpleTerm).
+
+pure_to_simple(Atom, Tree, impl(s,s), Atom) :-
+	atomic(Atom),
+	!,
+	ord_key_member(Atom, Tree, impl(s,s)).
+pure_to_simple('$VAR'(N), Tree, Type, '$VAR'(N)) :-
+	!,
+	ord_key_member('$VAR'(N), Tree, Type).
+pure_to_simple(lambda(Z,Term0), Tree, impl(s,s), Term) :-
+	translate_string_concat(Term0, Z, Tree, Term),
+	!.
+pure_to_simple(appl(X0,Y0), Tree, TXY, appl(X,Y)) :-
+	pure_to_simple(X0, Tree, impl(TY,TXY), X),
+	pure_to_simple(Y0, Tree, TY, Y).
+pure_to_simple(lambda(X,Y0), Tree, impl(TX,TY), lambda(X,Term)) :-
+	ord_key_member(X, Tree, TX),
+	pure_to_simple(Y0, Tree, TY, Term).
+
+translate_string_concat(Z, Z, _, epsilon) :-
+	!.
+translate_string_concat(appl(X0,Y), Z, Tree, Term) :-
+	get_type(Tree, X0, impl(s,s)),
+	pure_to_simple(X0, Tree, impl(s,s), X),
+	translate_string_concat(Y, X, Z, Tree, Term).
+
+translate_string_concat(Z, X, Z, _, X) :-
+	!.
+translate_string_concat(appl(X1,Y), X0, Z, Tree, X0+Term) :-
+	get_type(Tree, X1, impl(s,s)),
+	pure_to_simple(X1, Tree, impl(s,s), X),
+	translate_string_concat(Y, X, Z, Tree, Term).
+
+simple_to_pure(X0+Y0, lambda(Z,appl(X,appl(Y,Z)))) :-
+	!,
+	simple_to_pure(X0, X),
+	simple_to_pure(Y0, Y).
+simple_to_pure(epsilon, lambda(Z,Z)) :-
+	!.
+simple_to_pure(appl(X0,Y0), appl(X,Y)) :-
+	!,
+	simple_to_pure(X0, X),
+	simple_to_pure(Y0, Y).
+simple_to_pure(lambda(X,Y0), lambda(X,Y)) :-
+	!,
+	simple_to_pure(Y0, Y).
+simple_to_pure(X, X).
+
+simple_to_pure(X0+Y0, N0, N, lambda('$VAR'(N0),appl(X,appl(Y,'$VAR'(N0))))) :-
+	!,
+	N1 is N0 + 1, 
+	simple_to_pure(X0, N1, N2, X),
+	simple_to_pure(Y0, N2, N, Y).
+simple_to_pure(epsilon, N0, N, lambda('$VAR'(N0),'$VAR'(N0))) :-
+	N is N0 + 1, 
+	!.
+simple_to_pure(appl(X0,Y0), N0, N, appl(X,Y)) :-
+	!,
+	simple_to_pure(X0, N0, N1, X),
+	simple_to_pure(Y0, N1, N, Y).
+simple_to_pure(lambda(X,Y0), N0, N, lambda(X,Y)) :-
+	!,
+	simple_to_pure(Y0, N0, N, Y).
+simple_to_pure(X, N, N, X).
+
+
+
+% = principal_type(+Term, -PrincipalType)
+%
+% compute the PrincipalType of linear lambda term Term.
 
 principal_type(Term, Type) :-
 	format_debug('~N= before principal type computation=~n Term: ~p~n Type: ~p~n===~n', [Term, Type]), 
@@ -414,7 +661,7 @@ principal_type(Term, Type) :-
 
 principal_type(V, Type, [V-Type]) :-
 	var(V),
-	!.
+	!.	
 principal_type(epsilon, impl(TypeZ,TypeZ), []) :-
 	!,
 	/* epsilon must be of type sigma->sigma (ie. a string) */
@@ -426,7 +673,7 @@ principal_type(At, impl(TypeZ,TypeS), [At-impl(TypeZ,TypeS)]) :-
 	verify_non_compound(TypeZ, TypeS, At, 'atom of').
 principal_type(A+B, impl(TypeZ,TypeS), List) :-
 	!,
-        /* allow explicit concatenation using +, though only of terms sigma->sigma */
+        /* allow explicit concatenation using +, though only of terms typed sigma->sigma */
 	verify_non_compound(TypeZ, TypeS, A+B, 'concatenation producing'),
 	principal_type(lambda(Z,appl(A,appl(B,Z))), impl(TypeZ,TypeS), List).
 principal_type(appl(A,B), TypeA, ABlist) :-
@@ -447,6 +694,11 @@ principal_type(Term, Type, _) :-
         format(user_error, '~N{Error: unknown subterm ~w (~w/~w) of type ~p}~n', [Term, F, A, Type]),
 	fail.
 
+
+
+get_type(List, Term, Type) :-
+	get_type(List, Term, Type, _).
+
 get_type([], B, _, []) :-
 	/* error message if a free variable appears */
 	format(user_error, '{Warning: free occurrences of ~w}~n', [B]). 
@@ -460,6 +712,60 @@ get_type([A-TypeA|Rest], B, TypeB, New) :-
          New = [A-TypeA|New0],
          get_type(Rest, B, TypeB, New0)
      ).
+
+
+get_type_premisses(_, '$VAR'(N), Type) :-
+	current_predicate(proof_generation:free_var/2),
+	proof_generation:free_var(N, Type),
+	!.
+get_type_premisses(OrdSet, Term, Type) :-
+	ord_key_member(Term, OrdSet, Type).
+
+% = compute_type(+Term, -PrincipalType)
+%
+% compute the PrincipalType of linear lambda term Term.
+
+compute_type(Term, Type) :-
+	format_debug('~N= before principal type computation=~n Term: ~p~n Type: ~p~n===~n', [Term, Type]), 
+	compute_types(Term, Type, _List).
+
+compute_types('$VAR'(N), Type, ['$VAR'(N)-Type]) :-
+	!,
+   (
+	current_predicate(proof_generation:free_var/2),
+	proof_generation:free_var(N, Type0)
+   ->
+        Type = Type0
+    ;
+        true
+    ).	    
+compute_types(epsilon, impl(s,s), []) :-
+	!.
+compute_types(At, impl(s,s), [At-impl(s,s)]) :-
+	atom(At),
+	!.
+compute_types(A+B, impl(s,s), List) :-
+	!,
+	compute_types(lambda(Z,appl(A,appl(B,Z))), impl(s,s), List).
+compute_types(appl(A,B), TypeA, ABlist) :-
+        !,
+	compute_types(A, impl(TypeB,TypeA), Alist),
+	compute_types(B, TypeB, Blist),
+	/* might be doable with difference lists, though the abstraction */
+        /* case below requires us to select from the constructed list */
+	ord_key_union_u(Alist, Blist, ABlist0),
+	ord_key_insert(ABlist0, appl(A,B), TypeA, ABlist).
+compute_types(lambda(A,B), impl(TypeA,TypeB), BList) :-
+        !,
+	compute_types(B, TypeB, BList0),
+	ord_key_member(A, BList0, TypeA),
+	ord_key_insert(BList0, lambda(A,B), impl(TypeA,TypeB), BList),
+	format_debug(' ~p = ~p~n', [A,TypeA]).
+compute_types(Term, Type, _) :-
+        /* unknown term, print error message (helps correct typos, such as subterms of the form lambda/3 or appl/1) */
+        functor(Term, F, A),
+        format(user_error, '~N{Error: unknown subterm ~w (~w/~w) of type ~p}~n', [Term, F, A, Type]),
+	fail.
 
 % = inhabitants(+Type, ?Term)
 %
