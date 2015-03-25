@@ -209,13 +209,12 @@ first_proof(Antecedent, Goal, Sem) :-
 	first_proof(Antecedent, Goal, [], Sem).
 
 first_proof(Antecedent, Goal, LexSem, Sem) :-
-	graph_header,
+	( is_stream(graph) -> true ; open_null_stream(Stream), set_stream(Stream, alias(graph))),
         unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0, _Stats),
         prove1(Graph, Roots, _Trace),
 	!,
 	substitute_sem(LexSem, Sem0, Sem1),
-	reduce_sem(Sem1, Sem),
-        graph_footer(1).
+	reduce_sem(Sem1, Sem).
 
 
 % = first_parse(+ListOfWords, +GoalFormula)

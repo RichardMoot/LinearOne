@@ -353,8 +353,22 @@ linear_to_hybrid(impl(A,B), h(FB,FA)) :-
 linear_to_hybrid(Formula, HybridFormula, LambdaTerm) :-
 	linear_to_hybrid(Formula, VarList, PrincipalFormula, HybridFormula),
 	numbervars(VarList, 0, _),
-	first_proof(PrincipalFormula, LambdaTerm).
+	find_positions(VarList, Ps0),
+	sort(Ps0, Ps),
+	Ps = [L, R],
+	first_proof([impl(at(R,[]),at(L,[]))], PrincipalFormula, LambdaTerm).
 
+find_positions([], []).
+find_positions([V|Vs], Ps0) :-
+    (
+	integer(V)
+     ->
+        Ps0 = [V|Ps]
+     ;
+        Ps0 = Ps
+     ),		   
+        find_positions(Vs, Ps).
+    
 % = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -PrincipalFormula, -HybridFormula)
 %
 % PrincipalFormula is of the correct

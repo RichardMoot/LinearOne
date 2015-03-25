@@ -716,12 +716,13 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 
 
 nd_to_hybrid(rule(hyp(I), _, C0, []), rule(hyp(I), _, HF, [])) :-
-	remove_formula_node(C0, C),
+	remove_formula_nodes(C0, C),
 	linear_to_hybrid(C, HF).
 nd_to_hybrid(rule(ax, _, C0, []), rule(ax, Lambda, HF, [])) :-
 	remove_formula_nodes(C0, C),
+	/* recover lexical lambda term here */
 	linear_to_hybrid(C, HF, Lambda).
-nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, P2)]), Rule) :-
+nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Rule) :-
 	!,
 	P2 = rule(_, _, C0, _),
 	nd_to_hybrid(P1, Proof1),
@@ -729,11 +730,11 @@ nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, P2)]), Rule) :-
 	antecedent(Proof1, Term1),
 	antecedent(Proof2, Term2),
 	remove_formula_nodes(C0, C),
-	linear_to_lambek(C, LF),
+	linear_to_lambek(C, [_, _], LF),
 	lambek_rule(LF, Term1, Term2, Proof1, Proof2, Rule).
 nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), rule(Nm, Term, LF, [Proof1])) :-
 	remove_formula_nodes(C0, C),
-	linear_to_lambek(C, LF),
+	linear_to_lambek(C, [_, _], LF),
 	nd_to_hybrid(P1, Proof1),
 	antecedent(Proof1, Term1),
 	find_premiss_variable(Proof1, I, X),
