@@ -7,6 +7,10 @@
 			 linear_to_hybrid/4,
 			 translate/3,
 			 principal_type/2,
+			 compute_type/2,
+			 compute_types/3,
+			 pure_to_simple/3,
+			 simple_to_pure/2,
 			 formula_type/2,
 			 inhabitants/2,
 			 inhabitants/3,
@@ -473,6 +477,79 @@ atom_type(sneg, impl(impl(s,s),impl(s,s))) :-
 	!.
 atom_type(_, impl(s,s)).
 
+% = translate pure lambda term to simplified lambda term (requires types)
+%
+
+pure_to_simple_formula(PureTerm, Formula0, SimpleTerm) :-
+	macro_expand(Formula0, Formula),
+	formula_type(Formula, Type),
+	pure_to_simple(PureTerm, Type, SimpleTerm).
+
+pure_to_simple(PureTerm, Type, SimpleTerm) :-
+	compute_types(PureTerm, Type, Tree),
+	pure_to_simple(PureTerm, Tree, Type, SimpleTerm).
+
+pure_to_simple(Atom, Tree, impl(s,s), Atom) :-
+	atomic(Atom),
+	!,
+	get_type(Tree, Atom, impl(s,s)).
+pure_to_simple(V, Tree, Type, W) :-
+	var(V),
+	!,
+	W = V,
+	get_type(Tree, V, Type).
+pure_to_simple('$VAR'(N), Tree, Type, '$VAR'(N)) :-
+	!,
+	get_type(Tree, '$VAR'(N), Type).
+pure_to_simple(lambda(Z,Term0), Tree, impl(s,s), Term) :-
+	translate_string_concat(Term0, Z, Tree, Term),
+	!.
+pure_to_simple(appl(X0,Y0), Tree, TXY, appl(X,Y)) :-
+	pure_to_simple(X0, Tree, impl(TY,TXY), X),
+	pure_to_simple(Y0, Tree, TY, Y).
+pure_to_simple(lambda(X,Y0), Tree, impl(TX,TY), lambda(X,Term)) :-
+	get_type(Tree, X, TX),
+	pure_to_simple(Y0, Tree, TY, Term).
+
+translate_string_concat(Z, W, _, epsilon) :-
+	Z == W,
+	!.
+translate_string_concat(V, _, _, _) :-
+	var(V),
+	!,
+	/* fails because string doesn't end in Z */
+	fail.
+translate_string_concat(appl(X,Y), Z, Tree, Term) :-
+	get_type(Tree, X, impl(s,s)),
+	translate_string_concat(Y, X, Z, Tree, Term).
+
+translate_string_concat(Z, X, W, _, X) :-
+	Z == W,
+	!.
+translate_string_concat(V, _, _, _, _) :-
+	var(V),
+	!,
+	/* fails because string doesn't end in Z */
+	fail.
+translate_string_concat(appl(X1,Y), X0, Z, Tree, X0+Term) :-
+	get_type(Tree, X1, impl(s,s)),
+	translate_string_concat(Y, X1, Z, Tree, Term).
+
+simple_to_pure(X0+Y0,  lambda(Z,appl(X,appl(Y,Z)))) :-
+	!,
+	simple_to_pure(X0, X),
+	simple_to_pure(Y0, Y).
+simple_to_pure(epsilon, lambda(Z,Z)) :-
+	!.
+simple_to_pure(appl(X0,Y0), appl(X,Y)) :-
+	!,
+	simple_to_pure(X0, X),
+	simple_to_pure(Y0, Y).
+simple_to_pure(lambda(X,Y0), lambda(X,Y)) :-
+	!,
+	simple_to_pure(Y0, Y).
+simple_to_pure(X, X).
+
 
 % = principal_type(+Term, -PrincipalType)
 %
@@ -517,6 +594,9 @@ principal_type(Term, Type, _) :-
         format(user_error, '~N{Error: unknown subterm ~w (~w/~w) of type ~p}~n', [Term, F, A, Type]),
 	fail.
 
+get_type(List, Term, Type) :-
+	get_type(List, Term, Type, _).
+
 get_type([], B, _, []) :-
 	/* error message if a free variable appears */
 	format(user_error, '{Warning: free occurrences of ~w}~n', [B]). 
@@ -530,6 +610,45 @@ get_type([A-TypeA|Rest], B, TypeB, New) :-
          New = [A-TypeA|New0],
          get_type(Rest, B, TypeB, New0)
      ).
+
+% = compute_type(+Term, -PrincipalType)
+%
+% compute the PrincipalType of linear lambda term Term.
+
+compute_type(Term, Type) :-
+	format_debug('~N= before principal type computation=~n Term: ~p~n Type: ~p~n===~n', [Term, Type]), 
+	compute_types(Term, Type, _List).
+
+compute_types(V, Type, [V-Type]) :-
+	var(V),
+	!.
+compute_types('$VAR'(N), Type, ['$VAR'(N)-Type]) :-
+	!.
+compute_types(epsilon, impl(s,s), []) :-
+	!.
+compute_types(At, impl(s,s), [At-impl(s,s)]) :-
+	atom(At),
+	!.
+compute_types(A+B, impl(s,s), List) :-
+	!,
+	compute_types(lambda(Z,appl(A,appl(B,Z))), impl(s,s), List).
+compute_types(appl(A,B), TypeA, ABlist) :-
+        !,
+	compute_types(A, impl(TypeB,TypeA), Alist),
+	compute_types(B, TypeB, Blist),
+	/* might be doable with difference lists, though the abstraction */
+        /* case below requires us to select from the constructed list */
+	append(Alist, Blist, ABlist).
+compute_types(lambda(A,B), impl(TypeA,TypeB), BList) :-
+        !,
+	compute_types(B, TypeB, BList),
+	get_type(BList, A, TypeA),
+	format_debug(' ~p = ~p~n', [A,TypeA]).
+compute_types(Term, Type, _) :-
+        /* unknown term, print error message (helps correct typos, such as subterms of the form lambda/3 or appl/1) */
+        functor(Term, F, A),
+        format(user_error, '~N{Error: unknown subterm ~w (~w/~w) of type ~p}~n', [Term, F, A, Type]),
+	fail.
 
 % = inhabitants(+Type, ?Term)
 %
