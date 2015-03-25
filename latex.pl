@@ -128,11 +128,13 @@ latex_lexicon([A|As]) :-
 latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
 	macro_expand(Formula0, Formula),
 	numbervars(Semantics, 0, _),
+	!,
 	format(latex, '~w &-- ~@ -- ~@\\\\~n', [Word, latex_formula(Formula), latex_semantics(Semantics,0)]).
 latex_lexical_entry(hybrid_lex(Word, Formula0, ProsTerm0, SemTerm)) :-
 	macro_expand(Formula0, Formula),
 	numbervars(SemTerm, 0, _),
 	compute_pros_term(ProsTerm0, Formula, ProsTerm),
+	!,
 	format(latex, '~w &-- ~@ -- ~@ -- ~@\\\\~n', [Word,latex_hybrid_formula(Formula),latex_pros_term(ProsTerm),latex_semantics(SemTerm,0)]). 
   
 % = latex_proof(+Proof)
