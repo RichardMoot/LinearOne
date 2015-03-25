@@ -104,8 +104,13 @@ linear_to_lambek(exists(Y, p(A,B)), [X,Z], F) :-
 	WB = Z,
 	F = p(FA,FB)
    ).
+<<<<<<< HEAD
 linear_to_lambek(at(A,[X,Y]), [X,Y], at(A)).
 			
+=======
+linear_to_lambek(at(A,[X,Y]), [X,Y], A).
+
+>>>>>>> master
 % =============================
 % =   Displacement calculus   =
 % =============================
@@ -114,9 +119,9 @@ linear_to_lambek(at(A,[X,Y]), [X,Y], at(A)).
 %
 % true if Sort is the sort of Displacement calculus formula DFormula
 % (according to the definition of sort on p. 11, Figure 2 of
-% Morril, Valentin & Fadda (2011).
+% Morril, Valentin & Fadda, 2011).
 % requires the sorts of atomic formulas to be defined by the
-% predicate d_atom_sort/2.
+% predicate d_atom_sort/2 (which defaults to 0).
 
 displacement_sort(at(A), S) :-
 	d_atom_sort(A, S).
@@ -813,9 +818,15 @@ exhaustive_test(File, Word, Formula0, Semantics, Sentence, Goal) :-
 
 export_lexicon([], _).
 export_lexicon([W|Ws], Stream) :-
-	lex(W, A, B, C),
-	portray_clause(Stream, (lex(W,A,B,C) :- true)),
-	export_lexicon(Ws, Stream).
+   (	
+	current_predicate(lex/4),	
+	lex(W, A, B, C)
+   ->
+	portray_clause(Stream, (lex(W,A,B,C) :- true))
+   ;
+	format(user_error, '~N{Warning: no lexical entry found for "~w"}~n', [W]) 
+   ),  
+        export_lexicon(Ws, Stream).
 
 export_lexicon([], _, _, _, _, _).
 export_lexicon([lambda(W,Term)|Rest], Stream, Formula, Word, N0, Semantics) :-

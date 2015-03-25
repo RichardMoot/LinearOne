@@ -3,8 +3,6 @@
 :- module(sem_utils,  [reduce_sem/2,
 		       substitute_sem/3,
 		       replace_sem/4,
-		       get_variable_types/3,
-		       check_lexicon_typing/0,
 		       free_var_indices/2,
 		       freeze/2,
 		       melt/2,
@@ -27,6 +25,16 @@
 reduce_quine(active).
 
 reduce_eta(active).
+
+% basic types
+	
+e_type(e).
+t_type(t).
+s_type(s).
+
+semantic_set_type(E, _T, E).
+% semantic_set_type(E, T, E->T).
+
 
 % reduce_sem(+LambdaTerm, -BetaEtaReducedLambdaTerm)
 %
@@ -401,86 +409,6 @@ get_max_variable_number_args(A0, A, Term, Max0, Max) :-
         get_max_variable_number_args(A1, A, Term, Max1, Max)
     ).
 
-
-get_variable_types(Sem, Formula, Tree) :-
-    (
-	/* skip typing checking if no atomic_type/2 declarations */
-        /* are found in the grammar file */
-	user:atomic_type(_, _)
-    ->
-        get_variable_types1(Sem, Formula, Tree)
-    ;
-        Tree = empty
-    ).
-
-% = skip variable typing in case the term is not well-typed
-
-get_variable_types1(Sem, Formula, Tree) :-
-	get_atomic_types(Tr),
-	syntactic_to_semantic_type(Formula, goal, Type, Tr),
-        check_type(Sem, Type, goal, empty, Tree),
-	!.
-get_variable_types1(_, _, empty).
-
-
-% check_lexicon_typing.
-%
-% check if the lambda term semantics in the lexicon is well-typed.
-
-check_lexicon_typing :-
-    (
-	/* skip typing checking if no atomic_type/2 declarations */
-        /* are found in the grammar file */
-	user:atomic_type(_, _)
-    ->
-	get_atomic_types(Tree),
-	findall(lex(A,B,C), lexicon_triple(A,B,C), Lexicon),
-	check_lexicon_typing(Lexicon, Tree)
-    ;
-	format('{Warning: no atomic_type/2 declarations found in grammar}~n{Warning: semantic type verification disabled}~n', []),
-	format(log, '{Warning: no atomic_type/2 declarations found in grammar}~n{Warning: semantic type verification disabled}~n', [])
-    ).
-
-check_lexicon_typing([], _).
-check_lexicon_typing([lex(Word,SynType,Term)|Ls], Tree) :-
-	numbervars(Term, 0, _),
-	format(log, 'lex( ~w ,~n     ~w ,~n     ~w )~n', [Word, SynType, Term]),
-    (
-	syntactic_to_semantic_type(SynType, Word, Type, Tree)
-    ->
-	format(log, 'Type: ~w~nTerm: ~w~n', [Type, Term]),
-	check_lexicon_typing(Term, Type, Word)
-    ;
-	true
-    ),
-	check_lexicon_typing(Ls, Tree).
-
-check_lexicon_typing(Term, Type, Word) :-
-	check_type(Term, Type, Word, empty, _),
-	!.
-check_lexicon_typing(Term, Type, Word) :-
-	format(log, '{Warning: typing check failed for:}~n{Word: ~w}~n{Term: ~w}~n{Type: ~w}~n', [Word,Term,Type]),
-	format('{Warning: typing check failed for:}~n{Word: ~w}~n{Term: ~w}~n{Type: ~w}~n', [Word,Term,Type]).
-
-
-lexicon_triple(A, B, C) :-
-	user:lex(A, B0, C),
-	macro_expand(B0, B).
-
-lexicon_triple(A, B, C) :-
-	user:default_semantics(A, B0, C),
-	macro_expand(B0, B),
-	instantiate(A, B).
-
-lexicon_triple(A, B, C) :-
-	user:default_semantics(A, _, B0, C),
-	macro_expand(B0, B),
-	instantiate(A, B).
-
-instantiate('WORD'(B), B) :-
-	!.
-instantiate(_, _).
-
 check_type(At, Type, Word, Tr0, Tr) :-
 	atomic(At),
 	!,
@@ -760,62 +688,6 @@ syntactic_to_semantic_type(Syn, W, _, _) :-
 	format('{Formula Error(~w): unknown syntactic formula ~w}~n', [W,Syn]),
 	format(log, '{Formula Error(~w): unknown syntactic formula ~w}~n', [W,Syn]),
 	fail.
-	
-e_type(E) :-
-    (
-	user:entity_type(_)
-    ->
-	user:entity_type(E)
-    ;
-        E = e
-    ).
-
-drs_type(Drs) :-
-    (
-        user:drs_type(_)
-    ->
-        user:drs_type(Drs)
-    ;
-        t_type(Drs)
-    ).
-
-t_type(Bool) :-
-    (
-	user:boolean_type(_)
-    ->
-	user:boolean_type(Bool)
-	
-    ;
-        Bool = t
-    ).
-
-s_type(State) :-
-    (
-	user:state_type(_)
-    ->
-	user:state_type(State)
-    ;
-        State = s
-    ).
-
-
-get_atomic_types(Tree) :-
-	findall(D, user:atomic_formula(D), Atoms0),
-	sort(Atoms0, Atoms),
-	get_atomic_types(Atoms, empty, Tree).
-
-get_atomic_types([], T, T).
-get_atomic_types([A|As], T0, T) :-
-    (
-	user:atomic_type(A, Type)
-    ->
-	btree_insert(T0, A, Type, T1)
-    ;
-	format('{Error: unknown semantic type for atomic type ~w}~n', [A]),
-	format(log, '{Error: unknown semantic type for atomic type ~w}~n', [A]),
-	T1 = T0
-    ),
-	get_atomic_types(As, T1, T).
 
 % = freeze(+Term, -FrozenTerm)
 
