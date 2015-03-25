@@ -1,9 +1,38 @@
-:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/0]).
+
+:- use_module(translations, [compute_pros_term/3]).
+:- use_module(lexicon, [macro_expand/2]).
+
+% =====================================================
+% =          parameters for semantic output           =
+% =====================================================
 
 % set this option to "prolog_like" for a Prolog-like output; this will portray terms like
 % ((f y) x) as f(x,y)
 
 option(prolog_like).
+
+% =====================================================
+% = parameters for hybrid type-logical grammar output =
+% =====================================================
+
+
+% this option allows you to choose how to display the ACG/lambda grammar/hybrid type-logical
+% grammar "|" or "-o" connective.
+% A connective h(A,B) will be displayed by portraying, from left-to-right one of the
+% subformulas (A or B) then a Prolog atom (passed to LaTeX directly), then the other
+% subformula.
+
+hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar style
+%hybrid_connective(h(A,B), B, '\\multimap ', A).   % ACG/lambda grammar style
+
+hybrid_epsilon('\\epsilon').
+hybrid_concat('\\circ').
+
+% =====================================================
+% =          parameters for axiom link trace          =
+% =====================================================
+
 
 % set this option to "yes" to ouput unique identifier indices of atomic formulas (useful for
 % debugging)
@@ -12,8 +41,12 @@ option(prolog_like).
 
 output_indices(no).
 
-% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
+% =====================================================
+% =            parameters LaTeX paper size            =
+% =====================================================
 
+% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
+% so very wide page lenghts are preset; comment out all but the desired choice.
 % geometry(a2paper).
 geometry(a1paper).
 % geometry('paperwidth=200cm,textwidth=195cm').
@@ -46,7 +79,62 @@ proof_footer :-
         format('LaTeX proof output failed~n', [])
      ).
 
+% =
 
+latex_lexicon :-
+   ( stream_property(Stream, alias(latex)) -> close(Stream) ; true),
+   (	
+	current_predicate(lex/3)
+   ->			    
+        findall(mill1_lex(X,Y,Z), lex(X,Y,Z), List1)
+   ;	   
+	current_predicate(lex/4)
+   ->
+        findall(hybrid_lex(X,Y,Z,V), lex(X,Y,Z,V), List2)
+   ;
+        true
+   ),     
+        append(List1, List2, List),
+      ( exists_file('lexicon.tex') -> delete_file('lexicon.tex') ; true),
+	open('lexicon.tex', write, _Stream, [alias(latex)]),
+	format(latex, '\\documentclass[leqno,fleqn]{article}~2n', []),
+	geometry(Geometry),
+	format(latex, '\\usepackage[~p]{geometry}~n', [Geometry]),
+	format(latex, '\\usepackage{proof}~n', []),
+	format(latex, '\\usepackage{amsmath}~n', []),
+	format(latex, '\\usepackage{amssymb}~2n', []),
+	format(latex, '\\begin{document}~2n', []),
+	format(latex, '\\begin{align*}~n', []),
+	latex_lexicon(List),
+	format(latex, '\\end{align*}~2n', []),
+	format(latex, '~n\\end{document}~n', []),
+	close(latex),
+    (
+	access_file('lexicon.tex', read)
+    ->
+        /* find pdflatex in the user's $PATH */
+	absolute_file_name(path(pdflatex), PdfLaTeX, [access(execute)]),
+	process_create(PdfLaTeX, ['lexicon.tex'], [stdout(null)]),
+	format('LaTeX lexicon ready~n', [])
+     ;
+        format('LaTeX lexicon output failed~n', [])
+    ).
+
+latex_lexicon([]).
+latex_lexicon([A|As]) :-
+	latex_lexical_entry(A),
+	latex_lexicon(As).
+
+latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
+	macro_expand(Formula0, Formula),
+	numbervars(Semantics, 0, _),
+	format(latex, '~w &-- ~@ -- ~@\\\\~n', [Word, latex_formula(Formula), latex_semantics(Semantics,0)]).
+latex_lexical_entry(hybrid_lex(Word, Formula0, ProsTerm0, SemTerm)) :-
+	macro_expand(Formula0, Formula),
+	numbervars(SemTerm, 0, _),
+	compute_pros_term(ProsTerm0, Formula, ProsTerm),
+	format(latex, '~w &-- ~@ -- ~@ -- ~@\\\\~n', [Word,latex_hybrid_formula(Formula),latex_pros_term(ProsTerm),latex_semantics(SemTerm,0)]). 
+  
 % = latex_proof(+Proof)
 %
 % produces LaTeX output of Proof to the stream "latex".
@@ -129,11 +217,14 @@ latex_rule_name(dre) :-
 latex_rule_name(dle) :-
 	write(latex, '\\backslash E').
 latex_rule_name(he) :-
-	write(latex, '| E').
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w E', [C]).
 latex_rule_name(hi) :-
-	write(latex, '| I').
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w I', [C]).
 latex_rule_name(hi(_)) :-
-	write(latex, '| I').
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w I', [C]).
 latex_rule_name(ie) :-
 	write(latex, '\\multimap E').
 latex_rule_name(pi) :-
@@ -165,7 +256,8 @@ latex_rule_name_i(dli(I)) :-
 	format(latex, '\\backslash I_{~w}', [I]),
 	!.
 latex_rule_name_i(hi(I)) :-
-	format(latex, '| I_{~w}', [I]),
+	hybrid_connective(_, _, C, _),
+	format(latex, '~w I_{~w}', [C,I]),
 	!.
 latex_rule_name_i(pe(I)) :-
 	format(latex, '\\otimes E_{~w}', [I]),
@@ -229,7 +321,7 @@ latex_nds([P|Ps], Q, Tab) :-
 
 % = latex_hybrid(+Proof)
 %
-% this version of latex_proof output natural deduction proofs with implicit antecedents (and coindexing between rules and withdrawn hypotheses)
+% this version of latex_proof outputs hybrid type-logical grammar natural deduction proofs (with implicit antecedents and coindexing between rules and withdrawn hypotheses)
 
 latex_hybrid(Proof) :-
 	latex_hybrid(Proof, 0),
@@ -262,10 +354,12 @@ latex_hybrids([P|Ps], Q, Tab) :-
 
 latex_pros_term(epsilon) :-
 	!,
-	format(latex, '\\epsilon ', []).
+	hybrid_epsilon(Epsilon),
+	format(latex, '~w ', [Epsilon]).
 latex_pros_term(A+B) :-
 	!,
-	format(latex, '~@ + ~@ ', [latex_pros_term(A),latex_pros_term(B)]).
+	hybrid_concat(Conc),
+	format(latex, '~@ ~w ~@ ', [latex_pros_term(A),Conc,latex_pros_term(B)]).
 latex_pros_term('$VAR'(N)) :-
 	!,
 	pros_variable_atom(N, At),
@@ -305,12 +399,31 @@ latex_hybrid_formula(F) :-
 latex_hybrid_formula(at(A), _) :-
 	print(latex,A).
 latex_hybrid_formula(h(A,B), N) :-
-	format(latex, '(~@|~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
+	hybrid_connective(h(A,B), L, C, R),
+   (
+	N = 0
+   ->
+        format(latex, '~@~w~@ ', [latex_hybrid_formula(L,1),C,latex_hybrid_formula(R,1)])
+   ;
+        format(latex, '(~@~w~@)', [latex_hybrid_formula(L,1),C,latex_hybrid_formula(R,1)])
+   ).
 latex_hybrid_formula(dr(A,B), N) :-
-	format(latex, '(~@/~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
+   (
+	N = 0
+   ->
+	format(latex, '~@/~@ ', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ;
+        format(latex, '(~@/~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ).
 latex_hybrid_formula(dl(A,B), N) :-
-	format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,N),latex_hybrid_formula(B,N)]).
-			
+   (
+	N = 0
+   ->
+	format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ;
+        format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
+   ).
+
 % = latex_formula(+Formula)
 %
 % 

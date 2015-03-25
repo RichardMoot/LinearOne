@@ -3,23 +3,10 @@
 :- use_module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1]).
 :- use_module(replace, [rename_bound_variable/4, rename_bound_variables/2, replace_proofs_labels/4]).
 :- use_module(auxiliaries, [select_formula/4, subproofs/2, rulename/2, is_axiom/1, antecedent/2]).
-:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3,linear_to_hybrid/4,linear_to_lambek/3,simple_to_pure/2,pure_to_simple/3]).
+:- use_module(translations, [linear_to_hybrid/2,linear_to_hybrid/3,linear_to_hybrid/4,linear_to_lambek/3,simple_to_pure/4,pure_to_simple/3,compute_pros_term/5]).
 
 %generate_diagnostics(true).
 generate_diagnostics(false).
-
-% = hybrid_pros
-%
-% This flag controls how the prosodic lambda term of hybrid type-logical grammars are output to LaTeX.
-%
-% When set of "pure", lambda terms are converted to pure lambda terms (without either the empty string
-% "epsilon" or the explicit concatenation operation "+".
-%
-% When set to "simple", pure lambda terms are converted, whenever possible, to simple lambda terms
-% using concatenation "+" and the empty string "epsilon".
-
-%hybrid_pros(pure).
-hybrid_pros(simple).
 
 % =======================================
 % =           Proof generation          =
@@ -35,9 +22,8 @@ generate_proof(Graph, Trace) :-
 	combine_proofs(Trace, Proofs, Proof),
 	sequent_to_nd(Proof, NDProof),
 	nd_to_hybrid(NDProof, HProof),
-	latex_nd(NDProof),
 	latex_hybrid(HProof),
-	latex_proof(NDProof),
+	latex_nd(NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
@@ -748,7 +734,10 @@ nd_to_hybrid(Proof0, Proof) :-
 
 nd_to_hybrid(rule(hyp(I), _, C0, []), Max, Max, rule(hyp(I), '$VAR'(I), HF, [])) :-
 	remove_formula_nodes(C0, C),
-	linear_to_hybrid(C, HF).
+	linear_to_hybrid(C, HF),
+	formula_type(HF, Type),
+	retractall(free_var(I, _)),
+	assert(free_var(I, Type)).
 nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, rule(ax, Lambda, HF, [])) :-
 	remove_formula_nodes(C0, C),
 	/* recover lexical lambda term here */
@@ -773,6 +762,7 @@ nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), Max0, Max, rule(Nm, Ter
 	linear_to_lambek(C, [_, _], LF),
 	nd_to_hybrid(P1, Max0, Max1, Proof1),
 	antecedent(Proof1, Term1),
+	retractall(free_var(I, _)),
 	compute_pros_term(appl(lambda('$VAR'(I),Term1),epsilon), LF, Term, Max1, Max),
         lambek_rule_name(LF, I, Nm).
 nd_to_hybrid(rule(ie, _, C0, [P1,P2]), Max0, Max, rule(he, Term, HF, [Proof1,Proof2])) :-
@@ -788,23 +778,8 @@ nd_to_hybrid(rule(ii(I), _, C0, [P1]), Max0, Max, rule(hi(I), Term, HF, [Proof1]
 	linear_to_hybrid(C, HF),
 	nd_to_hybrid(P1, Max0, Max1, Proof1),
 	antecedent(Proof1, Term0),
+	retractall(free_var(I, _)),
 	compute_pros_term(lambda('$VAR'(I),Term0), HF, Term, Max1, Max).
-
-compute_pros_term(Lambda0, Formula, Lambda, Max0, Max) :-
-	numbervars(Lambda0, Max0, Max1),
-	formula_type(Formula, Type),
-	simple_to_pure(Lambda0, Lambda1),
-	numbervars(Lambda1, Max1, Max2),
-	normalize_pros_pure(Lambda1, Lambda2),
-  (
-	hybrid_pros(pure)
-  ->
-	Lambda = Lambda2,
-	Max = Max2  
-  ;
-        pure_to_simple(Lambda2, Type, Lambda),
-        numbervars(Lambda, Max2, Max)
-  ).
 	
 get_positions(VarList0, L, R) :-
 	msort(VarList0, VarList),
@@ -833,112 +808,6 @@ lambek_rule(dl(_,A), Term1, Term2, Max0, Max, Proof1, Proof2, rule(dle, Term, A,
 	compute_pros_term(Term1+Term2, A, Term, Max0, Max).
 lambek_rule(dr(A,_), Term1, Term2, Max0, Max, Proof1, Proof2, rule(dre, Term, A, [Proof2, Proof1])) :-
 	compute_pros_term(Term2+Term1, A, Term, Max0, Max).
-
-
-normalize_pros(Term0, Term) :-
-	normalize_pros(Term0, Term, []).
-
-normalize_pros(X+lambda(Z,Z), Term, []) :-
-	!,
-	normalize_pros(X, Term, []).
-normalize_pros(lambda(Z,Z)+X, Term, []) :-
-	!,
-	normalize_pros(X, Term, []).
-normalize_pros(X+epsilon, Term, []) :-
-	!,
-	normalize_pros(X, Term, []).
-normalize_pros(epsilon+X, Term, []) :-
-	!,
-	normalize_pros(X, Term, []).
-normalize_pros(appl(X,Y), Term, As) :-
-	/* WARNING: there is no alpha conversion here! */
-	normalize_pros(X, Term, [Y|As]),
-	/* cut must be at the end to allow backtracking */
-	!.
-normalize_pros(lambda(X, appl(Term0, X)), Term, []) :-
-        /* subterm check shouldn't be necessary if all lambda terms are linear */
-	\+ subterm(Term0, X),
-	!,
-	normalize_pros(Term0, Term).
-normalize_pros(lambda(Z,Term0), Term, []) :-
-	term_to_string(Term0, Z, Term),
-	!.
-normalize_pros(lambda(X,Term0), Term, [A|As]) :-
-	!,
-	replace(Term0, X, A, Term1),
-	normalize_pros(Term1, Term, As).
-normalize_pros(lambda(X, Term0), lambda(X, Term), []) :-
-	!,
-	normalize_pros(Term0, Term).
-normalize_pros(X0+Y0, X+Y, []) :-
-	!,
-	normalize_pros(X0, X),
-	normalize_pros(Y0, Y).
-normalize_pros(Term, appl(Term,B), [A]) :-
-	normalize_pros(A, B, []).
-normalize_pros(Term, Term, []).
-
-term_to_string(appl(A,Z), Z, A) :-
-	atomic(A),
-	!.
-term_to_string(appl(A,Term), Z, A+B) :-
-	atomic(A),
-	term_to_string(Term, Z, B).
-
-
-normalize_pros_pure(Term0, Term) :-
-	normalize_pros_pure(Term0, Term, []).
-
-normalize_pros_pure(appl(X,Y), Term, As) :-
-	/* WARNING: there is no alpha conversion here! */
-	normalize_pros_pure(X, Term, [Y|As]),
-	/* cut must be at the end to allow backtracking */
-	!.
-normalize_pros_pure(lambda(X, appl(Term0, X)), Term, []) :-
-        /* subterm check shouldn't be necessary if all lambda terms are linear */
-	\+ subterm(Term0, X),
-	!,
-	normalize_pros_pure(Term0, Term).
-normalize_pros_pure(lambda(X,Term0), Term, [A|As]) :-
-	!,
-	replace(Term0, X, A, Term1),
-	normalize_pros_pure(Term1, Term, As).
-normalize_pros_pure(lambda(X, Term0), lambda(X, Term), []) :-
-	!,
-	normalize_pros_pure(Term0, Term).
-normalize_pros_pure(Term, appl(Term,B), [A]) :-
-	normalize_pros_pure(A, B, []).
-normalize_pros_pure(Term, Term, []).
-
-
-
-subterm(X, X).
-subterm(appl(X,_), Z) :-
-	subterm(X, Z).
-subterm(appl(_,Y), Z) :-
-	subterm(Y, Z).
-subterm(X+_, Z) :-
-	subterm(X, Z).
-subterm(_+Y, Z) :-
-	subterm(Y, Z).
-subterm(lambda(_,X), Z) :-
-	subterm(X, Z).
-
-
-replace(X, X, Y, Y) :-
-	!.
-replace(appl(X0,Y0), V, W, appl(X,Y)) :-
-	!,
-	replace(X0, V, W, X),
-	replace(Y0, V, W, Y).
-replace(X0+Y0, V, W, X+Y) :-
-	!,
-	replace(X0, V, W, X),
-	replace(Y0, V, W, Y).
-replace(lambda(X, Y0), V, W, lambda(X, Y)) :-
-	!,
-   ( X = V -> Y = Y0 ; replace(Y0, V, W, Y)).
-replace(A, _, _, A).
 
 % = withdraw_hypothesis(+InProof, +Index, +Atom, -OutProof)
 %
