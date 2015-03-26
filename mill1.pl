@@ -3,10 +3,7 @@
 				    update_roots_axiom/4,
 				    update_roots_contraction/4]).
 %:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
-:- use_module(portray_graph_none,  [portray_graph/1,
-				    graph_header/0,
-				    graph_footer/1,
-				    latex_graph/1]).
+:- use_module(portray_graph_none,  [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations,        [translate_lambek/3,
 				    translate_displacement/3,
 				    translate_hybrid/6,
