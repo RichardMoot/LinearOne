@@ -201,7 +201,7 @@ latex_mill1_item(lex(Word,Formula0,Semantics)) :-
 latex_lexicon_hybrid([]).
 latex_lexicon_hybrid([hybrid_lex(A,B,C,D)|As]) :-
 	latex_lexical_entry(A, B, C, D),
-	latex_lexicon(As).
+	latex_lexicon_hybrid(As).
 
 latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
 	macro_expand(Formula0, Formula),
