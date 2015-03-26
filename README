@@ -45,7 +45,7 @@ You can also use
 
 parse([john,ate,more,donuts,than,mary,bought,bagels], s).
 
-to directly parse a sentence.
+to directly parse a sentence. Check the lexicon and experiment a bit with the grammars yourself.
 
 = viewing the output
 
