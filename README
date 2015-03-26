@@ -57,7 +57,7 @@ When a parse is found, it is output to the file latex_proofs.tex and a pdf file 
 
 = no LaTeX output is produced!
 
-Make sure Prolog can find your LaTeX installation. To find the location of pdflatex type
+Make sure that you have write permissions in the LinearOne directory and that Prolog can find your LaTeX installation. To find the location of pdflatex type the following in a shell terminal
 
 where pdflatex
 

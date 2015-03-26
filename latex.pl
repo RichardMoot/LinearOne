@@ -1,6 +1,6 @@
 :- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0]).
 
-:- use_module(translations, [compute_pros_term/3]).
+:- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
 :- use_module(lexicon, [macro_expand/2]).
 
 % =====================================================
@@ -112,8 +112,20 @@ lexicon_footer :-
         format('LaTeX lexicon output failed~n', [])
     ).
 
+% = latex_lexicon1
+%
+% abbreviates latex_lexicon(mill1); outputs the current lexicon as first-order linear logic formulas, translating
+% displacement calculus, hybrid type-logical grammar and Lambek calculus entries when required.
+
 latex_lexicon1 :-
 	latex_lexicon(mill1).
+
+% = latex_lexicon(+GrammarType)
+%
+% Grammar type must be one of d, displacement, mill1, hybrid
+% outputs the grammar in the format indicated by the grammar type.
+
+% displacement calculus
 
 latex_lexicon(displacement) :-
 	latex_lexicon(d).
@@ -129,6 +141,8 @@ latex_lexicon(d) :-
     ),
         latex_lexicon_d(List),
 	lexicon_footer.
+
+% first-order linear logic
 
 latex_lexicon(mill1) :-
 	lexicon_header,
@@ -150,6 +164,8 @@ latex_lexicon(mill1) :-
 	latex_lexicon_list(List),
 	lexicon_footer.
 
+% hybrid type-logical grammars
+
 latex_lexicon(hybrid) :-
 	lexicon_header,
     (
@@ -161,6 +177,10 @@ latex_lexicon(hybrid) :-
     ),     
 	latex_lexicon_hybrid(List),
 	lexicon_footer.
+
+% = latex_lexicon_d(+ListOfEntries)
+%
+% output ListOfEntries as Displacement calculus lexical entries
 
 latex_lexicon_d([]).
 latex_lexicon_d([d_lex(A,B,C)|As]) :-
@@ -174,11 +194,14 @@ latex_d_item(Word, Formula0, Semantics) :-
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_d_formula(Formula), Sep, latex_semantics(Semantics,0)]).
 	
+% = latex_lexicon_list(+ListOfEntries)
+%
+% output ListOfEntries as first-order linear logic lexical entries
 
 latex_lexicon_list([]).
 latex_lexicon_list([A|As]) :-
 	latex_mill1_item(A),
-	latex_lexicon(As).
+	latex_lexicon_list(As).
 
 latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics)) :-
 	macro_expand(Formula0, Formula1),
@@ -188,15 +211,18 @@ latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics)) :-
 	lexicon_separator(Sep),
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
-latex_mill1_item(lex(Word,Formula0,Semantics)) :-
+latex_mill1_item(mill1_lex(Word,Formula0,Semantics)) :-
 	macro_expand(Formula0, Formula1),
-	translate(Formula1, [l, r], Formula),
+	try_translate(Formula1, Formula),
 	numbervars(Formula, 0, _),
 	numbervars(Semantics, 0, _),
 	lexicon_separator(Sep),
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
-	
+
+% = latex_lexicon_hybrid(+ListOfEntries)
+%
+% output ListOfEntries as hybrid type-logical grammars lexical entries
 
 latex_lexicon_hybrid([]).
 latex_lexicon_hybrid([hybrid_lex(A,B,C,D)|As]) :-
@@ -204,19 +230,32 @@ latex_lexicon_hybrid([hybrid_lex(A,B,C,D)|As]) :-
 	latex_lexicon_hybrid(As).
 
 latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
-	macro_expand(Formula0, Formula),
+	macro_expand(Formula0, Formula1),
+	try_translate(Formula1, Formula),
 	numbervars(Semantics, 0, _),
 	lexicon_separator(Sep),
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
-latex_lexical_entry(Word, Formula0, ProsTerm0, SemTerm) :-
+latex_lexical_entry(Word, Formula0, ProsTerm0, SemTerm0) :-
 	macro_expand(Formula0, Formula),
+	/* prevent strange behavior when a variable is shared between the prosodic term */
+	/* and the semantic term (otherwise, the behavior is correct under the Prolog */
+	/* meaning of bound variables, but very unlikely what the grammar writer intended) */
+	/* NOTE: best practice is still to use a different set of variables for the prosodic */
+	/* term and the semantic term */
+	copy_term(SemTerm0, SemTerm),
 	numbervars(SemTerm, 0, _),
 	compute_pros_term(ProsTerm0, Formula, ProsTerm),
 	lexicon_separator(Sep),
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word),Sep,latex_hybrid_formula(Formula),Sep,latex_pros_term(ProsTerm),Sep,latex_semantics(SemTerm,0)]). 
-  
+
+
+try_translate(Formula0, Formula) :-
+	translate(Formula0, [l,r], Formula),
+	!.
+try_translate(Formula, Formula).
+
 % = latex_proof(+Proof)
 %
 % produces LaTeX output of Proof to the stream "latex".
