@@ -1,4 +1,4 @@
-#   LinearOne   =
+#   LinearOne
 
 (c) 2015 CNRS         (http://www.cnrs.fr)
 (c) 2015 Richard Moot (Richard.Moot@labri.fr)
@@ -11,7 +11,7 @@ LinearOne is provided under the GNU Lesser General Public License (see the inclu
 
 LinearOne is a set of SWI Prolog files, which optional graph output to LuaLaTeX (using the TikZ 3.0.0 graph drawing libraries) and proof output to LaTeX/pdfLaTeX/luaLaTeX.
 
-#  Quick start  =
+#  Quick start
 
 ### Starting Prolog
 
@@ -57,7 +57,7 @@ to directly parse a sentence. Check the lexicon and experiment a bit with the gr
 
 When a parse is found, it is output to the file `latex_proofs.tex` and a pdf file `latex_proofs.pdf` is automatically produced. View `latex_proofs.pdf` with your favorite previewer. You will probably need to zoom in for larger proofs.
 
-# Troubleshooting  =
+# Troubleshooting
 
 
 ### No LaTeX output is produced!
