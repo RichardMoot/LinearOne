@@ -79,6 +79,18 @@ generate_hybrid_proof(Graph, Trace) :-
 	nd_to_hybrid(NDProof, HProof),
 	latex_hybrid(HProof).
 
+% = generate_displacement_proof(+InitialGraph, +ProofTrace)
+%
+% generate a displacement calculus proof (in natural deduction)
+% from the first-order natural deduction proof
+
+generate_displacement_proof(Graph, Trace) :-
+	node_proofs(Graph, Proofs),
+	combine_proofs(Trace, Proofs, Proof),
+	sequent_to_nd(Proof, NDProof),
+	nd_to_displacement(NDProof, DProof),
+	latex_displacement(DProof).
+
 % = generate_proof(+InitialGraph, +ProofTrace)
 %
 % generate a sequent proof, natural deduction proof and hybrid proof of the
