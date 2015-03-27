@@ -2,7 +2,7 @@
 
 :copyright: 2015 [CNRS](http://www.cnrs.fr)
 
-:copyright: 2015 Richard Moot
+:copyright: 2015 Richard Moot (@RichardMoot)
 
 This research has received financial support from the ANR CONTINT, project POLYMNIE (ANR-12-CORD-0004). 
 
