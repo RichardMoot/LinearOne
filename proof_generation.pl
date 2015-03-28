@@ -800,7 +800,9 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 	sequent_to_nd(R1, Proof1, I0, I1),
 	sequent_to_nd(R2, Proof2, I1, I).
 
-
+% = max_hypothesis(+Proof, +MaxIn, -MaxOut)
+%
+% find the hypothesis with the maximal integer index in Proof
 
 max_hypothesis(rule(hyp(I), _, _, _), Max0, Max) :-
 	!,
@@ -812,6 +814,11 @@ max_hypothesis_list([], Max, Max).
 max_hypothesis_list([R|Rs], Max0, Max) :-
 	max_hypothesis(R, Max0, Max1),
 	max_hypothesis_list(Rs, Max1, Max).
+
+% = nd_to_hybrid(+NaturalDeductionProof, -HybridProof).
+%
+% translate a natural deduction first-order linear logic proof into a proof of
+% hybrid type-logical grammars.
 
 nd_to_hybrid(Proof0, Proof) :-
 	max_hypothesis(Proof0, 0, Max0),
@@ -921,7 +928,36 @@ withdraw_hypothesis_list([R0|Rs0], I, A, [R|Rs]) :-
         R = R0,
         withdraw_hypothesis_list(Rs0, I, A, Rs)
    ).
-	
+
+
+% = nd_to_displacement(+NaturalDeductionProof, -DisplacementCalculusProof).
+%
+% translate a natural deduction first-order linear logic proof into a proof of
+% the Displacement calculus
+
+nd_to_displacement(Proof0, Proof) :-
+	max_hypothesis(Proof0, 0, Max0),
+	Max1 is Max0 + 1,
+	nd_to_displacement(Proof0, Max1, Max, Proof),
+	numbervars(Proof, Max, _).
+
+nd_to_displacement(rule(hyp(I), _, C0, []), Max, Max, rule(hyp(I), '$VAR'(I), DF, [])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_displacement(C, DF),
+	formula_type(DF, Type),
+	retractall(free_var(I, _)),
+	assert(free_var(I, Type)).
+nd_to_displacement(rule(ax, _, C0, []), Max0, Max, rule(ax, Lambda, DF, [])) :-
+	remove_formula_nodes(C0, C),
+	/* recover lexical lambda term here */
+	linear_to_displacement(C, VarList, _, DF),
+	numbervars(VarList, 0, _),
+        get_positions(VarList, N0, _R),
+	lexicon:displacement_lookup(N0, DF, Lambda0),
+	compute_pros_term(Lambda0, DF, Lambda, Max0, Max),
+	!.
+
+
 % =======================================
 % =             Input/output            =
 % =======================================

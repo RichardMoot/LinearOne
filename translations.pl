@@ -360,6 +360,111 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
         split(Vs, N, Ls0, Ls, Rs)
     ).
 
+% = linear_to_displacement
+%
+% translate a first-order linear logic formula into a Displacement calculus formula
+
+linear_to_displacement(at(A, Vs), Vs, at(A)).
+linear_to_displacement(exists(X,F0), [Z,V,W|Rest], bridge(F)) :-
+	X == V,
+	X == W,
+	!,
+	linear_to_displacement(F0, [Z|Rest], F).
+linear_to_displacement(forall(X,F0), [V,W|Rest], rproj(F)) :-
+	X == V,
+	X == W,
+	!,
+	linear_to_displacement(F0, Rest, F).
+linear_to_displacement(forall(X,F0), VList, lproj(F)) :-
+	append(Prefix, [V,W], VList),
+	X == V,
+	X == W,
+	!,
+	linear_to_displacement(F0, Prefix, F).
+% = Lambek product
+linear_to_displacement(exists(XN,p(A0,B0)), VList, p(A,B)) :-
+	linear_to_displacement(A0, VarsA, A),
+	linear_to_displacement(B0, [V|VarsB], B),
+	append(X0XN1, [W], VarsA),
+	V == XN,
+	W == XN,
+	!,
+	append(X0XN1, VarsB, VList).
+%
+linear_to_displacement(F0, VarList, F) :-
+	d_implication(F0, A0, B0, QVars, []),
+	linear_to_displacement(A0, VarsA, A),
+	linear_to_displacement(B0, VarsB, B),
+	hybrid_connective(VarsA, VarsB, QVars, VarList, A, B, F).
+
+% hybrid_connective
+%
+% We distinguish the different Displacement calculus connectives based on the first-order
+% variables. Like for the Lambek calculus, we have to be careful to require strict identity
+% here.
+
+% \
+hybrid_connective(VarsA, VarsB, QVars, VarList, A, B, dl(A,B)) :-
+	identical_prefix(QVars, [XN], VarsA),
+	identical_prefix(QVars, XN1XNM, VarsB),
+	!,
+	VarList = [XN|XN1XNM].
+% /
+hybrid_connective([XN|VarsA], VarsB, QVars, VarList, A, B, dr(B,A)) :-
+	identical_lists(VarsA, QVars),
+	identical_postfix(X0XN1, QVars, VarsB),
+	!,
+	append(X0XN1, [XN], VarList).
+% A = X1...XN
+% B = X0,X2,...,XN-1,XN+1,XN+M
+% Q = X2,...,XN-1
+hybrid_connective([X1|VarsA], [X0|VarsB], QVars, VarList, A, B, dr(>,B,A)) :-
+	identical_prefix(QVars, XN1XNM, VarsB),
+	append(Mid, [XN], VarsA),
+	identical_lists(Mid, QVars),
+	!,
+	VarList = [X0,X1,XN|XN1XNM].
+hybrid_connective([X0,X1,XN|VarsA], [V|VarsB], [Q|QVars], VarList, A, B, dl(>,A,B)) :-
+	Q == X0,
+	V == X0,
+	identical_lists(VarsA, QVars),
+	identical_postfix(X2XN1, QVars, VarsB),
+	!,
+	append([X1|X2XN1], [XN], VarList).
+
+% = identical_prefix(+Prefix, -PostFix, +List)
+%
+% 
+			 
+identical_prefix([], Ys, Ys).
+identical_prefix([X|Xs], Zs, [Y|Ys]) :-
+	X == Y,
+	identical_prefix(Xs, Zs, Ys).
+
+% = identical_postfix(-Prefix, +PostFix, +List)
+
+
+identical_postfix(Xs, Ys, Zs) :-
+	length(Ys, N),
+	length(PostFix, N),
+	append(Xs, PostFix, Zs),
+	identical_lists(PostFix, Ys).
+
+% = identical_lists
+
+identical_lists([], []).
+identical_lists([X|Xs], [Y|Ys]) :-
+	X == Y,
+	identical_list(Xs, Ys).
+
+% =
+
+d_implication(forall(X,F), A, B) -->
+	[X],
+	d_implication(F, A, B).
+d_implication(impl(A,B), A,B) -->
+	[].
+
 % ====================================
 % =   Hybrid type-logical grammars   =
 % ====================================
