@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0]).
 
 :- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
 :- use_module(lexicon, [macro_expand/2]).
@@ -31,6 +31,14 @@ hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar 
 
 hybrid_epsilon('\\epsilon').
 hybrid_concat('\\circ').
+
+%d_separator('+1+').
+%d_concat('+').
+%d_epsilon(0).
+d_separator(',').
+d_concat('\\ ').
+d_epsilon('\\epsilon').
+
 
 % =====================================================
 % =          parameters for axiom link trace          =
@@ -337,6 +345,10 @@ latex_rule_name(dre) :-
 	write(latex, '/ E').
 latex_rule_name(dle) :-
 	write(latex, '\\backslash E').
+latex_rule_name(dre(W)) :-
+	format(latex, '\\uparrow_{~w} E', [W]).
+latex_rule_name(dle(W)) :-
+	format(latex, '\\downarrow_{~w} E', [W]).
 latex_rule_name(he) :-
 	hybrid_connective(_, _, C, _),
 	format(latex, '~w E', [C]).
@@ -354,16 +366,16 @@ latex_rule_name(pe) :-
 	write(latex, '\\otimes E').
 latex_rule_name(pe(_)) :-
 	write(latex, '\\otimes E').
-latex_rule_name_(dri(_)) :-
+latex_rule_name(dri(_)) :-
 	format(latex, '/ I', []),
 	!.
-latex_rule_name_(dli(_)) :-
+latex_rule_name(dli(_)) :-
 	format(latex, '\\backslash I', []),
 	!.
-latex_rule_name_(dri) :-
+latex_rule_name(dri) :-
 	format(latex, '/ I', []),
 	!.
-latex_rule_name_(dli) :-
+latex_rule_name(dli) :-
 	format(latex, '\\backslash I', []),
 	!.
 
@@ -375,6 +387,12 @@ latex_rule_name_i(dri(I)) :-
 	!.
 latex_rule_name_i(dli(I)) :-
 	format(latex, '\\backslash I_{~w}', [I]),
+	!.
+latex_rule_name_i(dri(D,I)) :-
+	format(latex, '\\uparrow_{~w} I_{~w}', [D,I]),
+	!.
+latex_rule_name_i(dli(D,I)) :-
+	format(latex, '\\downarrow_{~w} I_{~w}', [D,I]),
 	!.
 latex_rule_name_i(hi(I)) :-
 	hybrid_connective(_, _, C, _),
@@ -556,6 +574,80 @@ latex_hybrid_formula(dl(A,B), N) :-
         format(latex, '(~@\\backslash ~@)', [latex_hybrid_formula(A,1),latex_hybrid_formula(B,1)])
    ).
 
+% latex_displacement
+
+latex_displacement(Proof) :-
+	latex_displacement(Proof, 0),
+        format(latex, '~n\\bigskip~n', []).
+
+latex_displacement(_-Proof, Tab) :-
+        latex_displacement(Proof, Tab).
+latex_displacement(rule(hyp(I), Ant, Suc, []), _Tab) :-
+	!,
+	format(latex, '[~@\\vdash ~@]^{~w}~n', [latex_d_label(Ant),latex_d_formula(Suc),I]). 
+latex_displacement(rule(ax, Ant, Suc, []), _Tab) :-
+	!,
+	format(latex, '~@\\vdash ~@~n', [latex_d_label(Ant),latex_d_formula(Suc)]). 
+latex_displacement(rule(Name, Ant, Suc, SubProofs), Tab0) :-
+	format(latex, '\\infer[~@]{~@ \\vdash ~@}{', [latex_rule_name_i(Name),latex_d_label(Ant),latex_d_formula(Suc)]),
+	Tab is Tab0 + 6,
+	latex_d_proofs(SubProofs, Tab),
+	(SubProofs = [] -> true ; tab(latex,Tab0)),
+        format(latex, '}~n', []).
+
+
+latex_d_proofs([], _Tab).
+latex_d_proofs([P|Ps], Tab) :-
+	/* newline and tab only when there is at least one premiss */
+	nl(latex),
+	tab(latex, Tab),
+	latex_d_proofs1(Ps, P, Tab).
+
+latex_d_proofs1([], P, Tab) :-
+	latex_displacement(P, Tab).
+latex_d_proofs1([P|Ps], Q, Tab) :-
+	latex_displacement(Q, Tab),
+	tab(latex, Tab),
+	format(latex, '&~n', []),
+	tab(latex, Tab),
+	latex_d_proofs1(Ps, P, Tab).
+
+
+% = latex_d_label
+
+latex_d_label([A|As]) :-
+	latex_d_label1(As, A).
+
+latex_d_label1([], A) :-
+	latex_d_label_item(A).
+latex_d_label1([B|Bs], A) :-
+	latex_d_label_item(A),
+	d_separator(Sep),
+	write(latex, Sep),
+	latex_d_label1(Bs, B).
+
+latex_d_label_item([]) :-
+	d_epsilon(Epsilon),
+	write(latex, Epsilon).
+latex_d_label_item([A|As]) :-
+	latex_d_label_item1(As, A).
+
+latex_d_label_item1([], A) :-
+	latex_d_item(A).
+latex_d_label_item1([B|Bs], A) :-
+	latex_d_item(A),
+	d_concat(Conc),
+	write(latex, Conc),
+	latex_d_label_item1(Bs, B).
+
+latex_d_item('$VAR'(N)) :-
+	!,
+	/* shared with hybrid type-logical grammars */
+	pros_variable_atom(N, At),
+	write(latex, At).
+latex_d_item(W) :-
+	latex_atom(W).
+	
 % = latex_d_formula
 
 latex_d_formula(F) :-

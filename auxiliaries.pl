@@ -1,4 +1,16 @@
-:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2, antecedent/2, non_member/2]).
+:- module(auxiliaries, [select_formula/4,
+			count_check/4,
+			subproofs/2,
+			rulename/2,
+			is_axiom/1,
+			merge_fvs/3,
+			universal_closure/2,
+			universal_disclosure/2,
+			free_vars_n/2,
+			free_vars_p/2,
+			free_vars/2,
+			antecedent/2,
+			non_member/2]).
 
 :- use_module(ordset, [ord_union/3, ord_delete/3]).
 
@@ -111,7 +123,28 @@ reduce_fvs([V|Vs], Ws) :-
         reduce_fvs(Vs, Ws0)
     ).
 
+% = universal_closure(+Formula, +ClosedFormula)
 
+universal_closure(Formula, ClosedFormula) :-
+	free_vars(Formula, FreeVars),
+	universal_closure(FreeVars, Formula, ClosedFormula).
+
+universal_closure([], Formula, Formula).
+universal_closure([X|Xs], Formula0, Formula) :-
+   (
+        var(X)
+   ->
+        universal_closure(Xs, forall(X,Formula0), Formula)
+   ;
+        universal_closure(Xs, Formula0, Formula)
+   ).
+
+% =
+
+universal_disclosure(forall(_,A0), A) :-
+	!,
+	universal_disclosure(A0, A).
+universal_disclosure(A, A).
 
 % = free_vars_n(+Formula, -SetOfFreeVars)
 %

@@ -2,7 +2,9 @@
 :- module(translations, [translate_lambek/3,
 			 linear_to_lambek/3,
 			 translate_displacement/3,
-			 translate_hybrid/6,
+			 linear_to_displacement/3,
+			 displacement_sort/2,
+		 	 translate_hybrid/6,
 			 linear_to_hybrid/2,
 			 linear_to_hybrid/3,
 			 linear_to_hybrid/4,
@@ -378,28 +380,36 @@ linear_to_displacement(exists(XN,p(A0,B0)), VList, p(A,B)) :-
 linear_to_displacement(exists(X1,exists(XN,p(A0,B0))), VList, p(I,A,B)) :-
 	linear_to_displacement(A0, VarsA, A),
 	linear_to_displacement(B0, VarsB, B),
-	displacement_product(VarsA, VarsB, X1, XN, VList, I).
-% = a	
+	displacement_product(VarsA, VarsB, X1, XN, VList, I),
+	!.
+% = any Displacement calculus implication	
 linear_to_displacement(F0, VarList, F) :-
 	d_implication(F0, A0, B0, QVars, []),
 	linear_to_displacement(A0, VarsA, A),
 	linear_to_displacement(B0, VarsB, B),
-	displacement_connective(VarsA, VarsB, QVars, VarList, A, B, F).
+	displacement_connective(VarsA, VarsB, QVars, VarList, A, B, F),
+	!.
 % ^
-linear_to_displacement(exists(X,F0), [Z,X,X|Rest], bridge(F)) :-
-	!,
-	linear_to_displacement(F0, [Z|Rest], F).
-%
-linear_to_displacement(forall(X,F0), [X,X|Rest], rproj(F)) :-
-	!,
-	linear_to_displacement(F0, Rest, F).
-%
+linear_to_displacement(exists(X,F0), [Z|Rest], bridge(F)) :-
+	linear_to_displacement(F0, [Z,V,W|Rest], F),
+	V == X,
+	W == X,
+	!.
+% right projection
+linear_to_displacement(forall(X,F0), Rest, rproj(F)) :-
+	linear_to_displacement(F0, [V,W|Rest], F),
+	V == X,
+	W == X,
+	!.
+% left projection
 linear_to_displacement(forall(X,F0), VList, lproj(F)) :-
-	append(Prefix, [X,X], VList),
 	!,
-	linear_to_displacement(F0, Prefix, F).
-
-
+	linear_to_displacement(F0, FList, F),
+	append(VList, [V,W], FList),
+	V == X,
+	W == X,
+	!.
+	
 displacement_product([X0,V,W|VarsA], [V1|VarsB], X1, XN, VarList, Dir) :-
 	V == X1,
 	W == XN,
@@ -442,7 +452,7 @@ displacement_connective([XN|VarsA], VarsB, QVars, VarList, A, B, dr(B,A)) :-
 	append(X0XN1, [XN], VarList).
 % A = X1...XN
 % B = X0,X2,...,XN-1,XN+1,XN+M
-				% Q = X2,...,XN-1
+% Q = X2,...,XN-1
 % \uparrow_>
 displacement_connective([X1|VarsA], [X0|VarsB], QVars, VarList, A, B, dr(>,B,A)) :-
 	identical_prefix(QVars, XN1XNM, VarsB),
