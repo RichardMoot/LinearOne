@@ -977,7 +977,26 @@ nd_to_displacement(Rule0, Max0, Max, Rule) :-
 	nd_to_displacement(Rule1, Max0, Max, Proof1),
 	d_hyp(I, HLabel),
 	antecedent(Proof1, PLabel),
-	d_withdraw_hypothesis(DF, I, HLabel, PLabel, Proof1, Rule).
+	d_withdraw_hypothesis(DF, I, HLabel, PLabel, Proof1, Rule),
+	!.
+nd_to_displacement(rule(ei,_,C0, [P1]), Max0, Max, rule(bridge_e, Label, DF, [Proof1])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_displacement(C, _, DF),
+	nd_to_displacement(P1, Max0, Max, Proof1),
+	antecedent(Proof1, ALabel),
+	d_lwrap(ALabel, [[]], Label),
+	!.
+nd_to_displacement(rule(fe, _, C0, [P1]), Max0, Max, rule(Nm, Label, DF, [Proof1])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_displacement(C, _, DF),
+	nd_to_displacement(P1, Max0, Max, Proof1),
+	antecedent(Proof1, ALabel),
+	d_projection(DF, Nm, ALabel, Label),
+	!.
+
+d_projection(rproj(_), rproj_i, Label, [[]|Label]).
+d_projection(lproj(_), lproj_i, Label0, Label) :-
+	append(Label0, [[]], Label).
 
 
 vars_to_d_label([_, _], Max0, Max, [['$VAR'(Max0)]]) :-
