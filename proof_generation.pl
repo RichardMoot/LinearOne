@@ -94,6 +94,7 @@ generate_displacement_proof(Graph, Trace) :-
 	node_proofs(Graph, Proofs),
 	combine_proofs(Trace, Proofs, Proof),
 	sequent_to_nd(Proof, NDProof),
+	latex_nd(NDProof),
 	nd_to_displacement(NDProof, DProof),
 	latex_displacement(DProof).
 
@@ -986,7 +987,10 @@ vars_to_d_label([_, _|Vars], Max0, Max, [['$VAR'(Max0)]|Rest0]) :-
 	Max1 is Max0 + 1,
 	vars_to_d_label(Vars, Max1, Max, Rest0).
 
-
+d_withdraw_hypothesis(dl(A,B), I, HLabel, PLabel, P1, rule(dli(I), CLabel, dl(A,B), [P1])) :-
+	d_concat(HLabel, CLabel, PLabel).
+d_withdraw_hypothesis(dr(A,B), I, HLabel, PLabel, P1, rule(dri(I), CLabel, dr(A,B), [P1])) :-
+	d_concat(CLabel, HLabel, PLabel).
 d_withdraw_hypothesis(dr(>,A,B), I, HLabel, PLabel, P1, rule(dri(>,I), CLabel, dr(>,A,B), [P1])) :-
 	d_lwrap(CLabel, HLabel, PLabel).
 d_withdraw_hypothesis(dl(>,A,B), I, HLabel, PLabel, P1, rule(dli(>,I), CLabel, dl(>,A,B), [P1])) :-
@@ -1014,11 +1018,16 @@ d_combine_proofs(dr(<,_,_), dre(<), L1, L2, L, Proof1, Proof2, [Proof2, Proof1])
 d_combine_proofs(dl(<,_,_), dle(<), L1, L2, L, Proof1, Proof2, [Proof1, Proof2]) :-
 	d_rwrap(L1, L2, L).
 
+d_concat(As, [B|Bs], Cs) :-
+	var(As),
+	!,
+	append(As0, [M|Bs], Cs),
+	append(A, B, M),
+	append(As0, [A], As).
 d_concat(L1, [First|L2], L) :-
 	append(Prefix, [Last], L1),
 	append(Last, First, Merged),
-	append(Prefix, [Merged], Pref2),
-	append(Pref2, L2, L).
+	append(Prefix, [Merged|L2], L).
 d_lwrap([A0,A|As], Bs, Cs) :-
 	d_concat([A0], Bs, ABs0),
 	d_concat(ABs0, [A|As], Cs).
