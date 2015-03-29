@@ -24,7 +24,10 @@
 
 
 :- use_module(lexicon, [macro_expand/2]).
-:- use_module(auxiliaries, [non_member/2]).
+:- use_module(auxiliaries, [non_member/2,
+			    identical_prefix/3,
+			    identical_postfix/3,
+			    identical_lists/2]).
 :- use_module(ordset, [ord_key_union_u/3, ord_key_insert/4, ord_key_member/3]).
 
 % = hybrid_pros
@@ -487,30 +490,6 @@ displacement_connective(VarsA, VarsB, QVars, VarList, A, B, dl(<,A,B)) :-
 	!,
 	append([XN|XN1XNM1], [XNM1], VarList).
 	
-% = identical_prefix(+Prefix, -PostFix, +List)
-%
-% 
-			 
-identical_prefix([], Ys, Ys).
-identical_prefix([X|Xs], Zs, [Y|Ys]) :-
-	X == Y,
-	identical_prefix(Xs, Zs, Ys).
-
-% = identical_postfix(-Prefix, +PostFix, +List)
-
-
-identical_postfix(Xs, Ys, Zs) :-
-	length(Ys, N),
-	length(PostFix, N),
-	append(Xs, PostFix, Zs),
-	identical_lists(PostFix, Ys).
-
-% = identical_lists
-
-identical_lists([], []).
-identical_lists([X|Xs], [Y|Ys]) :-
-	X == Y,
-	identical_lists(Xs, Ys).
 
 % =
 

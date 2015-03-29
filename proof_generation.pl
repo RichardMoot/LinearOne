@@ -16,7 +16,11 @@
 			     subproofs/2,
 			     rulename/2,
 			     is_axiom/1,
-			     antecedent/2]).
+			     antecedent/2,
+			     identical_prefix/3,
+			     identical_postfix/3,
+			     identical_lists/2,
+			     split_list/4]).
 :- use_module(translations, [linear_to_hybrid/2,
 			     linear_to_hybrid/3,
 			     linear_to_hybrid/4,
@@ -955,30 +959,66 @@ nd_to_displacement(rule(hyp(I), _, C0, []), Max0, Max, rule(hyp(I), Label, DF, [
 
 nd_to_displacement(rule(ax, _, C0, []), Max, Max, rule(ax, [[Word]], DF, [])) :-
 	remove_formula_nodes(C0, C),
-	/* recover lexical lambda term here */
 	linear_to_displacement(C, [N0,_], DF),
+	/* recover the corresponding word from lexical lookup here */
 	lexicon:memo_lookup(N0, Word),
+	!.
+% Lambek product introduction
+nd_to_displacement(rule(ei,_,C0, [rule(pi, _, _, [P1,P2])]), Max0, Max, rule(pi, Label, DF, [Proof1,Proof2])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_displacement(C, _, DF),
+	nd_to_displacement(P1, Max0, Max1, Proof1),
+	nd_to_displacement(P2, Max1, Max, Proof2),
+	Proof1 = rule(_, Label1, _, _),
+	Proof2 = rule(_, Label2, _, _),
+	d_concat(Label1, Label2, Label),
+	!.
+% Displacement product introduction
+nd_to_displacement(rule(ei,_,C0,[rule(ei,_,_,[rule(pi,_,_,[P1,P2])])]), Max0, Max, rule(pi(LR), Label, DF, [Proof1,Proof2])) :-
+	remove_formula_nodes(C0, C),
+	linear_to_displacement(C, _, DF),
+	/* look at the formula to determine whether we found a left-wrap or right-wrap product */
+	DF = p(LR,_,_),
+	nd_to_displacement(P1, Max0, Max1, Proof1),
+	nd_to_displacement(P2, Max1, Max, Proof2),
+	Proof1 = rule(_, Label1, _, _),
+	Proof2 = rule(_, Label2, _, _),
+        ((LR = >) -> d_lwrap(Label1, Label2, Label) ; d_rwrap(Label1, Label2, Label)), 
 	!.
 
 nd_to_displacement(rule(ie,_,C0, [RuleA,RuleAB0]), Max0, Max, Rule) :-
+	/* elimination rule for one of the implications */
+	/* get the positions of the conclusion of the rule */
 	remove_formula_nodes(C0, C),
-	linear_to_displacement(C, _Vars, DF),
-	d_implication_elim(RuleAB0, RuleAB),
+	linear_to_displacement(C, VarsC, DF),
+	/* get the positions of the argument (minor premiss) of the rule */
+	RuleA = rule(_, _, A0, _),
+	remove_formula_nodes(A0, A),
+	linear_to_displacement(A, VarsA, _DA),
+	/* use both together to decide which forall elimination rules belong to the */
+	/* connective of the main formula of the rule */
+	d_implication_elim(RuleAB0, VarsA, VarsC, RuleAB),
 	nd_to_displacement(RuleA, Max0, Max1, Proof1),
 	nd_to_displacement(RuleAB, Max1, Max, Proof2),
 	Proof2 = rule(_, _, MainF, _),
 	d_combine_proofs(Proof1, Proof2, MainF, DF, Rule),
 	!.
 nd_to_displacement(Rule0, Max0, Max, Rule) :-
-	d_implication_intro(Rule0, I, Rule1),
+	/* introduction rule for one of the implications */
 	Rule0 = rule(_, _, C0, _),
 	remove_formula_nodes(C0, C),
 	linear_to_displacement(C, _Vars, DF),
+	mill1_argument(C, A),
+	linear_to_displacement(A, VarsA, _DA),
+	length(VarsA, Len),
+	d_quantifier_number(DF, Len, QN),
+	d_implication_intro(Rule0, QN, I, Rule1),
 	nd_to_displacement(Rule1, Max0, Max, Proof1),
 	d_hyp(I, HLabel),
 	antecedent(Proof1, PLabel),
 	d_withdraw_hypothesis(DF, I, HLabel, PLabel, Proof1, Rule),
 	!.
+% = bridge
 nd_to_displacement(rule(ei,_,C0, [P1]), Max0, Max, rule(bridge_e, Label, DF, [Proof1])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_displacement(C, _, DF),
@@ -986,16 +1026,40 @@ nd_to_displacement(rule(ei,_,C0, [P1]), Max0, Max, rule(bridge_e, Label, DF, [Pr
 	antecedent(Proof1, ALabel),
 	d_lwrap(ALabel, [[]], Label),
 	!.
+% = left/right projections
 nd_to_displacement(rule(fe, _, C0, [P1]), Max0, Max, rule(Nm, Label, DF, [Proof1])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_displacement(C, _, DF),
 	nd_to_displacement(P1, Max0, Max, Proof1),
-	antecedent(Proof1, ALabel),
-	d_projection(DF, Nm, ALabel, Label),
+	Proof1 = rule(_, ALabel, AF, _),
+	d_projection(AF, Nm, ALabel, Label),
 	!.
 
-d_projection(rproj(_), rproj_i, Label, [[]|Label]).
-d_projection(lproj(_), lproj_i, Label0, Label) :-
+% Lambek: the number of quantifiers is equal to 2*s(A)+1 (ie. the number of string positions of the
+% argument minus one
+% uparrow: the number of quantifiers is equal to to 2*s(B) (ie. the number of string positions of the
+% argument minus two
+% downarrow: the number of quantifiers is equal to the number of string positions of the argument
+% minus two
+
+d_quantifier_number(dl(_,_), N0, N) :-
+	N is N0 - 1.
+d_quantifier_number(dr(_,_), N0, N) :-
+	N is N0 - 1.
+d_quantifier_number(dl(_,_,_), N0, N) :-
+	N is N0 - 2.
+d_quantifier_number(dr(_,_,_), N0, N) :-
+	N is N0 - 2.
+
+
+mill1_argument(forall(_,A0), A) :-
+	mill1_argument(A0, A).
+mill1_argument(impl(A,_), A).
+
+
+
+d_projection(rproj(_), rproj_e, Label, [[]|Label]).
+d_projection(lproj(_), lproj_e, Label0, Label) :-
 	append(Label0, [[]], Label).
 
 
@@ -1010,9 +1074,11 @@ d_withdraw_hypothesis(dl(A,B), I, HLabel, PLabel, P1, rule(dli(I), CLabel, dl(A,
 	d_concat(HLabel, CLabel, PLabel).
 d_withdraw_hypothesis(dr(A,B), I, HLabel, PLabel, P1, rule(dri(I), CLabel, dr(A,B), [P1])) :-
 	d_concat(CLabel, HLabel, PLabel).
-d_withdraw_hypothesis(dr(>,A,B), I, HLabel, PLabel, P1, rule(dri(>,I), CLabel, dr(>,A,B), [P1])) :-
-	d_lwrap(CLabel, HLabel, PLabel).
-d_withdraw_hypothesis(dl(>,A,B), I, HLabel, PLabel, P1, rule(dli(>,I), CLabel, dl(>,A,B), [P1])) :-
+d_withdraw_hypothesis(dr(>,A,B), I, [[C]|Cs], PLabel, P1, rule(dri(>,I), CLabel, dr(>,A,B), [P1])) :-
+	PLabel = [PL1|_],
+	split_list(PL1, C, C1, C2),
+	CLabel = [C1,C2|Cs].
+d_withdraw_hypothesis(dl(>,A,B), I, HLabel, PLabel, P1, rule(dli(>,I), CLabel, dl(>,A,B), [P1])) :-	
 	d_lwrap(HLabel, CLabel, PLabel).
 d_withdraw_hypothesis(dr(<,A,B), I, HLabel, PLabel, P1, rule(dri(>,I), CLabel, dr(<,A,B), [P1])) :-
 	d_rwrap(CLabel, HLabel, PLabel).
@@ -1037,33 +1103,110 @@ d_combine_proofs(dr(<,_,_), dre(<), L1, L2, L, Proof1, Proof2, [Proof2, Proof1])
 d_combine_proofs(dl(<,_,_), dle(<), L1, L2, L, Proof1, Proof2, [Proof1, Proof2]) :-
 	d_rwrap(L1, L2, L).
 
-d_concat(As, [B|Bs], Cs) :-
+d_concat(As, Bs0, Cs) :-
 	var(As),
 	!,
+    (
+        Bs0 == []
+    ->
+        As = Cs
+    ;
+        Bs0 = [B|Bs],	
 	append(As0, [M|Bs], Cs),
 	append(A, B, M),
-	append(As0, [A], As).
+        append(As0, [A], As)
+    ).
 d_concat(L1, [First|L2], L) :-
 	append(Prefix, [Last], L1),
 	append(Last, First, Merged),
 	append(Prefix, [Merged|L2], L).
+% d_lwrap([As0|As], Bs, [C|Cs]) :-
+% 	var(As),
+% 	!,
+% 	d_concat(As0, Bs, Cs),
+% 	d_concat([As0], [B|Bs], ABs0),
+% 	d_concat(ABs0, As, [C|Cs]),
+% 	As = [A|As0].
 d_lwrap([A0,A|As], Bs, Cs) :-
-	d_concat([A0], Bs, ABs0),
-	d_concat(ABs0, [A|As], Cs).
+   (
+        var(Bs)
+   ->
+	d_concat(ABs0, [A|As], Cs),
+        d_concat([A0], Bs, ABs0)
+   ;
+        d_concat(ABs0, [A|As], Cs),
+        d_concat([A0], Bs, ABs0)
+   ).
+%	d_concat(ABs0, [A|As], Cs).
 d_rwrap(As, Bs, Cs) :-
 	append(Prefix, [Last], As),
 	d_concat(Prefix, Bs, PBs0),
 	d_concat(PBs0, [Last], Cs).
 
-d_implication_elim(rule(fe, _, _, [Rule0]), Rule) :-
-	!,
-	d_implication_elim(Rule0, Rule).
-d_implication_elim(Rule, Rule).
 
-d_implication_intro(rule(fi, _, _, [Rule0]), I, Rule) :-
+universal_quantifier_variable(_-F, Q) :-
+	universal_quantifier_variable(F, Q).
+universal_quantifier_variable(forall(X,_), X).
+
+% recover the list of quantified variables
+
+d_implication_elim(Rule0, ArgVars0, ResultVars, Rule) :-
+	/* dl(A,B) */
+	append(ArgVars, [_], ArgVars0),
+	identical_prefix(ArgVars, _, ResultVars),
 	!,
-	d_implication_intro(Rule0, I, Rule).
-d_implication_intro(rule(ii(I), _, _, [Rule]), I, Rule).
+	d_implication_elim(ArgVars, Rule0, Rule).
+d_implication_elim(Rule0, [_|ArgVars], ResultVars, Rule) :-
+	/* dr(A,B) */
+	identical_postfix(_, ArgVars, ResultVars),
+	!,
+	d_implication_elim(ArgVars, Rule0, Rule).
+d_implication_elim(Rule0, [_|ArgVars0], [_|ResultVars], Rule) :-
+	/* \uparrow_> */
+	append(ArgVars, [_], ArgVars0),
+	identical_prefix(ArgVars, _, ResultVars),
+	!,
+	d_implication_elim(ArgVars, Rule0, Rule).
+d_implication_elim(Rule0, [A,_,_|ArgVars], [R|ResultVars], Rule) :-
+	A == R,
+	/* \downarrow_> */
+	identical_postfix(_, ArgVars, ResultVars),
+	!,
+	d_implication_elim([A|ArgVars], Rule0, Rule).
+d_implication_elim(Rule0, [_|ArgVars0], ResultVars0, Rule) :-
+	/* \uparrow_< */
+	append(ArgVars, [_], ArgVars0),
+	append(ResultVars, [_], ResultVars0),
+	identical_postfix(_, ArgVars, ResultVars),
+	!,
+	d_implication_elim(ArgVars, Rule0, Rule).
+d_implication_elim(Rule0, ArgVars0, ResultVars0, Rule) :-
+	/* \downarrow_< */
+	append(ArgVars1, [_,_,Z], ArgVars0),
+	append(ResultVars, [XNM], ResultVars0),
+	XNM == Z,
+	identical_prefix(ArgVars1, _, ResultVars),
+	append(ArgVars1, [XNM], ArgVars),
+	!,
+	d_implication_elim(ArgVars, Rule0, Rule).
+
+%
+d_implication_elim([_|Vs], rule(fe, _, _, [Rule0]), Rule) :-
+%	Rule0 = rule(_, _, AB0, _),
+%	remove_formula_nodes(AB0, AB1),
+%	AB1 = forall(X,_),
+%	X == V,
+	!,
+	d_implication_elim(Vs, Rule0, Rule).
+d_implication_elim([], Rule, Rule).
+	
+
+d_implication_intro(rule(fi, _, _, [Rule0]), N0, I, Rule) :-
+	N0 > 0,
+	N is N0 - 1,
+	!,
+	d_implication_intro(Rule0, N, I, Rule).
+d_implication_intro(rule(ii(I), _, _, [Rule]), 0, I, Rule).
 
 % =======================================
 % =             Input/output            =
