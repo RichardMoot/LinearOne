@@ -1074,10 +1074,10 @@ d_withdraw_hypothesis(dl(A,B), I, HLabel, PLabel, P1, rule(dli(I), CLabel, dl(A,
 	d_concat(HLabel, CLabel, PLabel).
 d_withdraw_hypothesis(dr(A,B), I, HLabel, PLabel, P1, rule(dri(I), CLabel, dr(A,B), [P1])) :-
 	d_concat(CLabel, HLabel, PLabel).
-d_withdraw_hypothesis(dr(>,A,B), I, [[C]|Cs], PLabel, P1, rule(dri(>,I), CLabel, dr(>,A,B), [P1])) :-
-	PLabel = [PL1|_],
+d_withdraw_hypothesis(dr(>,A,B), I, [[C]], PLabel, P1, rule(dri(>,I), CLabel, dr(>,A,B), [P1])) :-
+	PLabel = [PL1|PLs],
 	split_list(PL1, C, C1, C2),
-	CLabel = [C1,C2|Cs].
+	CLabel = [C1,C2|PLs].
 d_withdraw_hypothesis(dl(>,A,B), I, HLabel, PLabel, P1, rule(dli(>,I), CLabel, dl(>,A,B), [P1])) :-	
 	d_lwrap(HLabel, CLabel, PLabel).
 d_withdraw_hypothesis(dr(<,A,B), I, HLabel, PLabel, P1, rule(dri(>,I), CLabel, dr(<,A,B), [P1])) :-
