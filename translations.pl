@@ -342,12 +342,6 @@ forall_prefix([], F, F).
 forall_prefix([X|Xs], forall(X,F0), F) :-
 	forall_prefix(Xs, F0, F).
 
-%last([A|As], L) :-
-%	last0(As, A, L).
-%last0([], L, L).
-%last0([A|As], _, L) :-
-%	last0(As, A, L).
-
 last([A|As], L, Rest) :-
 	last(As, A, L, Rest).
 last([], A, A, []).
