@@ -380,10 +380,10 @@ latex_rule_name(dli) :-
 	!.
 latex_rule_name(bridge_e) :-
 	format(latex, '\\,\\hat{\\,} E', []).
-latex_rule_name(rproj_i) :-
-	format(latex, '\\triangleright^{-1} I', []).
-latex_rule_name(lproj_i) :-
-	format(latex, '\\triangleleft^{-1} I', []).
+latex_rule_name(rproj_e) :-
+	format(latex, '\\triangleright^{-1} E', []).
+latex_rule_name(lproj_e) :-
+	format(latex, '\\triangleleft^{-1} E', []).
 
 latex_rule_name_i(ii(I)) :-
 	format(latex, '\\multimap I_{~w}', [I]),
