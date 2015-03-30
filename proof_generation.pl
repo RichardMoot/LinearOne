@@ -1134,8 +1134,8 @@ d_lwrap([A0,A|As], Bs, Cs) :-
 	d_concat(ABs0, [A|As], Cs),
         d_concat([A0], Bs, ABs0)
    ;
-        d_concat(ABs0, [A|As], Cs),
-        d_concat([A0], Bs, ABs0)
+        d_concat([A0], Bs, ABs0),
+        d_concat(ABs0, [A|As], Cs)
    ).
 %	d_concat(ABs0, [A|As], Cs).
 d_rwrap(As, Bs, Cs) :-
@@ -1154,32 +1154,32 @@ d_implication_elim(Rule0, ArgVars0, ResultVars, Rule) :-
 	/* dl(A,B) */
 	append(ArgVars, [_], ArgVars0),
 	identical_prefix(ArgVars, _, ResultVars),
-	!,
-	d_implication_elim(ArgVars, Rule0, Rule).
+	d_implication_elim(ArgVars, Rule0, Rule),
+	!.
 d_implication_elim(Rule0, [_|ArgVars], ResultVars, Rule) :-
 	/* dr(A,B) */
 	identical_postfix(_, ArgVars, ResultVars),
-	!,
-	d_implication_elim(ArgVars, Rule0, Rule).
+	d_implication_elim(ArgVars, Rule0, Rule),
+	!.
 d_implication_elim(Rule0, [_|ArgVars0], [_|ResultVars], Rule) :-
 	/* \uparrow_> */
 	append(ArgVars, [_], ArgVars0),
 	identical_prefix(ArgVars, _, ResultVars),
-	!,
-	d_implication_elim(ArgVars, Rule0, Rule).
+	d_implication_elim(ArgVars, Rule0, Rule),
+	!.
 d_implication_elim(Rule0, [A,_,_|ArgVars], [R|ResultVars], Rule) :-
 	A == R,
 	/* \downarrow_> */
 	identical_postfix(_, ArgVars, ResultVars),
-	!,
-	d_implication_elim([A|ArgVars], Rule0, Rule).
+	d_implication_elim([A|ArgVars], Rule0, Rule),
+	!.
 d_implication_elim(Rule0, [_|ArgVars0], ResultVars0, Rule) :-
 	/* \uparrow_< */
 	append(ArgVars, [_], ArgVars0),
 	append(ResultVars, [_], ResultVars0),
 	identical_postfix(_, ArgVars, ResultVars),
-	!,
-	d_implication_elim(ArgVars, Rule0, Rule).
+	d_implication_elim(ArgVars, Rule0, Rule),
+	!.
 d_implication_elim(Rule0, ArgVars0, ResultVars0, Rule) :-
 	/* \downarrow_< */
 	append(ArgVars1, [_,_,Z], ArgVars0),
@@ -1187,10 +1187,9 @@ d_implication_elim(Rule0, ArgVars0, ResultVars0, Rule) :-
 	XNM == Z,
 	identical_prefix(ArgVars1, _, ResultVars),
 	append(ArgVars1, [XNM], ArgVars),
-	!,
-	d_implication_elim(ArgVars, Rule0, Rule).
+	d_implication_elim(ArgVars, Rule0, Rule),
+	!.
 
-%
 d_implication_elim([_|Vs], rule(fe, _, _, [Rule0]), Rule) :-
 %	Rule0 = rule(_, _, AB0, _),
 %	remove_formula_nodes(AB0, AB1),
