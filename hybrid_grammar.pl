@@ -71,11 +71,13 @@ test(12) :-
 	/* first-found */
         /*     4,215,069,209 axioms performed */
 	/* 3,014,184,930,660 inferences, 375241.334 CPU in 375357.875 seconds (100% CPU, 8032657 Lips) */
+	/*                          = 4d8h14m01.334s */
 	/*    59 proofs */
 	/* with first dancing links version */
 	/*        24,757,440 axioms */
+        /*    78,463,497,676 inferences,  10008.709 CPU in  10097.414 seconds (99% CPU, 7839522 Lips) */
+	/*                            = 2h46m48.709s */
 	/*    42 proofs (why this difference?) */
-        /*       100,274,098 inferences,  19610.310 CPU in  22963.585 seconds  (85% CPU, 5220552 Lips) */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
 
