@@ -1,6 +1,7 @@
-:- module(lexicon, [lookup/4, lookup/5, macro_expand/2, lexical_lookup/5]).
+:- module(lexicon, [lookup/4, lookup/5, macro_expand/2, lexical_lookup/5, lex_to_displacement/2, lex_to_hybrid/3]).
 
-:- use_module(translations, [translate/3, translate_hybrid/6]).
+:- use_module(translations, [translate/3, translate_hybrid/6,linear_to_hybrid/3,linear_to_displacement/3]).
+:- use_module(auxiliaries, [universal_closure/2,universal_disclosure/2]).
 
 % define operators to allow for easier specification of
 % hybrid and displacement lexical entries.
@@ -26,7 +27,7 @@
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
 
-:- dynamic hybrid_lookup/3.
+:- dynamic hybrid_lookup/3, memo_lookup/2.
 
 lookup(Words, Formulas, Goal, ExpandedGoal) :-
 	lookup(Words, Formulas, _, Goal, ExpandedGoal).
@@ -51,7 +52,9 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         /* Lambek/Displacement entry */
 	lex(Word, Formula0, Semantics),
 	macro_expand(Formula0, Formula1),
-	translate(Formula1, [N0,N1], Formula)
+        translate(Formula1, [N0,N1], Formula),
+        retractall(memo_lookup(N0, _)),
+        assert(memo_lookup(N0, Word))
     ;
 	current_predicate(lex/4),	
         lex(Word, _, _, _)
@@ -72,7 +75,17 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         format(user_error, '~N{Error: No lexical entry for "~w"}~n', [Word]),
         fail
     ).
-	
+
+lex_to_displacement(Word, Formula) :-
+	lexical_lookup(Word, MFormula, _, 1, 2),
+	universal_closure(MFormula, CFormula),
+	linear_to_displacement(CFormula, [1,2], Formula).
+lex_to_hybrid(Word, Formula, Term) :-
+	lexical_lookup(Word, MFormula, _, 1, 2),
+	universal_disclosure(MFormula, FFormula),
+%	MFormula = FFormula,
+	linear_to_hybrid(FFormula, Formula, Term).
+
 macro_expand(d_q, F) :-
 	!,
 	macro_expand(((s/<n)\<s)/cn, F).

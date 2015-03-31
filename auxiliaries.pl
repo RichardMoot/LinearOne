@@ -1,4 +1,20 @@
-:- module(auxiliaries, [select_formula/4, count_check/4, subproofs/2, rulename/2, is_axiom/1, merge_fvs/3, free_vars_n/2, free_vars_p/2, free_vars/2, antecedent/2, non_member/2]).
+:- module(auxiliaries, [select_formula/4,
+			count_check/4,
+			subproofs/2,
+			rulename/2,
+			is_axiom/1,
+			merge_fvs/3,
+			universal_closure/2,
+			universal_disclosure/2,
+			free_vars_n/2,
+			free_vars_p/2,
+			free_vars/2,
+			antecedent/2,
+			non_member/2,
+			identical_prefix/3,
+			identical_postfix/3,
+			identical_lists/2,
+			split_list/4]).
 
 :- use_module(ordset, [ord_union/3, ord_delete/3]).
 
@@ -111,7 +127,28 @@ reduce_fvs([V|Vs], Ws) :-
         reduce_fvs(Vs, Ws0)
     ).
 
+% = universal_closure(+Formula, +ClosedFormula)
 
+universal_closure(Formula, ClosedFormula) :-
+	free_vars(Formula, FreeVars),
+	universal_closure(FreeVars, Formula, ClosedFormula).
+
+universal_closure([], Formula, Formula).
+universal_closure([X|Xs], Formula0, Formula) :-
+   (
+        var(X)
+   ->
+        universal_closure(Xs, forall(X,Formula0), Formula)
+   ;
+        universal_closure(Xs, Formula0, Formula)
+   ).
+
+% =
+
+universal_disclosure(forall(_,A0), A) :-
+	!,
+	universal_disclosure(A0, A).
+universal_disclosure(A, A).
 
 % = free_vars_n(+Formula, -SetOfFreeVars)
 %
@@ -207,3 +244,45 @@ non_member(_, []).
 non_member(X, [Y|Ys]) :-
 	X \== Y,
 	non_member(X, Ys).
+
+% = identical_prefix(+Prefix, -PostFix, +List)
+%
+% true if Prefix is a prefix of List using strict identity instead
+% of unifiability; returns the PostFix
+			 
+identical_prefix([], Ys, Ys).
+identical_prefix([X|Xs], Zs, [Y|Ys]) :-
+	X == Y,
+	identical_prefix(Xs, Zs, Ys).
+
+% = identical_postfix(-Prefix, +PostFix, +List)
+%
+% true if Postfix is a postfix of List using strict identity instead
+% of unifiability; returns the Prefix
+
+identical_postfix(Xs, Ys, Zs) :-
+	length(Ys, N),
+	length(PostFix, N),
+	append(Xs, PostFix, Zs),
+	identical_lists(PostFix, Ys).
+
+% = identical_lists(+List1, +List2)
+%
+% true if List1 and List2 are strictly identical (essentially List1 == List2,
+% but checks that both arguments are proper lists)
+
+identical_lists([], []).
+identical_lists([X|Xs], [Y|Ys]) :-
+	X == Y,
+	identical_lists(Xs, Ys).
+
+% = split_list(+List, +Element, -Before, -After)
+%
+% as select/3, but returns two lists, one with the prefix of List before Element
+% and one with the suffix of List after Element
+% in other words, append(Before, [Element|After], List) is true
+
+split_list([A|As], A, [], As) :-
+	!.
+split_list([A|As0], C, [A|As], Bs) :-
+	split_list(As0, C, As, Bs).

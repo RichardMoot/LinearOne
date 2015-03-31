@@ -2,7 +2,9 @@
 :- module(translations, [translate_lambek/3,
 			 linear_to_lambek/3,
 			 translate_displacement/3,
-			 translate_hybrid/6,
+			 linear_to_displacement/3,
+			 displacement_sort/2,
+		 	 translate_hybrid/6,
 			 linear_to_hybrid/2,
 			 linear_to_hybrid/3,
 			 linear_to_hybrid/4,
@@ -22,7 +24,10 @@
 
 
 :- use_module(lexicon, [macro_expand/2]).
-:- use_module(auxiliaries, [non_member/2]).
+:- use_module(auxiliaries, [non_member/2,
+			    identical_prefix/3,
+			    identical_postfix/3,
+			    identical_lists/2]).
 :- use_module(ordset, [ord_key_union_u/3, ord_key_insert/4, ord_key_member/3]).
 
 % = hybrid_pros
@@ -337,12 +342,6 @@ forall_prefix([], F, F).
 forall_prefix([X|Xs], forall(X,F0), F) :-
 	forall_prefix(Xs, F0, F).
 
-%last([A|As], L) :-
-%	last0(As, A, L).
-%last0([], L, L).
-%last0([A|As], _, L) :-
-%	last0(As, A, L).
-
 last([A|As], L, Rest) :-
 	last(As, A, L, Rest).
 last([], A, A, []).
@@ -359,6 +358,140 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
         N is N0 - 1,
         split(Vs, N, Ls0, Ls, Rs)
     ).
+
+% = linear_to_displacement
+%
+% translate a first-order linear logic formula into a Displacement calculus formula
+
+linear_to_displacement(at(A, Vs), Vs, at(A)).
+% = Lambek product
+linear_to_displacement(exists(XN,p(A0,B0)), VList, p(A,B)) :-
+	linear_to_displacement(A0, VarsA, A),
+	linear_to_displacement(B0, [V|VarsB], B),
+	append(X0XN1, [W], VarsA),
+	V == XN,
+	W == XN,
+	!,
+	append(X0XN1, VarsB, VList).
+% = \odot
+linear_to_displacement(exists(X1,exists(XN,p(A0,B0))), VList, p(I,A,B)) :-
+	linear_to_displacement(A0, VarsA, A),
+	linear_to_displacement(B0, VarsB, B),
+	displacement_product(VarsA, VarsB, X1, XN, VList, I),
+	!.
+% = any Displacement calculus implication	
+linear_to_displacement(F0, VarList, F) :-
+	d_implication(F0, A0, B0, QVars, []),
+	linear_to_displacement(A0, VarsA, A),
+	linear_to_displacement(B0, VarsB, B),
+	displacement_connective(VarsA, VarsB, QVars, VarList, A, B, F),
+	!.
+% ^
+linear_to_displacement(exists(X,F0), [Z|Rest], bridge(F)) :-
+	linear_to_displacement(F0, [Z,V,W|Rest], F),
+	V == X,
+	W == X,
+	!.
+% right projection
+linear_to_displacement(forall(X,F0), Rest, rproj(F)) :-
+	linear_to_displacement(F0, [V,W|Rest], F),
+	V == X,
+	W == X,
+	!.
+% left projection
+linear_to_displacement(forall(X,F0), VList, lproj(F)) :-
+	!,
+	linear_to_displacement(F0, FList, F),
+	append(VList, [V,W], FList),
+	V == X,
+	W == X,
+	!.
+	
+displacement_product([X0,V,W|VarsA], [V1|VarsB], X1, XN, VarList, Dir) :-
+	V == X1,
+	W == XN,
+	V1 == X1,
+	append(X2XN1, [W1], VarsB),
+	W1 == XN,
+	!,
+	Dir = >,
+	append([X0|X2XN1], VarsA, VarList).
+displacement_product(VarsA, [V|VarsB], XN, XNM1, VarList, Dir) :-
+	V == XN,
+	append(XN1XNM2, [W], VarsB),
+	W == XNM1,
+	append(X0XN1, [V1,W1,XNM], VarsA),
+	V1 == XN,
+	W1 == XNM1,
+	!,
+	Dir = <,
+	append(XN1XNM2, [XNM], Tail),
+	append(X0XN1, Tail, VarList).
+
+		
+% displacement_connective
+%
+% We distinguish the different Displacement calculus connectives based on the first-order
+% variables. Like for the Lambek calculus, we have to be careful to require strict identity
+% here.
+
+% \
+displacement_connective(VarsA, VarsB, QVars, VarList, A, B, dl(A,B)) :-
+	identical_prefix(QVars, [XN], VarsA),
+	identical_prefix(QVars, XN1XNM, VarsB),
+	!,
+	VarList = [XN|XN1XNM].
+% /
+displacement_connective([XN|VarsA], VarsB, QVars, VarList, A, B, dr(B,A)) :-
+	identical_lists(VarsA, QVars),
+	identical_postfix(X0XN1, QVars, VarsB),
+	!,
+	append(X0XN1, [XN], VarList).
+% A = X1...XN
+% B = X0,X2,...,XN-1,XN+1,XN+M
+% Q = X2,...,XN-1
+% \uparrow_>
+displacement_connective([X1|VarsA], [X0|VarsB], QVars, VarList, A, B, dr(>,B,A)) :-
+	identical_prefix(QVars, XN1XNM, VarsB),
+	append(Mid, [XN], VarsA),
+	identical_lists(Mid, QVars),
+	!,
+	VarList = [X0,X1,XN|XN1XNM].
+% \downarrow_>
+displacement_connective([X0,X1,XN|VarsA], [V|VarsB], [Q|QVars], VarList, A, B, dl(>,A,B)) :-
+	Q == X0,
+	V == X0,
+	identical_lists(VarsA, QVars),
+	identical_postfix(X2XN1, QVars, VarsB),
+	!,
+	append([X1|X2XN1], [XN], VarList).
+% \uparrow_<
+displacement_connective([XN|VarsA], VarsB, QVars, VarList, A, B, dr(<,B,A)) :-
+	append(Mid, [XNM1], VarsA),
+	identical_lists(Mid, QVars),
+	append(X0XNM2, [XNM], VarsB),
+	identical_postfix(X0XN1, QVars, X0XNM2),
+	!,
+	append(X0XN1,[XN,XNM1,XNM], VarList).
+% \downarrow_<
+displacement_connective(VarsA, VarsB, QVars, VarList, A, B, dl(<,A,B)) :-
+	append(Mid, [Q], QVars),
+	identical_prefix(Mid, XN1XNM ,VarsB),
+	append(XN1XNM1, [XNM], XN1XNM),
+	Q == XNM,
+	identical_prefix(Mid, [XN,XNM1,R], VarsA),
+	R == XNM,
+	!,
+	append([XN|XN1XNM1], [XNM1], VarList).
+	
+
+% =
+
+d_implication(forall(X,F), A, B) -->
+	[X],
+	d_implication(F, A, B).
+d_implication(impl(A,B), A,B) -->
+	[].
 
 % ====================================
 % =   Hybrid type-logical grammars   =
