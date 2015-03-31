@@ -14,8 +14,7 @@
 				    generate_nd_proof/2,
 				    generate_hybrid_proof/2,
 				    generate_displacement_proof/2]).
-:- use_module(latex,               [latex_proof/1,
-				    proof_header/0,
+:- use_module(latex,               [proof_header/0,
 				    proof_footer/0,
 				    latex_semantics/1]).
 :- use_module(sem_utils,           [substitute_sem/3,
@@ -219,8 +218,7 @@ prove0(Antecedent, Goal, LexSem) :-
 	retractall('$PROOFS'(_, _)),
 	assert('$PROOFS'(N, [Sem|SemList])),
 	/* generate a LaTeX proof */
-	generate_displacement_proof(GraphCopy, Trace).
-%	generate_proof(GraphCopy, Trace).
+	generate_proof(GraphCopy, Trace).
 
 % = first_proof
 %

@@ -121,7 +121,14 @@ generate_proof(Graph, Trace) :-
      ;
         true
      ),
-	latex_nd(NDProof),
+    (
+        nd_to_displacement(NDProof, DisplacementProof)
+    ->
+        latex_displacement(DisplacementProof)
+    ;
+        true
+    ),
+        latex_nd(NDProof),
 	latex_proof(Proof).
 
 combine_proofs([], [Proof], Proof).
