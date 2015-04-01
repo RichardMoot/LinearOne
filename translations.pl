@@ -195,8 +195,8 @@ add_last_smaller([V|Vs], W, Cs0, Cs) :-
 	add_last_smaller1(Vs, V, W, Cs0, Cs).
 
 add_last_smaller1([], V, W, [V=<W|Cs], Cs).
-add_last_smaller1([V|Vs], _, Cs0, Cs) :-
-	add_last_smaller(Vs, V, Cs0, Cs).
+add_last_smaller1([V|Vs], _, W, Cs0, Cs) :-
+	add_last_smaller1(Vs, V, W, Cs0, Cs).
 
 translate_displacement(DF, Vars, LF) :-
 	translate_displacement(DF, Vars, LF, _, []).
