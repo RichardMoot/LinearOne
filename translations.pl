@@ -242,8 +242,8 @@ translate_displacement(dl(A0,C0), [V|Vars], F0, Cs0, Cs) :-
 	forall_prefix(Vs, F0, impl(A,C)),
 	append(Vs, [V], VarsA),
 	append(Vs, Vars, VarsC),
-	translate_displacement(A0, VarsA, A, Cs0, Cs),
-	translate_displacement(C0, VarsC, C, Cs0, Cs).
+	translate_displacement(A0, VarsA, A, Cs0, Cs1),
+	translate_displacement(C0, VarsC, C, Cs1, Cs).
 
 % allow "up" and "down" as aliases for "dr" and "dl" respectively  
 % eg. dr(>,A,B) = \uparrow_<
