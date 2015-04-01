@@ -2,6 +2,7 @@
 :- module(translations, [translate_lambek/3,
 			 linear_to_lambek/3,
 			 translate_displacement/3,
+			 translate_displacement/4,
 			 linear_to_displacement/3,
 			 displacement_sort/2,
 		 	 translate_hybrid/6,
@@ -175,55 +176,89 @@ d_atom_sort(vpi, 1) :-
 % Atom sort defaults to zero
 d_atom_sort(_, 0).
 
-% = translate_displacement(+DFormula, +ListOfVars, -LinearFormula)
+% = auxiliary predicates for linear order constraints
+
+vars_to_constraints([], Cs, Cs).
+vars_to_constraints([V|Vs], Cs0, Cs) :-
+	vars_to_constraints(Vs, V, Cs0, Cs).
+
+vars_to_constraints([], _, Cs, Cs).
+
+vars_to_constraints([W|Vars], V, [V=<W|Cs0], Cs) :-
+	vars_to_constraints(Vars, W, Cs0, Cs).
+
+add_first_bigger([], _, Cs, Cs).
+add_first_bigger([V|_], W, [W=<V|Cs], Cs).
+
+add_last_smaller([], _, Cs, Cs).
+add_last_smaller([V|Vs], W, Cs0, Cs) :-
+	add_last_smaller1(Vs, V, W, Cs0, Cs).
+
+add_last_smaller1([], V, W, [V=<W|Cs], Cs).
+add_last_smaller1([V|Vs], _, Cs0, Cs) :-
+	add_last_smaller(Vs, V, Cs0, Cs).
+
+translate_displacement(DF, Vars, LF) :-
+	translate_displacement(DF, Vars, LF, _, []).
+
+translate_displacement(DF, Vars, LF, Cs) :-
+	translate_displacement(DF, Vars, LF, Cs0, []),
+	simplify_constraints(Cs0, Cs).
+
+simplify_constraints(Cs, Cs).
+%simplify_constraints(Cs0, Cs) :-
+%	sort(Cs0, Cs).
+
+% = translate_displacement(+DFormula, +ListOfVars, -LinearFormula, -Constraints)
 %
 % true if LinearFormula is the first-order linear logic translation of
 % Displacement calculus formula DFormula, using the translation of
 % Moot (2013), Table 5.
 
-translate_displacement(at(A), Vars, at(A, Vars)).
+translate_displacement(at(A), Vars, at(A, Vars), Cs0, Cs) :-
+	vars_to_constraints(Vars, Cs0, Cs).
 
 % Lambek calculus connectives
 
-translate_displacement(p(A0,B0), Vars, exists(X,p(A,B))) :-
+translate_displacement(p(A0,B0), Vars, exists(X,p(A,B)), Cs0, Cs) :-
 	displacement_sort(A0, SA),
 	N is 2*SA+1,
 	split(Vars, N, Left, [X], Right),
-	translate_displacement(A0, Left, A),
-	translate_displacement(B0, [X|Right], B).
-translate_displacement(dr(C0,B0), Vars, F0) :-
+	translate_displacement(A0, Left, A, Cs0, Cs1),
+	translate_displacement(B0, [X|Right], B, Cs1, Cs).
+translate_displacement(dr(C0,B0), Vars, F0, Cs0, Cs) :-
 	displacement_sort(B0, SB),
 	last(Vars, Last, VarsPrefix),
 	M is 2*SB + 1,
 	length(Vs, M),
 	append(VarsPrefix, Vs, VarsC),
 	forall_prefix(Vs, F0, impl(B,C)),	
-	translate_displacement(C0, VarsC, C),
-	translate_displacement(B0, [Last|Vs], B).
-translate_displacement(dl(A0,C0), [V|Vars], F0) :-
+	translate_displacement(C0, VarsC, C, Cs0, Cs1),
+	translate_displacement(B0, [Last|Vs], B, Cs1, Cs).
+translate_displacement(dl(A0,C0), [V|Vars], F0, Cs0, Cs) :-
 	displacement_sort(A0, SA),
 	N is 2*SA+1,
 	length(Vs, N),
 	forall_prefix(Vs, F0, impl(A,C)),
 	append(Vs, [V], VarsA),
 	append(Vs, Vars, VarsC),
-	translate_displacement(A0, VarsA, A),
-	translate_displacement(C0, VarsC, C).
+	translate_displacement(A0, VarsA, A, Cs0, Cs),
+	translate_displacement(C0, VarsC, C, Cs0, Cs).
 
 % allow "up" and "down" as aliases for "dr" and "dl" respectively  
 % eg. dr(>,A,B) = \uparrow_<
 %     dl(>,A,B) = \downarrow_<
 
-translate_displacement(up(K,A,B), Vs, F) :-
+translate_displacement(up(K,A,B), Vs, F, Cs0, Cs) :-
         !,
-        translate_displacement(dr(K,A,B), Vs, F).
-translate_displacement(down(K,A,B), Vs, F) :-
+        translate_displacement(dr(K,A,B), Vs, F, Cs0, Cs).
+translate_displacement(down(K,A,B), Vs, F, Cs0, Cs) :-
         !,
-        translate_displacement(dl(K,A,B), Vs, F).
+        translate_displacement(dl(K,A,B), Vs, F, Cs0, Cs).
 
 % initial wrap
 
-translate_displacement(p(>,A0,B0), [X0|Vars], exists(X1,exists(XN,p(A,B)))) :-
+translate_displacement(p(>,A0,B0), [X0|Vars], exists(X1,exists(XN,p(A,B))), Cs0, Cs) :-
 	!,
 	displacement_sort(B0, SB),
 	N is 2*SB + 2,
@@ -236,9 +271,9 @@ translate_displacement(p(>,A0,B0), [X0|Vars], exists(X1,exists(XN,p(A,B)))) :-
 	H2 = [XN],
 	/* VarsA = X_0,X_1,X_n,...,X_n+m */
 	/* VarsB = X_1,...,X_n */
-        translate_displacement(A0, [X0,X1,XN|Right], A),
-	translate_displacement(B0, [X1|L2], B).
-translate_displacement(dr(>,C0,B0), [X0,X1,XN|Vars], F0) :-
+        translate_displacement(A0, [X0,X1,XN|Right], A, Cs0, Cs1),
+	translate_displacement(B0, [X1|L2], B, Cs1, Cs).
+translate_displacement(dr(>,C0,B0), [X0,X1,XN|Vars], F0, [X0=<X1|Cs0], Cs) :-
 	!,
 	/* Vars = X_n+1,...,X_n+m */
 	displacement_sort(B0, SB),
@@ -246,15 +281,18 @@ translate_displacement(dr(>,C0,B0), [X0,X1,XN|Vars], F0) :-
 	L is N - 2,
 	/* Vs = X_2,...,X_n-1 */
 	length(Vs, L),
+	add_first_bigger(Vs, X1, Cs0, Cs1),
 	forall_prefix(Vs, F0, impl(B,C)),
 	/* VarsB = X_1,...,X_n */
 	append([X1|Vs], [XN], VarsB),
 	/* VarsC = X_0,X_2,...,X_n-1,X_n+1,...,X_n+m */
 	append([X0|Vs], Vars, VarsC),
-	translate_displacement(B0, VarsB, B),
-	translate_displacement(C0, VarsC, C).
-translate_displacement(dl(>,A0,C0), [X1|Vars], F0) :-
+	translate_displacement(B0, VarsB, B, Cs1, Cs2),
+	translate_displacement(C0, VarsC, C, Cs2, Cs).
+
+translate_displacement(dl(>,A0,C0), [X1|Vars], F0, [X0=<X1|Cs0], Cs) :-
 	!,
+	add_first_bigger(Vars, X1, Cs0, Cs1),
 	/* Vars = X_2,...,X_n */
 	displacement_sort(A0, SA),
 	M is 2*SA - 1,
@@ -266,12 +304,12 @@ translate_displacement(dl(>,A0,C0), [X1|Vars], F0) :-
 	/* VarsC = X_0,X_2,...,X_n-1,X_n+1,...,X_n+m */
 	append([X0|XN1], Vs, VarsC),
 	forall_prefix([X0|Vs], F0, impl(A,C)),
-	translate_displacement(A0, [X0,X1,XN|Vs], A),
-	translate_displacement(C0, VarsC, C).
+	translate_displacement(A0, [X0,X1,XN|Vs], A, Cs1, Cs2),
+	translate_displacement(C0, VarsC, C, Cs2, Cs).
 
 % final wrap
 
-translate_displacement(p(<,A0,B0), Vars, exists(XN,exists(XNM1,p(A,B)))) :-
+translate_displacement(p(<,A0,B0), Vars, exists(XN,exists(XNM1,p(A,B))), Cs0, Cs) :-
 	displacement_sort(B0, SB),
 	N is 2*SB + 2,
 	/* Left = X_0,...,X_n-1
@@ -284,9 +322,9 @@ translate_displacement(p(<,A0,B0), Vars, exists(XN,exists(XNM1,p(A,B)))) :-
 	append([XN|Right], [XNM1], VarsB),
 	/* VarsA = X_0,...,X_n,X_n+m-1,X_n+m */
 	/* VarsB = X_n,...,X_n+m-1 */
-        translate_displacement(A0, VarsA, A),
-	translate_displacement(B0, VarsB, B).
-translate_displacement(dr(<,C0,B0), [X0|Vars], F0) :-
+        translate_displacement(A0, VarsA, A, Cs0, Cs1),
+	translate_displacement(B0, VarsB, B, Cs1, Cs).
+translate_displacement(dr(<,C0,B0), [X0|Vars], F0, Cs0, Cs) :-
 	/* Vars = X_1,...,X_n,X_n+m-1,X_n+m */
 	displacement_sort(B0, SB),
 	M is 2*SB + 2,
@@ -302,9 +340,10 @@ translate_displacement(dr(<,C0,B0), [X0|Vars], F0) :-
 	append(Vs, [XNM], Aux),
 	/* VarsC = X_0,...,X_n-1,X_n+1,...,X_n+m-2,X_n+m */
 	append([X0|Left], Aux, VarsC),
-	translate_displacement(B0, VarsB, B),
-	translate_displacement(C0, VarsC, C).
-translate_displacement(dl(<,A0,C0), [XN|Vars], F0) :-
+	add_last_smaller([X0|Left], XN, Cs0, Cs1),
+	translate_displacement(B0, VarsB, B, Cs1, Cs2),
+	translate_displacement(C0, VarsC, C, Cs2, Cs).
+translate_displacement(dl(<,A0,C0), [XN|Vars], F0, Cs0, Cs) :-
 	/* Vars = X_n+1,...,X_n+m-1 */
 	/* Right = X_n+1,...,X_n+m-2 */
 	last(Vars, XNM1, Right),
@@ -322,21 +361,22 @@ translate_displacement(dl(<,A0,C0), [XN|Vars], F0) :-
 	append(Right, [XNM], Tmp),
 	append(Left, Tmp, VarsC),
 	forall_prefix(Vs, F0, impl(A,C)),
-	translate_displacement(A0, VarsA, A),
-	translate_displacement(C0, VarsC, C).
+	add_last_smaller(Left, XN, Cs0, Cs1),
+	translate_displacement(A0, VarsA, A, Cs1, Cs2),
+	translate_displacement(C0, VarsC, C, Cs2, Cs).
 
 % bridge, right projection and left projection
 % NOTE: only leftmost bridge is provided (though it would be
 % simple to add rightmost bridge if desired. Translations of
 % split and the injections are not provided at the moment.
  
-translate_displacement(bridge(A0), [V|Vars], exists(X,F0)) :-
-	translate_displacement(A0, [V,X,X|Vars], F0).
-translate_displacement(rproj(A0), Vars, forall(X,F0)) :-
-	translate_displacement(A0, [X,X|Vars], F0).
-translate_displacement(lproj(A0), Vars0, forall(X,F0)) :-
+translate_displacement(bridge(A0), [V|Vars], exists(X,F0), Cs0, Cs) :-
+	translate_displacement(A0, [V,X,X|Vars], F0, Cs0, Cs).
+translate_displacement(rproj(A0), Vars, forall(X,F0), Cs0, Cs) :-
+	translate_displacement(A0, [X,X|Vars], F0, Cs0, Cs).
+translate_displacement(lproj(A0), Vars0, forall(X,F0), Cs0, Cs) :-
 	append(Vars0, [X,X], Vars),
-	translate_displacement(A0, Vars, F0).
+	translate_displacement(A0, Vars, F0, Cs0, Cs).
 
 forall_prefix([], F, F).
 forall_prefix([X|Xs], forall(X,F0), F) :-
