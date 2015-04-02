@@ -282,17 +282,19 @@ translate_displacement(dr(>,C0,B0), [X0,X1,XN|Vars], F0, [X0=<X1|Cs0], Cs) :-
 	/* Vs = X_2,...,X_n-1 */
 	length(Vs, L),
 	add_first_bigger(Vs, X1, Cs0, Cs1),
+	add_last_smaller(Vs, XN, Cs1, Cs2),
 	forall_prefix(Vs, F0, impl(B,C)),
 	/* VarsB = X_1,...,X_n */
 	append([X1|Vs], [XN], VarsB),
 	/* VarsC = X_0,X_2,...,X_n-1,X_n+1,...,X_n+m */
 	append([X0|Vs], Vars, VarsC),
-	translate_displacement(B0, VarsB, B, Cs1, Cs2),
-	translate_displacement(C0, VarsC, C, Cs2, Cs).
+	translate_displacement(B0, VarsB, B, Cs2, Cs3),
+	translate_displacement(C0, VarsC, C, Cs3, Cs).
 
 translate_displacement(dl(>,A0,C0), [X1|Vars], F0, [X0=<X1|Cs0], Cs) :-
 	!,
 	add_first_bigger(Vars, X1, Cs0, Cs1),
+	add_last_smaller(Vars, XN, Cs1, Cs2),
 	/* Vars = X_2,...,X_n */
 	displacement_sort(A0, SA),
 	M is 2*SA - 1,
@@ -304,8 +306,8 @@ translate_displacement(dl(>,A0,C0), [X1|Vars], F0, [X0=<X1|Cs0], Cs) :-
 	/* VarsC = X_0,X_2,...,X_n-1,X_n+1,...,X_n+m */
 	append([X0|XN1], Vs, VarsC),
 	forall_prefix([X0|Vs], F0, impl(A,C)),
-	translate_displacement(A0, [X0,X1,XN|Vs], A, Cs1, Cs2),
-	translate_displacement(C0, VarsC, C, Cs2, Cs).
+	translate_displacement(A0, [X0,X1,XN|Vs], A, Cs2, Cs3),
+	translate_displacement(C0, VarsC, C, Cs3, Cs).
 
 % final wrap
 
