@@ -149,6 +149,7 @@ lex(than, cp/s, lambda(X,X)).
 lex(more, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
 lex(himself, (d_vp/<n)\<d_vp, lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
 lex(himself2, ((d_vp/>n)/<n)\<(d_vp/>n), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
+lex(himself3, ((d_vp/>n)/>n)\>(d_vp/>n), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
 
 % = Dutch
 
