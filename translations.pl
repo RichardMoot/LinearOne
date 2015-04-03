@@ -215,8 +215,11 @@ simplify_constraints(Cs, Cs).
 % Displacement calculus formula DFormula, using the translation of
 % Moot (2013), Table 5.
 
-translate_displacement(at(A), Vars, at(A, Vars), Cs0, Cs) :-
-	vars_to_constraints(Vars, Cs0, Cs).
+translate_displacement(at(A), Vars, at(A, Vars), Cs, Cs).
+% keep constraints on atomic formulas implicit for now (code for explicit constraints is commented out below.
+% 
+%translate_displacement(at(A), Vars, at(A, Vars), Cs0, Cs) :-
+%	vars_to_constraints(Vars, Cs0, Cs).
 
 % Lambek calculus connectives
 
