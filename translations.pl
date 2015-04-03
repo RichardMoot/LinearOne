@@ -342,10 +342,11 @@ translate_displacement(dr(<,C0,B0), [X0|Vars], F0, Cs0, Cs) :-
 	append(Vs, [XNM], Aux),
 	/* VarsC = X_0,...,X_n-1,X_n+1,...,X_n+m-2,X_n+m */
 	append([X0|Left], Aux, VarsC),
-	add_last_smaller([X0|Left], XN, Cs0, Cs1),
-	translate_displacement(B0, VarsB, B, Cs1, Cs2),
-	translate_displacement(C0, VarsC, C, Cs2, Cs).
-translate_displacement(dl(<,A0,C0), [XN|Vars], F0, Cs0, Cs) :-
+	add_first_bigger(Vs, XN, Cs0, Cs1),
+	add_last_smaller(Vs, XNM1, Cs1, Cs2),
+	translate_displacement(B0, VarsB, B, Cs2, Cs3),
+	translate_displacement(C0, VarsC, C, Cs3, Cs).
+translate_displacement(dl(<,A0,C0), [XN|Vars], F0, [XNM1=<XNM|Cs0], Cs) :-
 	/* Vars = X_n+1,...,X_n+m-1 */
 	/* Right = X_n+1,...,X_n+m-2 */
 	last(Vars, XNM1, Right),
@@ -361,8 +362,10 @@ translate_displacement(dl(<,A0,C0), [XN|Vars], F0, Cs0, Cs) :-
 	append(Left, [XN,XNM1,XNM], VarsA),
 	/* Tmp = X_n+1,...,X_n+m-2,X_n+m */
 	append(Right, [XNM], Tmp),
+	/* Right = X_n+1,...,X_n+m-2 */
 	append(Left, Tmp, VarsC),
 	forall_prefix(Vs, F0, impl(A,C)),
+	/* X_n-1 =< X_n */
 	add_last_smaller(Left, XN, Cs0, Cs1),
 	translate_displacement(A0, VarsA, A, Cs1, Cs2),
 	translate_displacement(C0, VarsC, C, Cs2, Cs).
