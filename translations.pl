@@ -284,8 +284,8 @@ translate_displacement(dr(>,C0,B0), [X0,X1,XN|Vars], F0, [X0=<X1|Cs0], Cs) :-
 	L is N - 2,
 	/* Vs = X_2,...,X_n-1 */
 	length(Vs, L),
-	/* X_n-1 =< X_n */
-	add_last_smaller(Vs, XN, Cs0, Cs1),
+	/* X_n =< X_n+1 */
+	add_first_bigger(Vars, XN, Cs0, Cs1),
 	forall_prefix(Vs, F0, impl(B,C)),
 	/* VarsB = X_1,...,X_n */
 	append([X1|Vs], [XN], VarsB),
