@@ -29,9 +29,29 @@ lexicon_separator(' :: ').
 hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar style
 %hybrid_connective(h(A,B), B, '\\multimap ', A).   % ACG/lambda grammar style
 
+% these options allow you to customise the LaTeX display of the empty string "epsilon" and
+% the concatenation "+"; the only argument of these predicates is a single Prolog atom which
+% will be sent to LaTeX (we need a double backslash for LaTeX commands, due to the Prolog
+% meaning of the backslash).
+%
+% NOTE: these options make sense only when the option the file translations.pl has the option
+%
+% "hybrid_pros(simple)."
+%
+% For hybrid_pros(pure), there is no effect.
+
 hybrid_epsilon('\\epsilon').
 hybrid_concat('\\circ').
 
+% =====================================================
+% =    parameters for Displacement calculus output    =
+% =====================================================
+
+% these options allow you to customise the LaTeX display of Displacement calculus
+% string labels, we can use a symbol for the separator, for concatenation and for the
+% empty string, with d_separator, d_concat and d_epsilon respectively.
+
+% this option uses the +, 1, 0 operations, though it doesn't simplify "+0"
 %d_separator('+1+').
 %d_concat('+').
 %d_epsilon(0).
