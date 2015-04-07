@@ -85,6 +85,14 @@ test(21) :-
 	parse([john,bought,himself,coffee], s).
 test(22) :-
 	parse([every,man,loves,himself], s).
+% There is a subtle difference between the Displacement calculus formulas and their first-order linear logic
+% translations for these two cases; we cannot uniquely recover the D formula for "himself2" from its linear
+% logic translation; the linear logic formula leaves the order of the two hypothetical np undetermined,
+% whereas the D formula requires the word "himself2" to occur after the other hypothetical np. I'm working
+% on aligning the linear logic and D analysis on this point, but it seems this distinction of D has
+% limited applications and is actually a disadvantage with respect to first-order linear logic when it comes
+% to the treatment of quantification inside Dutch verb clusters (the discussion on page 28 of Morrill e.a., 2011
+% briefly mentions the necessity for duplicating separators and connectives).
 test(23) :-
 	parse([mary,talked,to,john,about,himself2], s).
 test(24) :-
