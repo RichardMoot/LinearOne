@@ -528,14 +528,18 @@ find_positions([V|Vs], Ps0) :-
     
 % = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -PrincipalFormula, -HybridFormula)
 %
-% PrincipalFormula is of the correct
+% PrincipalFormula is of the correct "shape" to combine with LinearLogicFormula
 
+% Lambek atoms
 linear_to_hybrid(at(A, Vs), Vs, Impl, at(A)) :-
 	list_to_impl(Vs, Impl).
+% Lambek implications
 linear_to_hybrid(forall(Z,impl(A,B)), [X,Y], impl(at(Y,[]),at(X,[])), F) :-
 	linear_to_lambek(forall(Z,impl(A,B)), [X,Y], F).
-linear_to_hybrid(exists(Y, p(A,B)), [X,Z], impl(at(Z,[]),at(X,[])), F) :-
+% Lambek product; not sure if this is needed, if it is, we need to add some more code elsewhere
+linear_to_hybrid(exists(Y, p(A,B)), [X,Z], p(at(Z,[]),at(X,[])), F) :-
 	linear_to_lambek(exists(Y, p(A,B)), [X,Z], F).
+% Hybrid implication
 linear_to_hybrid(impl(A,B), Vars, impl(TA,TB), h(FB,FA)) :-
 	linear_to_hybrid(A, Vars0, TA, FA),
 	linear_to_hybrid(B, Vars1, TB, FB),
