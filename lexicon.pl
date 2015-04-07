@@ -60,7 +60,9 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         lex(Word, _, _, _)
     ->
         /* hybrid entry */
-        lex(Word, Formula0, ProsTerm, Semantics),
+        lex(Word, Formula0, ProsTerm, Semantics0),
+	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
+	copy_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
 	translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
 	retractall(hybrid_lookup(N0, _, _)),
@@ -70,7 +72,9 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
 	current_predicate(lex/5),	
         lex(Word, _, _, _, _)
     ->
-	lex(Word, Formula, N0, N1, Semantics)
+	lex(Word, Formula, N0, N1, Semantics0),
+	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
+	copy_term(Semantics0, Semantics)
     ;
         format(user_error, '~N{Error: No lexical entry for "~w"}~n', [Word]),
         fail
