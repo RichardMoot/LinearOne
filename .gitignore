@@ -5,7 +5,7 @@ parse_log.txt
 fish_log*.txt
 # ignore (Lua)LaTeX graph and proof files
 test_graph.pdf
-lexicon.pdf
+lexicon*.pdf
 lexicon.tex
 lexicon.aux
 lexicon.log

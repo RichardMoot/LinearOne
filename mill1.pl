@@ -16,7 +16,9 @@
 				    generate_displacement_proof/2]).
 :- use_module(latex,               [proof_header/0,
 				    proof_footer/0,
-				    latex_semantics/1]).
+				    latex_semantics/1,
+				    latex_lexicon/1,
+				    latex_lexicon1/0]).
 :- use_module(sem_utils,           [substitute_sem/3,
 				    reduce_sem/2]).
 :- use_module(replace,             [replace_graph/6,
@@ -218,6 +220,15 @@ prove0(Antecedent, Goal, LexSem) :-
 	retractall('$PROOFS'(_, _)),
 	assert('$PROOFS'(N, [Sem|SemList])),
 	/* generate a LaTeX proof */
+	/* generate_proof/2 outputs Displacement, hybrid, natural deduction and sequent proofs */
+	/* if you are only interested in one type of proof, replace generate_proof/2 by one of: */
+	/* generate_hybrid_proof/2, (natural deduction proofs in hybrid type-logical grammar) */
+        /* generate_displacement_proof/2, (natural deduction proofs for the Displacement calculus) */
+	/* generate_sequent_proof/2, (sequent proofs in first-order linear logic) */
+	/* generate_natural_deduction_proof/2, (natural deduction proof in first-order linear logic) */
+	/* generate_nd_proof/2, (natural deduction proof in first-order linear logic with implicit antecedents) */
+%	generate_hybrid_proof(GraphCopy, Trace).
+%	generate_displacement_proof(GraphCopy, Trace).
 	generate_proof(GraphCopy, Trace).
 
 % = first_proof
