@@ -29,8 +29,14 @@
 %
 % However, we do have the familiar a/b/c = (a/b)/c and
 % c\b\a = (c\(b\a) and even a\b/c = (a\b)/c.
+%
+% For lambda terms, X^M is short for lambda(X,M) and M@N
+% is short for appl(M,N). As expected, X^Y^Z^X@Y@Z is
+% short for lambda(X,lambda(Y,lambda(Z,appl(appl(X,Y),Z))))
+% though be warned that X@Y+V@Z corresponds to (X@Y)+(V@Z)
 
 :- op(400, xfy, \).
+:- op(190, yfx, @).
 
 :- abolish(lex/3), abolish(lex/4), abolish(test/1).
 

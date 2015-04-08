@@ -33,6 +33,7 @@
 :- dynamic node_formula/3.
 
 :- op(400, xfy, \).
+:- op(190, yfx, @).
 
 % = adds some likely location for pdflatex/lualatex to the file search path
 

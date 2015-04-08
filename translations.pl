@@ -759,6 +759,13 @@ translate_string_concat(appl(X1,Y), X0, Z, Tree, X0+Term) :-
 	pure_to_simple(X1, Tree, impl(s,s), X),
 	translate_string_concat(Y, X, Z, Tree, Term).
 
+simple_to_pure(X0@Y0, appl(X,Y)) :-
+	!,
+	simple_to_pure(X0, X),
+	simple_to_pure(Y0, Y).
+simple_to_pure(X^Y0, lambda(X,Y)) :-
+	!,
+	simple_to_pure(Y0, Y).
 simple_to_pure(X0+Y0, lambda(Z,appl(X,appl(Y,Z)))) :-
 	!,
 	simple_to_pure(X0, X),
@@ -774,6 +781,13 @@ simple_to_pure(lambda(X,Y0), lambda(X,Y)) :-
 	simple_to_pure(Y0, Y).
 simple_to_pure(X, X).
 
+simple_to_pure(X0@Y0, N0, N, appl(X,Y)) :-
+	!,
+	simple_to_pure(X0, N0, N1, X),
+	simple_to_pure(Y0, N1, N, Y).
+simple_to_pure(X^Y0, N0, N, lambda(X,Y)) :-
+	!,
+	simple_to_pure(Y0, N0, N, Y).
 simple_to_pure(X0+Y0, N0, N, lambda('$VAR'(N0),appl(X,appl(Y,'$VAR'(N0))))) :-
 	!,
 	N1 is N0 + 1, 
