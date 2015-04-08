@@ -26,6 +26,7 @@
 :- op(400, yfx, *<).  % = \odot_<
 :- op(400, yfx, *>).  % = \odot_>
 :- op(400, fx, ^).
+:- op(190, yfx, @).
 
 :- dynamic hybrid_lookup/3, memo_lookup/2.
 
@@ -51,7 +52,7 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
     ->	     
         /* Lambek/Displacement entry */
 	lex(Word, Formula0, Semantics0),
-	copy_term(Semantics0, Semantics),    
+	canonical_semantic_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
         translate(Formula1, [N0,N1], Formula),
         retractall(memo_lookup(N0, _)),
@@ -64,7 +65,7 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         lex(Word, Formula0, ProsTerm0, Semantics0),
 	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
 	copy_term(ProsTerm0, ProsTerm),
-	copy_term(Semantics0, Semantics),    
+	canonical_semantic_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
         translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
 	retractall(hybrid_lookup(N0, _, _)),
@@ -76,7 +77,7 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
     ->
 	lex(Word, Formula, N0, N1, Semantics0),
 	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
-	copy_term(Semantics0, Semantics)
+	canonical_semantic_term(Semantics0, Semantics)
     ;
         format(user_error, '~N{Error: No lexical entry for "~w"}~n', [Word]),
         fail
@@ -262,3 +263,31 @@ in_lexicon(W) :-
 	lex(W, _, _).
 in_lexicon(W) :-
 	lex(W, _, _, _).
+
+
+canonical_semantic_term(Term0, Term) :-
+	copy_term(Term0, Term1),
+	canonical_semantics(Term1, Term).
+
+canonical_semantics(X, Z) :-
+	var(X),
+	!,
+	Z = X.
+canonical_semantics(X0@Y0, appl(X,Y)) :-
+	!,
+	canonical_semantics(X0, X),
+	canonical_semantics(Y0, Y).
+canonical_semantics(X^Y0, lambda(X,Y)) :-
+	!,
+	canonical_semantics(Y0, Y).
+canonical_semantics(Term0, Term) :-
+	Term0 =.. [F|List0],
+	length(List0, L),
+	length(List, L),
+	Term =.. [F|List],
+	canonical_semantics_list(List0, List).
+
+canonical_semantics_list([], []).
+canonical_semantics_list([X|Xs], [Y|Ys]) :-
+	canonical_semantics(X, Y),
+	canonical_semantics_list(Xs, Ys).
