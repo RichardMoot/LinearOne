@@ -191,6 +191,9 @@ d_atom_sort(_, 0).
 
 translate_displacement(at(A), Vars, at(A, Vars)).
 
+translate_displacement(at(A, Vars0), Vars1, at(A, Vars)) :-
+	append(Vars0, Vars1, Vars).
+
 % Lambek calculus connectives
 
 translate_displacement(p(A0,B0), Vars, exists(X,p(A,B))) :-
@@ -371,7 +374,12 @@ split([V|Vs], N0, [V|Ls0], Ls, Rs) :-
 %
 % translate a first-order linear logic formula into a Displacement calculus formula
 
-linear_to_displacement(at(A, Vs), Vs, at(A)).
+linear_to_displacement(at(A, Vs0), Vs, at(A, Prefix)) :-
+	atomic_formula_prefix(A, Prefix),
+	append(Prefix, Vs, Vs0),
+	!.
+linear_to_displacement(at(A, Vs), Vs, at(A)) :-
+	!.
 % = Lambek product
 linear_to_displacement(exists(XN,p(A0,B0)), VList, p(A,B)) :-
 	linear_to_displacement(A0, VarsA, A),

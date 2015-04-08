@@ -64,7 +64,7 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
 	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
 	copy_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
-	translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
+        translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
 	retractall(hybrid_lookup(N0, _, _)),
 	assert(hybrid_lookup(N0, Formula1, ProsTerm))
     ;
