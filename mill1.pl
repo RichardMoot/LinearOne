@@ -88,9 +88,33 @@ portray(lambda(X,M)) :-
 portray(bool(P,B,Q)) :-
 	format('(~p ~p ~p)', [P,B,Q]).
 
+term_expansion(atomic_formula(A), atomic_formula(A, F, Vs)) :-
+	A =.. [F|Vs].
+
 % =======================================
 % = Top-level theorem prover predicates =
 % =======================================
+
+% = load_grammar(File)
+%
+% compile Prolog grammar file File
+
+load_grammar(File) :-
+	absolute_file_name(File, GrammarFile, [access(read),file_type(prolog)]),
+	grammar_cleanup,
+	compile(GrammarFile).
+
+% = grammar_cleanup
+%
+% remove lexicon and test sentences from previous grammar
+
+grammar_cleanup :-		
+	abolish(lex/3),
+	abolish(lex/4),
+	abolish(lex/5),
+	abolish(atomic_formula/1),
+	abolish(atomic_formula/3),
+	abolish(test/1).
 
 % = parse_all
 %
