@@ -974,6 +974,15 @@ latex_semantics(neg(N), _NB) :-
     ;	     
         format(latex, '\\neg(~@)', [latex_semantics(N, 0)])
     ).
+latex_semantics(not(N), _NB) :-
+	!,
+    (
+	unary_term(N)
+    ->
+        format(latex, '\\neg ~@', [latex_semantics(N, 1)])
+    ;	     
+        format(latex, '\\neg(~@)', [latex_semantics(N, 0)])
+    ).
 latex_semantics(possible(N), _NB) :-
 	!,
     (
