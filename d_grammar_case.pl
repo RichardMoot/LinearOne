@@ -2,7 +2,9 @@
 % = Displacement calculus grammar =
 % =================================
 
-% This grammar contains many examples from
+% This grammar is a version of the file "d_grammar.pl" with the
+% addition of case for noun phrases. As the original "d_grammar.pl"
+% this grammar contains many examples from
 %
 % Glyn Morrill, Oriol Valentin and Mario Fadda (2011),
 % The Displacement Calculus, Journal of Logic, Language
@@ -34,7 +36,6 @@
 
 :- abolish(lex/3), abolish(lex/4), abolish(lex/5), abolish(test/1), abolish(atomic_formula/1), abolish(atomic_formula/3), abolish(macro/2).
 
-%atomic_formula(n(Number,Person,Gender), n, [Number,Person,Gender]).
 atomic_formula(n(_,_,_)).
 
 % =======================
@@ -83,7 +84,9 @@ test(18) :-
 test(19) :-
 	parse([wil2,jan,boeken,lezen], q).
 test(20) :-
-	parse([jan,wil2,boeken,lezen], n*(^(q/<n))).
+	parse([jan,wil2,boeken,lezen], n(A,B,C)*(^(q/<n(A,B,C)))).
+test(201) :-
+	parse([boeken,wil2,jan,lezen], n(A,B,C)*(^(q/<n(A,B,C)))).
 test(21) :-
 	parse([john,bought,himself,coffee], s).
 test(22) :-
@@ -167,8 +170,8 @@ lex(who, (n(A,B,C)\((s/>n(A,B,C))\<s))/(^(s/<n(A,B,C))), lambda(X,lambda(Y,lambd
 lex(and, ((s/<((n(_,_,_)\s)/n(_,_,_)))\(s/<((n(_,_,_)\s)/n(_,_,_))))/(^(s/<((n(_,_,_)\s)/n(_,_,_)))), lambda(X,lambda(Y,lambda(Z,bool(appl(Y,Z),&,appl(X,Z)))))).
 lex(than, cp/s, lambda(X,X)).
 lex(more, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
-lex(himself, (d_vp/<n(_,_,_))\<d_vp, lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
-lex(himself2, ((d_vp/>n(_,_,_))/<n(_,_,_))\<(d_vp/>n(_,_,_)), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
+lex(himself, (d_vp(A,B,C)/<n(_,_,_))\<d_vp(A,B,C), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
+lex(himself2, ((d_vp(A,B,C)/>n(D,E,F))/<n(_,_,_))\<(d_vp(A,B,C)/>n(D,E,F)), lambda(X,lambda(Y,appl(appl(X,Y),Y)))).
 
 % = Dutch
 
@@ -189,4 +192,4 @@ lex(alles, (s/<n(_,_,_))\<s, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(
 lex(alles, (si/<n(_,_,_))\<si, lambda(X,quant(forall,Y,bool(appl(thing,Y),->,appl(X,Y))))).
 lex(zag, (n(_,_,_)\si)\<(n(_,_,_)\(n(_,_,_)\s)), lambda(VP,lambda(X,lambda(Y,appl(appl(appl(see,appl(VP,X)),X),Y))))).
 lex(helpen, rproj((n(_,_,_)\si)\<(n(_,_,_)\(n(_,_,_)\si))), lambda(VP,lambda(X,lambda(Y,appl(appl(appl(help,appl(VP,X)),X),Y))))).
-lex(wil2, q/(^(s/<((n(_,_,_)\si)\<(n(_,_,_)\s)))), lambda(P,appl(P,lambda(Q,lambda(X,appl(appl(want,appl(Q,X)),X)))))).
+lex(wil2, q/(^(s/<((n(sg,_,_)\si)\<(n(sg,_,_)\s)))), lambda(P,appl(P,lambda(Q,lambda(X,appl(appl(want,appl(Q,X)),X)))))).
