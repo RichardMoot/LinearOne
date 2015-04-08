@@ -850,15 +850,22 @@ nd_to_hybrid(rule(hyp(I), _, C0, []), Max, Max, rule(hyp(I), '$VAR'(I), HF, []))
 	formula_type(HF, Type),
 	retractall(free_var(I, _)),
 	assert(free_var(I, Type)).
-nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, rule(ax, Lambda, HF, [])) :-
+nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, Rule) :-
 	remove_formula_nodes(C0, C),
 	/* recover lexical lambda term here */
 	linear_to_hybrid(C, VarList, _, HF),
 	numbervars(VarList, 0, _),
         get_positions(VarList, N0, _R),
-	lexicon:hybrid_lookup(N0, HF, Lambda0),
-	compute_pros_term(Lambda0, HF, Lambda, Max0, Max),
-	!.
+	lexicon:hybrid_lookup(N0, HF0, Lambda0),
+	compute_pros_term(Lambda0, HF0, Lambda, Max0, Max),
+	!,
+    (
+        HF0 == HF
+    ->
+	Rule = rule(ax, Lambda, HF, [])
+    ;
+        Rule = rule(fe, Lambda, HF, [rule(ax, Lambda, HF0, [])])
+    ).
 nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Max0, Max, Rule) :-
 	!,
 	P2 = rule(_, _, C0, _),

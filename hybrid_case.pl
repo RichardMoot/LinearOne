@@ -2,7 +2,8 @@
 % =        Hybrid grammar         =
 % =================================
 
-% This grammar contains many examples from the following articles.
+% This grammar is a variant of hybrid_grammar.pl differing only in the addition of case to the noun phrases.
+% Like the original hybrid_grammar.pl, this grammar contains many examples from the following articles.
 %
 % Yusuke Kubota and Robert Levine (2012) Gapping as Like-Category Coordination, in Denis Bechet and
 % Alexander Dikovsky (eds), Logical Aspects of Computational Linguistics 2012, Springer Lecture Notes
@@ -38,7 +39,9 @@
 :- op(400, xfy, \).
 :- op(190, yfx, @).
 
-:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3).
+:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3), abolish(atomic_formula/1).
+
+% = define np as a (non-propositional) atomic formula with a single case argument
 
 atomic_formula(np(_)).
 
@@ -111,8 +114,8 @@ lex(buys, tv_c, buys, buy).
 lex(eats, tv_c, eats, eat).
 lex(ate, tv_c, ate, eat).
 lex(talked, (np(nom)\s)/pp, talked, talk).
-lex(discover, tv, discover, discover).
-lex(discovers, tv, discovers, discover).
+lex(discover, tv_c, discover, discover).
+lex(discovers, tv_c, discovers, discover).
 lex(walks, np(nom)\s, walks, walk).
 lex(eat, tv_c, eat, eat).
 lex(a, ((s|(s|np(_)))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
@@ -140,17 +143,17 @@ lex(and1, (((s1|tv_c)|(s|tv_c))|(s|tv_c)), lambda(STV2,lambda(STV1,lambda(TV,lam
 lex(and, (((s|tv_c)|(s|tv_c))|(s|tv_c)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
 lex(must, (s|(s|(vp_c/vp_c))), lambda(SVP,lambda(Z,appl(appl(SVP,must),Z))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
 lex(cant, (s|(s|(vp_c/vp_c))), lambda(SVP,lambda(Z,appl(appl(SVP,cant),Z))), lambda(F,neg(possible(appl(F,lambda(Y,Y)))))).
-lex(no, (s|(s|h_det)), lambda(Rho,lambda(Z,appl(appl(Rho,lambda(Phi,lambda(Sigma,lambda(V,appl(appl(Sigma,lambda(W,appl(no,appl(Phi,W)))),V))))),Z))), lambda(P,neg(appl(P,lambda(Q,lambda(R,quant(exists,X,bool(appl(Q,X),&,appl(R,X))))))))).
+lex(no, (s|(s|h_det_c)), lambda(Rho,lambda(Z,appl(appl(Rho,lambda(Phi,lambda(Sigma,lambda(V,appl(appl(Sigma,lambda(W,appl(no,appl(Phi,W)))),V))))),Z))), lambda(P,neg(appl(P,lambda(Q,lambda(R,quant(exists,X,bool(appl(Q,X),&,appl(R,X))))))))).
 lex(than, than, than, lambda(X,X)).
-lex(more, (((s|(s|h_det))|(s|h_det))|than), lambda(Than,lambda(Rho1,lambda(Rho2,lambda(Z,appl(appl(Rho2,lambda(Phi,lambda(Sigma,appl(Sigma,lambda(V,appl(more,appl(Phi,V))))))),appl(Than,appl(appl(Rho1,lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z))))))), lambda(_,lambda(F,lambda(G,bool(number_of(appl(G,lambda(P,lambda(Q,lambda(X,bool(appl(P,X),&,appl(Q,X))))))),gneq,number_of(appl(F,lambda(P2,lambda(Q2,lambda(Y,bool(appl(P2,Y),&,appl(Q2,Y)))))))))))).
-lex(or, ((((s|h_det)|tv)|((s|h_det)|tv))|((s|h_det)|tv)), lambda(Rho2,lambda(Rho1,lambda(Phi,lambda(Tau,lambda(Z,appl(appl(appl(Rho1,Phi),Tau),appl(or,appl(appl(appl(Rho2,lambda(V,V)),lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z)))))))), lambda(SDTV2,lambda(SDTV1,lambda(TV,lambda(Det,bool(appl(appl(SDTV1,TV),Det),\/,appl(appl(SDTV2,TV),Det))))))).
+lex(more, (((s|(s|h_det_c))|(s|h_det_c))|than), lambda(Than,lambda(Rho1,lambda(Rho2,lambda(Z,appl(appl(Rho2,lambda(Phi,lambda(Sigma,appl(Sigma,lambda(V,appl(more,appl(Phi,V))))))),appl(Than,appl(appl(Rho1,lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z))))))), lambda(_,lambda(F,lambda(G,bool(number_of(appl(G,lambda(P,lambda(Q,lambda(X,bool(appl(P,X),&,appl(Q,X))))))),gneq,number_of(appl(F,lambda(P2,lambda(Q2,lambda(Y,bool(appl(P2,Y),&,appl(Q2,Y)))))))))))).
+lex(or, ((((s|h_det_c)|tv_c)|((s|h_det_c)|tv_c))|((s|h_det_c)|tv_c)), lambda(Rho2,lambda(Rho1,lambda(Phi,lambda(Tau,lambda(Z,appl(appl(appl(Rho1,Phi),Tau),appl(or,appl(appl(appl(Rho2,lambda(V,V)),lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z)))))))), lambda(SDTV2,lambda(SDTV1,lambda(TV,lambda(Det,bool(appl(appl(SDTV1,TV),Det),\/,appl(appl(SDTV2,TV),Det))))))).
 %lex(more_d, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
 
 % lexical entries for "split scope"
 
 lex(no2, (s|sneg), lambda(S,lambda(Z,appl(appl(S,no2),Z))), neg).
-lex(or2, (((sneg|tv)|(sneg|tv))|(sneg|tv)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V1,lambda(W1,lambda(TV,bool(appl(W1,TV),\/,appl(V1,TV)))))).
-lex(neg, ((sneg|(s|np))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(W,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),W))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(or2, (((sneg|tv_c)|(sneg|tv_c))|(sneg|tv_c)), lambda(Sigma2,lambda(Sigma1,lambda(Phi1,lambda(Phi2,lambda(Z,appl(appl(appl(Sigma1,Phi1),Phi2),appl(or2,appl(appl(appl(Sigma2,lambda(V,V)),lambda(W,W)),Z)))))))), lambda(V1,lambda(W1,lambda(TV,bool(appl(W1,TV),\/,appl(V1,TV)))))).
+lex(neg, ((sneg|(s|np(_)))|n), lambda(Phi1,lambda(Sigma,lambda(Phi2,lambda(W,appl(appl(Sigma,lambda(V,appl(Phi2,appl(neg,appl(Phi1,V))))),W))))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 
 
 % attempt to recreate the Morrill e.a. analysis

@@ -515,7 +515,15 @@ d_implication(impl(A,B), A,B) -->
 % =   Hybrid type-logical grammars   =
 % ====================================
 
-linear_to_hybrid(at(A, _), at(A)).
+linear_to_hybrid(at(A, Vs), Result) :-
+   (
+	atomic_formula_prefix(A, Prefix)
+   ->
+        append(Prefix, _, Vs),
+	Result = at(A, Prefix)
+   ;
+        Result = at(A)
+   ).
 linear_to_hybrid(forall(Z,impl(A,B)), F) :-
 	linear_to_lambek(forall(Z,impl(A,B)), [_,_], F).
 linear_to_hybrid(exists(Y, p(A,B)), F) :-

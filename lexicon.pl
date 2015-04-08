@@ -50,7 +50,8 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
 	lex(Word, _, _)
     ->	     
         /* Lambek/Displacement entry */
-	lex(Word, Formula0, Semantics),
+	lex(Word, Formula0, Semantics0),
+	copy_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
         translate(Formula1, [N0,N1], Formula),
         retractall(memo_lookup(N0, _)),
@@ -60,8 +61,9 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         lex(Word, _, _, _)
     ->
         /* hybrid entry */
-        lex(Word, Formula0, ProsTerm, Semantics0),
+        lex(Word, Formula0, ProsTerm0, Semantics0),
 	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
+	copy_term(ProsTerm0, ProsTerm),
 	copy_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
         translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
@@ -102,6 +104,9 @@ macro_expand(d_vp, F) :-
 macro_expand(h_det, F) :-
 	!,
 	macro_expand(((s|(s|np))|n), F).
+macro_expand(h_det_c, F) :-
+	!,
+	macro_expand(((s|(s|np(_)))|n), F).
 macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
 	!.
 macro_expand(vp, dl(at(np),at(s))) :-
