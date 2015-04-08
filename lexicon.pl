@@ -106,9 +106,32 @@ macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
 	!.
 macro_expand(vp, dl(at(np),at(s))) :-
 	!.
+macro_expand(tv_c, dr(dl(at(np, [nom]),at(s)),at(np, [acc]))) :-
+	!.
+macro_expand(vp_c, dl(at(np, [nom]),at(s))) :-
+	!.
+macro_expand(F, Formula) :-
+	current_predicate(atomic_formula/3),
+	atomic_formula(F, At, Vars),
+	!,
+   (
+	is_list(Vars)
+   ->	
+        Formula = at(At, Vars)
+   ;
+        Formula = at(At, [Vars])
+   ).
 macro_expand(A0, A) :-
 	atom(A0),
 	!,
+   (
+	current_predicate(atomic_formula/3),
+        atomic_formula(F, A0, _Vars)
+   ->
+        format(user_error, '~N{Warning: atomic formula used as "~w" but declared as "~w"}~n', [A0,F])
+   ;
+        true
+   ),
 	A = at(A0).
 macro_expand(at(A), at(A)).
 macro_expand(at(A,B), at(A,B)).

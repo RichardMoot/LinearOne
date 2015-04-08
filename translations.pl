@@ -61,6 +61,8 @@ translate(F0, [X,Y], F) :-
 % which corresponds to the Lambek calculus formula
 
 translate_lambek(at(A), [X,Y], at(A,[X,Y])).
+translate_lambek(at(A,Vs0), [X,Y], at(A, Vs)) :-
+	append(Vs0, [X,Y], Vs).
 translate_lambek(dr(A0,B0), [X,Y], forall(Z,impl(B,A))) :-
 	translate_lambek(B0, [Y,Z], B),
 	translate_lambek(A0, [X,Z], A).
@@ -111,6 +113,10 @@ linear_to_lambek(exists(Y, p(A,B)), [X,Z], F) :-
 	WB = Z,
 	F = p(FA,FB)
    ).
+linear_to_lambek(at(A, Vs0), [X,Y], at(A, Prefix)) :-
+	atomic_formula_prefix(A, Prefix),
+	!,
+	append(Prefix, [X,Y], Vs0).
 linear_to_lambek(at(A,[X,Y]), [X,Y], at(A)).
 
 % =============================
@@ -126,6 +132,8 @@ linear_to_lambek(at(A,[X,Y]), [X,Y], at(A)).
 % predicate d_atom_sort/2 (which defaults to 0).
 
 displacement_sort(at(A), S) :-
+	d_atom_sort(A, S).
+displacement_sort(at(A,_), S) :-
 	d_atom_sort(A, S).
 displacement_sort(p(A,B), S) :-
 	displacement_sort(A, SA),
@@ -525,13 +533,32 @@ find_positions([V|Vs], Ps0) :-
         Ps0 = Ps
      ),		   
         find_positions(Vs, Ps).
-    
+
+
+atomic_formula_prefix(A, List) :-
+	current_predicate(atomic_formula/3), 
+        atomic_formula(_, A, Prefix),
+  (
+	is_list(Prefix)
+  ->
+        List = Prefix
+  ;
+        List = [_]
+  ).
+  
 % = linear_to_hybrid(+LinearLogicFormula, -PositionsList, -PrincipalFormula, -HybridFormula)
 %
 % PrincipalFormula is of the correct "shape" to combine with LinearLogicFormula
 
 % Lambek atoms
-linear_to_hybrid(at(A, Vs), Vs, Impl, at(A)) :-
+linear_to_hybrid(at(A, Vs0), Vs, Impl, at(A, Prefix)) :-
+    (
+        atomic_formula_prefix(A, Prefix)
+    ->
+        append(Prefix, Vs, Vs0)
+    ;
+        Vs = Vs0
+    ),
 	list_to_impl(Vs, Impl).
 % Lambek implications
 linear_to_hybrid(forall(Z,impl(A,B)), [X,Y], impl(at(Y,[]),at(X,[])), F) :-
@@ -574,6 +601,8 @@ translate_hybrid(Formula, Term, Word, L, R, LinearFormula) :-
 match(at(sneg), impl(impl(TA,TB),impl(TC,TD)), at(sneg, [TC,TA,TB,TD])) :-
 	!,
 	check_variables([TC,TA,TB,TD], sneg, impl(impl(TA,TB),impl(TC,TD))).
+match(at(A, Vs0), impl(TB,TA), at(A, Vs)) :-
+	append(Vs0, [TA,TB], Vs).
 match(at(A), impl(TB,TA), at(A, [TA,TB])) :-
 	check_variables([TA,TB], A, impl(TB,TA)).
 match(h(B,A), impl(TA,TB), impl(FA,FB)) :-
@@ -622,6 +651,8 @@ formula_type(h(B,A), impl(TA,TB)) :-
 formula_type(dr(_,_), impl(s,s)).
 formula_type(dl(_,_), impl(s,s)).
 formula_type(p(_,_), impl(s,s)).
+formula_type(at(At, _), Type) :-
+	atom_type(At, Type).
 formula_type(at(At), Type) :-
 	atom_type(At, Type).
 
