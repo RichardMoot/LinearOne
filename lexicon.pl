@@ -92,6 +92,11 @@ lex_to_hybrid(Word, Formula, Term) :-
 %	MFormula = FFormula,
 	linear_to_hybrid(FFormula, Formula, Term).
 
+macro_expand(F0, F) :-
+	current_predicate(macro/2),
+	macro(F0, F1),
+	!,
+	macro_expand(F1, F).
 macro_expand(d_q, F) :-
 	!,
 	macro_expand(((s/<n)\<s)/cn, F).

@@ -1106,9 +1106,21 @@ latex_arguments([A|As]) :-
         write(latex, ')').
 
 latex_arguments([], A) :-
-	print(latex, A).
+   (
+        var(A)
+    ->
+	format(latex, '\\_', [])
+    ;		  
+        format(latex, '~p', [A])
+    ).
 latex_arguments([A|As], A0) :-
-	format(latex, '~w, ', [A0]),
+   (
+        var(A0)
+    ->
+	format(latex, '\\_, ', [])
+    ;		  
+        format(latex, '~p, ', [A0])
+    ),
 	latex_arguments(As, A).
 
 % = unary_term(+Term)
