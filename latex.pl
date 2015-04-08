@@ -595,7 +595,9 @@ latex_pros_atom(A0) :-
 latex_hybrid_formula(F) :-
 	latex_hybrid_formula(F, 0).
 latex_hybrid_formula(at(A), _) :-
-	print(latex,A).
+	latex_atom(A).
+latex_hybrid_formula(at(F, Vs), _) :-
+	format(latex, '~@~@', [latex_atom(F),latex_arguments(Vs)]).
 latex_hybrid_formula(h(A,B), N) :-
 	hybrid_connective(h(A,B), L, C, R),
    (
@@ -703,6 +705,8 @@ latex_d_formula(F) :-
 
 latex_d_formula(at(A), _) :-
 	latex_it_atom(A).
+latex_d_formula(at(F, Vs), _) :-
+	format(latex, '~@~@', [latex_it_atom(F),latex_arguments(Vs)]).
 latex_d_formula(bridge(A), _) :-
 	!,
 	format(latex, '\\,\\hat{\\,}(~@ )', [latex_d_formula(A, 0)]).
@@ -1102,9 +1106,21 @@ latex_arguments([A|As]) :-
         write(latex, ')').
 
 latex_arguments([], A) :-
-	print(latex, A).
+   (
+        var(A)
+    ->
+	format(latex, '\\_', [])
+    ;		  
+        format(latex, '~p', [A])
+    ).
 latex_arguments([A|As], A0) :-
-	format(latex, '~w, ', [A0]),
+   (
+        var(A0)
+    ->
+	format(latex, '\\_, ', [])
+    ;		  
+        format(latex, '~p, ', [A0])
+    ),
 	latex_arguments(As, A).
 
 % = unary_term(+Term)

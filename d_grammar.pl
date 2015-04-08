@@ -31,8 +31,7 @@
 :- op(400, yfx, *<).  % = \odot_<
 :- op(400, yfx, *>).  % = \odot_>
 
-
-:- abolish(lex/3), abolish(lex/4), abolish(test/1).
+:- abolish(lex/3), abolish(lex/4), abolish(lex/5), abolish(atomic_formula/3), abolish(atomic_formula/1), abolish(test/1), abolish(macro/2).
 
 % =======================
 % =  Example Sentences  =

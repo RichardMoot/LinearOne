@@ -40,6 +40,13 @@
 user:file_search_path(path, '/usr/texbin/').
 user:file_search_path(path, '/opt/local/bin/').
 
+% = allow for simplified atomic_formula/1 declarations; does the completely general
+% = translation to atomic_formula/3 automatically
+
+term_expansion(atomic_formula(A), atomic_formula(A, F, Vs)) :-
+	A =.. [F|Vs],
+	!.
+
 % = some definitions for pretty-printing
 
 portray(neg(F, X, L)) :-

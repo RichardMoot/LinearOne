@@ -50,7 +50,8 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
 	lex(Word, _, _)
     ->	     
         /* Lambek/Displacement entry */
-	lex(Word, Formula0, Semantics),
+	lex(Word, Formula0, Semantics0),
+	copy_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
         translate(Formula1, [N0,N1], Formula),
         retractall(memo_lookup(N0, _)),
@@ -60,11 +61,12 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
         lex(Word, _, _, _)
     ->
         /* hybrid entry */
-        lex(Word, Formula0, ProsTerm, Semantics0),
+        lex(Word, Formula0, ProsTerm0, Semantics0),
 	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
+	copy_term(ProsTerm0, ProsTerm),
 	copy_term(Semantics0, Semantics),    
 	macro_expand(Formula0, Formula1),
-	translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
+        translate_hybrid(Formula1, ProsTerm, Word, N0, N1, Formula),
 	retractall(hybrid_lookup(N0, _, _)),
 	assert(hybrid_lookup(N0, Formula1, ProsTerm))
     ;
@@ -90,6 +92,11 @@ lex_to_hybrid(Word, Formula, Term) :-
 %	MFormula = FFormula,
 	linear_to_hybrid(FFormula, Formula, Term).
 
+macro_expand(F0, F) :-
+	current_predicate(macro/2),
+	macro(F0, F1),
+	!,
+	macro_expand(F1, F).
 macro_expand(d_q, F) :-
 	!,
 	macro_expand(((s/<n)\<s)/cn, F).
@@ -102,83 +109,131 @@ macro_expand(d_vp, F) :-
 macro_expand(h_det, F) :-
 	!,
 	macro_expand(((s|(s|np))|n), F).
+macro_expand(h_det_c, F) :-
+	!,
+	macro_expand(((s|(s|np(_)))|n), F).
 macro_expand(tv, dr(dl(at(np),at(s)),at(np))) :-
 	!.
 macro_expand(vp, dl(at(np),at(s))) :-
 	!.
+macro_expand(tv_c, dr(dl(at(np, [nom]),at(s)),at(np, [acc]))) :-
+	!.
+macro_expand(vp_c, dl(at(np, [nom]),at(s))) :-
+	!.
+macro_expand(F, Formula) :-
+	current_predicate(atomic_formula/3),
+	atomic_formula(F, At, Vars),
+	!,
+   (
+	is_list(Vars)
+   ->	
+        Formula = at(At, Vars)
+   ;
+        Formula = at(At, [Vars])
+   ).
 macro_expand(A0, A) :-
 	atom(A0),
 	!,
+   (
+	current_predicate(atomic_formula/3),
+        atomic_formula(F, A0, _Vars)
+   ->
+        format(user_error, '~N{Warning: atomic formula used as "~w" but declared as "~w"}~n', [A0,F])
+   ;
+        true
+   ),
 	A = at(A0).
 macro_expand(at(A), at(A)).
 macro_expand(at(A,B), at(A,B)).
 
 
 macro_expand(forall(X,A0), forall(X,A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(exists(X,A0), exists(X,A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(impl(A0,B0), impl(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand(p(K,A0,B0), p(K,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dl(K,A0,B0), dl(K,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dr(K,A0,B0), dr(K,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand((A0*B0), p(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(p(A0,B0), p(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand((A0\B0), dl(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dl(A0,B0), dl(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand((A0/B0), dr(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dr(A0,B0), dr(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 
 macro_expand((A0\<B0), dl(<,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0\>B0), dl(>,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0/<B0), dr(<,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0/>B0), dr(>,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0*<B0), p(<,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0*>B0), p(>,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(^A0, bridge(A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(bridge(A0), bridge(A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(lproj(A0), lproj(A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(rproj(A0), rproj(A)) :-
+	!,
 	macro_expand(A0, A).
 
 macro_expand((B0->A0), h(A,B)) :-
@@ -189,6 +244,19 @@ macro_expand((A0|B0), h(A,B)) :-
 	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
+macro_expand(Formula, Formula) :-
+	!,
+	functor(Formula, F, A),
+	functor(Term, F, A),
+	format('~N{Warning: unknown formula ~w with functor ~w/~d}~n', [Formula, F, A]),
+    (
+	atomic_formula(Atomic, F, _),
+        functor(Atomic, F, A0)
+    ->
+	format('~N{Warning: did you mean ~w/~d?}~n', [F, A0])
+    ;		  
+        format('{Warning: you have to declare atomic formulas explicitly with: atomic_formula(~p).}~n', [Term])
+    ).
 
 in_lexicon(W) :-
 	lex(W, _, _).
