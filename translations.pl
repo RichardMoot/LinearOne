@@ -891,7 +891,17 @@ principal_type(appl(A,B), TypeA, ABlist) :-
 	/* might be doable with difference lists, though the abstraction */
         /* case below requires us to select from the constructed list */
 	append(Alist, Blist, ABlist).
+principal_type(A@B, TypeA, ABlist) :-
+        !,
+	principal_type(A, impl(TypeB,TypeA), Alist),
+	principal_type(B, TypeB, Blist),
+	append(Alist, Blist, ABlist).
 principal_type(lambda(A,B), impl(TypeA,TypeB), AList) :-
+        !,
+	principal_type(B, TypeB, BList),
+	get_type(BList, A, TypeA, AList),
+	format_debug(' ~p = ~p~n', [A,TypeA]).
+principal_type(A^B, impl(TypeA,TypeB), AList) :-
         !,
 	principal_type(B, TypeB, BList),
 	get_type(BList, A, TypeA, AList),
