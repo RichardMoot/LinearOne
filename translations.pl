@@ -546,7 +546,7 @@ linear_to_hybrid(impl(A,B), Vars, impl(TA,TB), h(FB,FA)) :-
 	append(Vars0, Vars1, Vars).
 
 list_to_impl([V1,V2], impl(at(V2,[]),at(V1,[]))).
-
+list_to_impl([V3,V1,V2,V4], impl(impl(at(V1,[]),at(V2,[])),impl(at(V3,[]),at(V4,[])))).
 
 
 % = translate_hybrid(+HybridFormula, +ProsodicTerm, +Word, +LeftPos, +RightPos, -LinearFormula)
