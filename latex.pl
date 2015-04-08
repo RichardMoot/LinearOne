@@ -43,6 +43,20 @@ hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar 
 hybrid_epsilon('\\epsilon').
 hybrid_concat('\\circ').
 
+% customize the display of items in hybrid proofs
+
+% = single-line Pros:Formula
+%
+%hybrid_item_start('').
+%hybrid_item_mid(':').
+%hybrid_item_end('').
+
+% = separate line for Pros and Formula
+%
+hybrid_item_start('\\begin{array}{l}').
+hybrid_item_mid('\\\\').
+hybrid_item_end('\\end{array}').
+
 % =====================================================
 % =    parameters for Displacement calculus output    =
 % =====================================================
@@ -498,9 +512,9 @@ latex_hybrid(rule(Name, Term, Formula, SubProofs), Tab) :-
 	latex_hybrid(SubProofs, Name, Term, Formula, Tab).
 
 latex_hybrid([], Name, Term, Formula, _Tab) :-
-     ( Name = hyp(I) ->  format(latex, '[~@:~@]^{~w} ', [latex_pros_term(Term),latex_hybrid_formula(Formula),I]) ; format(latex, '~@:~@ ', [latex_pros_term(Term),latex_hybrid_formula(Formula)])).
+     ( Name = hyp(I) ->  format(latex, '\\left [ ~@\\right ]^{~w} ', [latex_hybrid_item(Term,Formula),I]) ; format(latex, '~@ ', [latex_hybrid_item(Term,Formula)])).
 latex_hybrid([S|Ss], Name, Term, Formula, Tab0) :-
-	format(latex, '\\infer[~@]{~@:~@}{', [latex_rule_name_i(Name),latex_pros_term(Term),latex_hybrid_formula(Formula)]),
+	format(latex, '\\infer[~@]{~@}{', [latex_rule_name_i(Name),latex_hybrid_item(Term,Formula)]),
 	Tab is Tab0 + 6,
 	nl(latex),
 	tab(latex, Tab),
@@ -516,6 +530,14 @@ latex_hybrids([P|Ps], Q, Tab) :-
 	format(latex, '&~n', []),
 	tab(latex, Tab),
 	latex_hybrids(Ps, P, Tab).
+
+% = latex_hybrid_item
+
+latex_hybrid_item(Pros, Formula) :-
+	hybrid_item_start(HS),
+	hybrid_item_mid(HM),
+	hybrid_item_end(HE),
+	format(latex, '~w~@~w~@~w ', [HS,latex_pros_term(Pros),HM,latex_hybrid_formula(Formula),HE]).
 
 % = latex_pros_term(+Prosodics)
 %
