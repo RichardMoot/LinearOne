@@ -138,70 +138,92 @@ macro_expand(at(A,B), at(A,B)).
 
 
 macro_expand(forall(X,A0), forall(X,A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(exists(X,A0), exists(X,A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(impl(A0,B0), impl(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand(p(K,A0,B0), p(K,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dl(K,A0,B0), dl(K,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dr(K,A0,B0), dr(K,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand((A0*B0), p(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(p(A0,B0), p(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand((A0\B0), dl(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dl(A0,B0), dl(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 macro_expand((A0/B0), dr(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(dr(A0,B0), dr(A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 
 
 macro_expand((A0\<B0), dl(<,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0\>B0), dl(>,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0/<B0), dr(<,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0/>B0), dr(>,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0*<B0), p(<,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand((A0*>B0), p(>,A,B)) :-
+	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
 macro_expand(^A0, bridge(A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(bridge(A0), bridge(A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(lproj(A0), lproj(A)) :-
+	!,
 	macro_expand(A0, A).
 macro_expand(rproj(A0), rproj(A)) :-
+	!,
 	macro_expand(A0, A).
 
 macro_expand((B0->A0), h(A,B)) :-
@@ -212,6 +234,19 @@ macro_expand((A0|B0), h(A,B)) :-
 	!,
 	macro_expand(A0, A),
 	macro_expand(B0, B).
+macro_expand(Formula, Formula) :-
+	!,
+	functor(Formula, F, A),
+	functor(Term, F, A),
+	format('~N{Warning: unknown formula ~w with functor ~w/~d}~n', [Formula, F, A]),
+    (
+	atomic_formula(Atomic, F, _),
+        functor(Atomic, F, A0)
+    ->
+	format('~N{Warning: did you mean ~w/~d?}~n', [F, A0])
+    ;		  
+        format('{Warning: you have to declare atomic formulas explicitly with: atomic_formula(~p).}~n', [Term])
+    ).
 
 in_lexicon(W) :-
 	lex(W, _, _).

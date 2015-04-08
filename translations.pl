@@ -30,6 +30,8 @@
 			    identical_lists/2]).
 :- use_module(ordset, [ord_key_union_u/3, ord_key_insert/4, ord_key_member/3]).
 
+:- op(190, yfx, @).
+
 % = hybrid_pros
 %
 % This flag controls how the prosodic lambda term of hybrid type-logical grammars are output to LaTeX.
@@ -559,13 +561,16 @@ atomic_formula_prefix(A, List) :-
 % PrincipalFormula is of the correct "shape" to combine with LinearLogicFormula
 
 % Lambek atoms
-linear_to_hybrid(at(A, Vs0), Vs, Impl, at(A, Prefix)) :-
+linear_to_hybrid(at(A, Vs0), Vs, Impl, Result) :-
     (
+        /* take care of features */		
         atomic_formula_prefix(A, Prefix)
     ->
-        append(Prefix, Vs, Vs0)
+        append(Prefix, Vs, Vs0),
+	Result = at(A, Prefix)    
     ;
-        Vs = Vs0
+        Vs = Vs0,
+        Result = at(A)
     ),
 	list_to_impl(Vs, Impl).
 % Lambek implications

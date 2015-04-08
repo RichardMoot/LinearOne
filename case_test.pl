@@ -40,7 +40,7 @@
 
 :- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3).
 
-atomic_formula(np(Case), np, [Case]).
+atomic_formula(np(_)).
 
 test(1) :-
 	parse([someone,talked,to,everyone,yesterday], s).

@@ -32,9 +32,10 @@
 :- op(400, yfx, *>).  % = \odot_>
 
 
-:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3).
+:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/1), abolish(atomic_formula/3).
 
-atomic_formula(n(Number,Person,Gender), n, [Number,Person,Gender]).
+%atomic_formula(n(Number,Person,Gender), n, [Number,Person,Gender]).
+atomic_formula(n(_,_,_)).
 
 % =======================
 % =  Example Sentences  =

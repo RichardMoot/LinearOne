@@ -88,6 +88,9 @@ portray(lambda(X,M)) :-
 portray(bool(P,B,Q)) :-
 	format('(~p ~p ~p)', [P,B,Q]).
 
+term_expansion(atomic_formula(A), atomic_formula(A, F, Vs)) :-
+	A =.. [F|Vs].
+
 % =======================================
 % = Top-level theorem prover predicates =
 % =======================================
