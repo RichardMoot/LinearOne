@@ -39,7 +39,7 @@
 :- op(400, xfy, \).
 :- op(190, yfx, @).
 
-:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3), abolish(atomic_formula/1).
+:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3), abolish(atomic_formula/1), abolish(macro/2).
 
 % = define np as a (non-propositional) atomic formula with a single case argument
 
