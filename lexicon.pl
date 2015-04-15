@@ -1,7 +1,7 @@
 :- module(lexicon, [lookup/4, lookup/5, macro_expand/2, lexical_lookup/5, lex_to_displacement/2, lex_to_hybrid/3]).
 
 :- use_module(translations, [translate/3, translate_hybrid/6,linear_to_hybrid/3,linear_to_displacement/3]).
-:- use_module(auxiliaries, [universal_closure/2,universal_disclosure/2]).
+:- use_module(auxiliaries, [universal_closure/2,universal_disclosure/2, is_ll1_formula/2]).
 
 % define operators to allow for easier specification of
 % hybrid and displacement lexical entries.
@@ -75,7 +75,9 @@ lexical_lookup(Word, Formula, Semantics, N0, N1) :-
 	current_predicate(lex/5),	
         lex(Word, _, _, _, _)
     ->
-	lex(Word, Formula, N0, N1, Semantics0),
+	lex(Word, Formula0, N0, N1, Semantics0),
+	macro_expand(Formula0, Formula),
+	is_ll1_formula(Formula, Word),
 	/* prevent potential errors caused by accidental sharing of variables between ProsTerm and Semantics0 */
 	canonical_semantic_term(Semantics0, Semantics)
     ;
@@ -122,8 +124,8 @@ macro_expand(tv_c, dr(dl(at(np, [nom]),at(s)),at(np, [acc]))) :-
 macro_expand(vp_c, dl(at(np, [nom]),at(s))) :-
 	!.
 macro_expand(F, Formula) :-
-	current_predicate(atomic_formula/3),
-	atomic_formula(F, At, Vars),
+	current_predicate(user:atomic_formula/3),
+	user:atomic_formula(F, At, Vars),
 	!,
    (
 	is_list(Vars)
@@ -136,17 +138,18 @@ macro_expand(A0, A) :-
 	atom(A0),
 	!,
    (
-	current_predicate(atomic_formula/3),
-        atomic_formula(F, A0, _Vars)
+	current_predicate(user:atomic_formula/3),
+        user:atomic_formula(F, A0, _Vars)
    ->
         format(user_error, '~N{Warning: atomic formula used as "~w" but declared as "~w"}~n', [A0,F])
    ;
         true
    ),
 	A = at(A0).
-macro_expand(at(A), at(A)).
-macro_expand(at(A,B), at(A,B)).
-
+macro_expand(at(A), at(A)) :-
+	!.
+macro_expand(at(A,B), at(A,B)) :-
+	!.
 
 macro_expand(forall(X,A0), forall(X,A)) :-
 	!,
@@ -251,13 +254,15 @@ macro_expand(Formula, Formula) :-
 	functor(Term, F, A),
 	format('~N{Warning: unknown formula ~w with functor ~w/~d}~n', [Formula, F, A]),
     (
-	atomic_formula(Atomic, F, _),
+	current_predicate(user:atomic_formula/3),
+	user:atomic_formula(Atomic, F, _),
         functor(Atomic, F, A0)
     ->
 	format('~N{Warning: did you mean ~w/~d?}~n', [F, A0])
     ;		  
         format('{Warning: you have to declare atomic formulas explicitly with: atomic_formula(~p).}~n', [Term])
-    ).
+    ),
+        fail.
 
 in_lexicon(W) :-
 	lex(W, _, _).

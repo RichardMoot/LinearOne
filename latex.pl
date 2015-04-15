@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1]).
 
 :- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
 :- use_module(lexicon, [macro_expand/2]).
@@ -11,6 +11,7 @@
 % ((f y) x) as f(x,y)
 
 option(prolog_like).
+% option(lambda_like).
 
 %lexicon_separator(' - ').
 lexicon_separator(' :: ').
@@ -850,6 +851,12 @@ update_var(V, W) :-
     ->
          variable_atom(M, W)
     ;
+         V =.. [F|As0],
+         F \= '$VAR'
+    ->
+         update_vars(As0, As),
+	 W =.. [F|As]
+    ;
          V = W
     ).	
 
@@ -1101,6 +1108,29 @@ latex_it_atom(A0) :-
 	atomic_list_concat(List, '\\_', A),
 	format(latex, '\\textit{~w}', [A]).
 
+latex_term(Term) :-
+   (
+	var(Term)
+   ->
+	format(latex, '\\_', [])
+   ;
+        (Term)
+   ->
+        write(latex,Term)
+   ;
+        Term = '$VAR'(_)
+   ->
+	print(latex, Term)
+   ;
+        Term = var(V)
+   ->
+	variable_atom(V, At),
+	write(latex, At)
+   ;			
+	Term =.. [F|Args],
+	latex_it_atom(F),
+	latex_arguments(Args)
+   ).
 
 % = latex_arguments(+ListOfArguments)
 %
@@ -1115,21 +1145,9 @@ latex_arguments([A|As]) :-
         write(latex, ')').
 
 latex_arguments([], A) :-
-   (
-        var(A)
-    ->
-	format(latex, '\\_', [])
-    ;		  
-        format(latex, '~p', [A])
-    ).
+	latex_term(A).
 latex_arguments([A|As], A0) :-
-   (
-        var(A0)
-    ->
-	format(latex, '\\_, ', [])
-    ;		  
-        format(latex, '~p, ', [A0])
-    ),
+        format(latex, '~@, ', [latex_term(A0)]),
 	latex_arguments(As, A).
 
 % = unary_term(+Term)

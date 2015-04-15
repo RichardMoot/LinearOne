@@ -35,7 +35,7 @@
 :- op(400, xfy, \).
 :- op(190, yfx, @).
 
-% = adds some likely location for pdflatex/lualatex to the file search path
+% = adds some likely locations for pdflatex/lualatex to the file search path
 
 user:file_search_path(path, '/usr/texbin/').
 user:file_search_path(path, '/opt/local/bin/').
@@ -94,9 +94,6 @@ portray(lambda(X,M)) :-
         format('(~p^~p)', [X,M]).
 portray(bool(P,B,Q)) :-
 	format('(~p ~p ~p)', [P,B,Q]).
-
-term_expansion(atomic_formula(A), atomic_formula(A, F, Vs)) :-
-	A =.. [F|Vs].
 
 % =======================================
 % = Top-level theorem prover predicates =

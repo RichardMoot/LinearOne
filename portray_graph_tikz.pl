@@ -205,35 +205,72 @@ portray_atom1([V|Vs], Pred) :-
     format(graph, '~w(~@)', [Pred,portray_vars(Vs,V)]).
     
 portray_vars([], V) :-
-    portray_var1(V).
+	portray_var1(V).
 portray_vars([V|Vs], W) :-
-    portray_var1(W),
-    write(graph, ','),
-    portray_vars(Vs, V).
+	portray_var1(W),
+	write(graph, ','),
+	portray_vars(Vs, V).
 
 portray_var1(Int) :-
-    integer(Int),
-    !,
-    print(graph, Int).
+	integer(Int),
+	!,
+	print(graph, Int).
 portray_var1(var(N)) :-
-    portray_var(N).
+	!,
+	portray_var(N).
 portray_var1('$VAR'(N)) :-
-    print(graph, '$VAR'(N)).
+	!,
+	print(graph, '$VAR'(N)).
+portray_var1(Term) :-
+	Term =.. [F0|Args],
+	atomic_list_concat(List, '_', F0),
+	atomic_list_concat(List, '\\_', F),
+	format(graph, '\\textit{~w}', [F]),	
+	latex_arguments(Args).
 
 portray_var(N) :-
-    VN is N mod 5,
-    VI is N//5,
-    print_var1(VI),
-    format(graph, '_{~w}', [VN]).
+    VI is N mod 5,
+    VN is N//5,
+    var_name(VN),
+    format(graph, '_{~w}', [VI]).
 
-print_var1(0) :-
+var_name(0) :-
     write(graph, x).
-print_var1(1) :-
+var_name(1) :-
     write(graph, y).
-print_var1(2) :-
+var_name(2) :-
     write(graph, z).
-print_var1(3) :-
+var_name(3) :-
     write(graph, v).
-print_var1(4) :-
+var_name(4) :-
     write(graph, w).
 
+% = latex_arguments(+ListOfArguments)
+%
+% write a list of arguments to a predicate ie. (t_1, t_2, t3) sending
+% each t_i to print and outputing nothing for a proposition (ie. the
+% empty list of arguments.
+
+latex_arguments([]).
+latex_arguments([A|As]) :-
+	write(graph, '('),
+	latex_arguments(As, A),
+        write(graph, ')').
+
+latex_arguments([], A) :-
+   (
+        var(A)
+    ->
+	format(graph, '\\_', [])
+    ;		  
+        format(graph, '~@', [portray_var1(A)])
+    ).
+latex_arguments([A|As], A0) :-
+   (
+        var(A0)
+    ->
+	format(graph, '\\_, ', [])
+    ;		  
+        format(graph, '~@, ', [portray_var1(A0)])
+    ),
+	latex_arguments(As, A).

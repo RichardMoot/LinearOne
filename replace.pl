@@ -119,6 +119,13 @@ rename_bound_var(V, X, Y, W) :-
    ->
 	W = Y
    ;
+        compound(V), 
+        V =.. [F|As0],
+	F \= '$VAR'	      
+   ->
+        rename_bound_var_list(As0, X, Y, As),
+	W =.. [F|As]
+   ;		      
 	W = V
    ).
 

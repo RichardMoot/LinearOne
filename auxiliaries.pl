@@ -1,4 +1,6 @@
 :- module(auxiliaries, [select_formula/4,
+			is_ll1_formula/1,
+			is_ll1_formula/2,
 			count_check/4,
 			subproofs/2,
 			rulename/2,
@@ -16,7 +18,66 @@
 			identical_lists/2,
 			split_list/4]).
 
-:- use_module(ordset, [ord_union/3, ord_delete/3]).
+:- use_module(ordset, [ord_union/3, ord_delete/3, ord_insert/3]).
+
+% = is_ll1_formula(+Term)
+%
+% true if Term is a correct first-order linear logic formula; outputs error message and fails if it is not
+
+% proposition
+is_ll1_formula(at(_)) :-
+	!.
+% predicate
+is_ll1_formula(at(_, _)) :-
+	!.
+is_ll1_formula(forall(_,A)) :-
+	!,
+	is_ll1_formula(A).
+is_ll1_formula(exists(_,A)) :-
+	!,
+	is_ll1_formula(A).
+is_ll1_formula(impl(A,B)) :-
+	!,
+	is_ll1_formula(A),
+	is_ll1_formula(B).
+is_ll1_formula(p(A,B)) :-
+	!,
+	is_ll1_formula(A),
+	is_ll1_formula(B).
+is_ll1_formula(Term) :-
+	functor(Term, F, A),
+	format(user_error, '{Error: unknown term ~w/~w used in first-order linear logic entry!}', [F,A]),
+	fail.
+
+% = is_ll1_formula(+Term, +Word)
+%
+% true if Term is a correct first-order linear logic formula; outputs error message and fails if it is not
+
+% proposition
+is_ll1_formula(at(_), _) :-
+	!.
+% predicate
+is_ll1_formula(at(_, _), _) :-
+	!.
+is_ll1_formula(forall(_,A), W) :-
+	!,
+	is_ll1_formula(A, W).
+is_ll1_formula(exists(_,A), W) :-
+	!,
+	is_ll1_formula(A, W).
+is_ll1_formula(impl(A,B), W) :-
+	!,
+	is_ll1_formula(A, W),
+	is_ll1_formula(B, W).
+is_ll1_formula(p(A,B), W) :-
+	!,
+	is_ll1_formula(A, W),
+	is_ll1_formula(B, W).
+is_ll1_formula(Term, W) :-
+	functor(Term, F, A),
+	format(user_error, '{Error: unknown term ~w/~w used in first-order linear logic entry for "~w"!}', [F,A,W]),
+	fail.
+
 
 % = select_formula(+Formula, +Index, +List, -Rest)
 %
@@ -164,9 +225,9 @@ universal_disclosure(A, A).
 free_vars_n(_-A, Vars) :-
         free_vars_n(A, Vars).
 free_vars_n(at(_, Vars0), Vars) :-
-        sort(Vars0, Vars). 
+	free_vars_list(Vars0, Vars).
 free_vars_n(at(_, _, _, Vars0), Vars) :-
-	sort(Vars0, Vars).
+	free_vars_list(Vars0, Vars).
 free_vars_n(p(A,B), Vars) :-
         free_vars(A, Vars1),
         free_vars(B, Vars2),
@@ -181,6 +242,44 @@ free_vars_n(exists(X,A), Vars) :-
        free_vars(A, Vars0),
        ord_delete(Vars0, X, Vars).
 
+
+is_variable(X) :-
+   (
+	var(X)
+    ->
+	true
+    ;
+        X = var(_)
+    ->
+	true
+    ;
+        X = '$VAR'(_)
+    ->
+	true
+    ).	      
+
+free_vars_list(Vs, Ws) :-
+	free_vars_list(Vs, [], Ws).
+
+free_vars_list([], Ws, Ws).
+free_vars_list([V|Vs], Ws0, Ws) :-
+    (
+	is_variable(V)
+    ->
+	ord_insert(Ws0, V, Ws2)
+    ;
+        atomic(V)
+    ->
+	Ws2 = Ws0
+    ;
+        compound(V)
+    ->	    
+        V =..[_|As],
+	free_vars_list(As, [], Ws1),
+	ord_union(Ws0, Ws1, Ws2)
+    ),
+        free_vars_list(Vs, Ws2, Ws).
+		 
 % = free_vars_p(+Formula, -SetOfFreeVars)
 %
 % true if Formula (of positive polariy) has
@@ -192,9 +291,9 @@ free_vars_n(exists(X,A), Vars) :-
 free_vars_p(_-A, Vars) :-
         free_vars_p(A, Vars).
 free_vars_p(at(_, Vars0), Vars) :-
-        sort(Vars0, Vars). 
+        free_vars_list(Vars0, Vars). 
 free_vars_p(at(_, _, _, Vars0), Vars) :-
-	sort(Vars0, Vars).
+	free_vars_list(Vars0, Vars).
 free_vars_p(p(A,B), Vars) :-
         free_vars_p(A, Vars1),
         free_vars_p(B, Vars2),
@@ -217,9 +316,9 @@ free_vars_p(forall(X,A), Vars) :-
 free_vars(_-A, Vars) :-
         free_vars(A, Vars).
 free_vars(at(_, Vars0), Vars) :-
-        sort(Vars0, Vars). 
+        free_vars_list(Vars0, Vars). 
 free_vars(at(_, _, _, Vars0), Vars) :-
-	sort(Vars0, Vars).
+	free_vars_list(Vars0, Vars).
 free_vars(p(A,B), Vars) :-
         free_vars(A, Vars1),
         free_vars(B, Vars2),
