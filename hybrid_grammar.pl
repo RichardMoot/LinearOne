@@ -38,7 +38,7 @@
 :- op(400, xfy, \).
 :- op(190, yfx, @).
 
-:- abolish(lex/3), abolish(lex/4), abolish(test/1).
+:- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3), abolish(atomic_formula/1), abolish(macro/2).
 
 test(1) :-
 	parse([someone,talked,to,everyone,yesterday], s).
@@ -108,6 +108,7 @@ lex(bought, tv, bought, buy).
 lex(buys, tv, buys, buy).
 lex(eats, tv, eats, eat).
 lex(ate, tv, ate, eat).
+lex(chased, tv, chased, chase).
 lex(talked, (np\s)/pp, talked, talk).
 lex(discover, tv, discover, discover).
 lex(discovers, tv, discovers, discover).
@@ -133,9 +134,12 @@ lex(alpo, np, alpo, alpo).
 lex(whiskas2, n, whiskas2, whiskas).
 lex(alpo2, n, alpo2, alpo).
 lex(to, pp/np, to, lambda(X,X)).
+lex(that, (n|n)|(s|np), lambda(SNP,lambda(N,N+that+appl(SNP,epsilon))), lambda(P,lambda(Q,lambda(X,bool(appl(Q,X),&,appl(P,X)))))).
 % = uses s1 as final category to avoid quantifier scope outside of the individual conjuncts
 lex(and1, (((s1|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and1,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
 lex(and, (((s|tv)|(s|tv))|(s|tv)), lambda(STV2,lambda(STV1,lambda(TV,lambda(V,appl(appl(STV1,TV),appl(and,appl(appl(STV2,lambda(W,W)),V))))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
+lex(and_np, dr(dl(np,np),np), and_np, lambda(NP2,lambda(NP1,bool(NP1,&,NP2)))).
+lex(and_q, (((s|s|np)|(s|s|np))|(s|s|np)), lambda(SP2,lambda(SP1,lambda(P,appl(P,appl(SP1,lambda(V,V))+and_q+appl(SP2,lambda(W,W)))))), lambda(SQ2,lambda(SQ1,lambda(SNP,bool(appl(SQ1,SNP),&,appl(SQ2,SNP)))))).
 lex(must, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,must),Z))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
 lex(cant, (s|(s|(vp/vp))), lambda(SVP,lambda(Z,appl(appl(SVP,cant),Z))), lambda(F,neg(possible(appl(F,lambda(Y,Y)))))).
 lex(no, (s|(s|h_det)), lambda(Rho,lambda(Z,appl(appl(Rho,lambda(Phi,lambda(Sigma,lambda(V,appl(appl(Sigma,lambda(W,appl(no,appl(Phi,W)))),V))))),Z))), lambda(P,neg(appl(P,lambda(Q,lambda(R,quant(exists,X,bool(appl(Q,X),&,appl(R,X))))))))).
