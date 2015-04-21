@@ -1114,7 +1114,7 @@ latex_term(Term) :-
    ->
 	format(latex, '\\_', [])
    ;
-        (Term)
+        integer(Term)
    ->
         write(latex,Term)
    ;

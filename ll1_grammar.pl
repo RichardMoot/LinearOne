@@ -45,6 +45,7 @@ lex(very, forall(X,impl(adj(R,X),adj(L,X))), L, R, Adj^N^(very@Adj)@N).
 test(1) :-
 	parse([the,hulk,is,green], s(main)).
 test(2) :-
+	/* should fail because of non-associativity */
 	parse([the,hulk,is,green,red], s(main)).
 test(3) :-
 	/* NOTE: the semantics looks odd due to the notation convention for binary predicates, which displays */
@@ -53,4 +54,5 @@ test(3) :-
 	/* (change "option(prolog_like)." to "option(lambda_like)." in latex.pl to switch this off) */
 	parse([the,hulk,is,very,green], s(main)).
 test(4) :-
+	/* should fail because empy antecedent derivations have been excluded for "very" */
 	parse([the,hulk,is,very], s(main)).
