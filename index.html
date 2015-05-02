@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Linearone : LinearOne is a prototype theorem prover for first-order (multiplicative, intuitionistic) linear logic.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Linearone</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/RichardMoot/LinearOne">View on GitHub</a>
+
+          <h1 id="project_title">Linearone</h1>
+          <h2 id="project_tagline">LinearOne is a prototype theorem prover for first-order (multiplicative, intuitionistic) linear logic.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/RichardMoot/LinearOne/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/RichardMoot/LinearOne/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="linearone" class="anchor" href="#linearone" aria-hidden="true"><span class="octicon octicon-link"></span></a>LinearOne</h1>
+
+<p><img class="emoji" title=":copyright:" alt=":copyright:" src="https://assets-cdn.github.com/images/icons/emoji/unicode/00a9.png" height="20" width="20" align="absmiddle"> 2015 <a href="http://www.cnrs.fr">CNRS</a></p>
+
+<p><img class="emoji" title=":copyright:" alt=":copyright:" src="https://assets-cdn.github.com/images/icons/emoji/unicode/00a9.png" height="20" width="20" align="absmiddle"> 2015 Richard Moot (<a href="https://github.com/RichardMoot" class="user-mention">@RichardMoot</a>)</p>
+
+<p>This research has received financial support from the ANR CONTINT, project POLYMNIE (ANR-12-CORD-0004). </p>
+
+<p>LinearOne is a prototype theorem prover/parser for first-order (multiplicative, intuitionistic) linear logic. It also supports (by translation) parsing of hybrid type-logical grammars and Displacement calculus grammars.</p>
+
+<p>LinearOne is provided under the GNU Lesser General Public License (see the included file LICENSE for details).</p>
+
+<p>LinearOne is a set of SWI Prolog files, which optional graph output to LuaLaTeX (using the TikZ 3.0.0 graph drawing libraries) and proof output to LaTeX/pdfLaTeX/luaLaTeX.</p>
+
+<h1>
+<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick start</h1>
+
+<h3>
+<a id="starting-prolog" class="anchor" href="#starting-prolog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Starting Prolog</h3>
+
+<p>After downloading, enter the LinearOne directory and type.</p>
+
+<pre><code>swipl    # (or the name of SWI Prolog on your system)
+</code></pre>
+
+<p>This will start SWI Prolog.</p>
+
+<h3>
+<a id="loading-the-source-and-the-grammars" class="anchor" href="#loading-the-source-and-the-grammars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading the source and the grammars</h3>
+
+<p>In SWI Prolog, type</p>
+
+<pre><code>[mill1,d_grammar].
+</code></pre>
+
+<p>to load the library files and the example Displacement calculus grammar, there is a hybrid type-logical grammar available as well.</p>
+
+<pre><code>[hybrid_grammar].
+</code></pre>
+
+<h3>
+<a id="parsing" class="anchor" href="#parsing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parsing</h3>
+
+<p>To try one of the examples in either grammar, use</p>
+
+<pre><code>test(1).   % (check the grammar files to see the available examples).
+</code></pre>
+
+<p>You can also use</p>
+
+<pre><code>parse([john,ate,more,donuts,than,mary,bought,bagels], s).
+</code></pre>
+
+<p>to directly parse a sentence. Check the lexicon and experiment a bit with the grammars yourself.</p>
+
+<h3>
+<a id="viewing-the-output" class="anchor" href="#viewing-the-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>Viewing the output</h3>
+
+<p>When a parse is found, it is output to the file <code>latex_proofs.tex</code> and a pdf file <code>latex_proofs.pdf</code> is automatically produced. View <code>latex_proofs.pdf</code> with your favorite previewer. You will probably need to zoom in for larger proofs.</p>
+
+<h1>
+<a id="troubleshooting" class="anchor" href="#troubleshooting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Troubleshooting</h1>
+
+<h3>
+<a id="no-latex-output-is-produced" class="anchor" href="#no-latex-output-is-produced" aria-hidden="true"><span class="octicon octicon-link"></span></a>No LaTeX output is produced!</h3>
+
+<p>Make sure that you have write permissions in the LinearOne directory and that Prolog can find your LaTeX installation. To find the location of pdflatex type the following in a shell terminal</p>
+
+<pre><code>where pdflatex
+</code></pre>
+
+<p>Add the required path to the file <code>mill1.pl</code>. For example, the path <code>/usr/texbin/</code> is added as follows.</p>
+
+<pre><code>user:file_search_path(path, '/usr/texbin/').
+</code></pre>
+
+<p>It is also possible that LaTeX aborts with an error (verify the file <code>latex_proofs.tex</code>).</p>
+
+<h3>
+<a id="the-proofs-dont-fit-the-page" class="anchor" href="#the-proofs-dont-fit-the-page" aria-hidden="true"><span class="octicon octicon-link"></span></a>The proofs don't fit the page!</h3>
+
+<p>The <code>geometry/1</code> predicate in the file <code>latex.pl</code> can be modified to the desired page size. Comment out all but the desired page size (or add your own preferred page size). Zooming will be necessary!</p>
+
+<h3>
+<a id="i-dont-see-any-graph-output" class="anchor" href="#i-dont-see-any-graph-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>I don't see any graph output</h3>
+
+<p>Graph output is optional. In the file mill1.pl, comment out the line</p>
+
+<pre><code>  use_module(portray_graph_none,...)
+</code></pre>
+
+<p>and remove the comments from line</p>
+
+<pre><code>  use_module(portray_graph_tikz,...)
+</code></pre>
+
+<p>Also make sure your LaTeX installation includes lualatex and Tikz 3.0.0 or later (that is, you need a 2014 or later LaTeX installation).</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Linearone maintained by <a href="https://github.com/RichardMoot">RichardMoot</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
