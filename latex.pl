@@ -10,8 +10,8 @@
 % set this option to "prolog_like" for a Prolog-like output; this will portray terms like
 % ((f y) x) as f(x,y)
 
-option(prolog_like).
-% option(lambda_like).
+% option(prolog_like).
+option(lambda_like).
 
 %lexicon_separator(' - ').
 lexicon_separator(' :: ').
@@ -27,8 +27,8 @@ lexicon_separator(' :: ').
 % subformulas (A or B) then a Prolog atom (passed to LaTeX directly), then the other
 % subformula.
 
-hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar style
-%hybrid_connective(h(A,B), B, '\\multimap ', A).   % ACG/lambda grammar style
+%hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar style
+hybrid_connective(h(A,B), B, '\\multimap ', A).   % ACG/lambda grammar style
 
 % these options allow you to customise the LaTeX display of the empty string "epsilon" and
 % the concatenation "+"; the only argument of these predicates is a single Prolog atom which
