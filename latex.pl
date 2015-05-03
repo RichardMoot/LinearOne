@@ -782,11 +782,10 @@ latex_formula(F) :-
 
 latex_formula(_-F, N) :-
 	latex_formula(F, N).
-latex_formula(at(F,Vs0), _) :-
-	update_vars(Vs0, Vs),
+latex_formula(at(F,Vs), _) :-
+%	update_vars(Vs0, Vs),
 	format(latex, '~@~@', [latex_atom(F),latex_arguments(Vs)]).
-latex_formula(at(F,N,E,Vs0), _) :-
-	update_vars(Vs0, Vs),
+latex_formula(at(F,N,E,Vs), _) :-
   (	
 	output_indices(yes)
   ->
@@ -796,23 +795,21 @@ latex_formula(at(F,N,E,Vs0), _) :-
   ).
 latex_formula(forall(X,F), _) :-
 	!,
-	update_var(X, Y),
    (
 	is_quantified(F)
    ->
-	format(latex, '\\forall ~w. ~@', [Y,latex_formula(F, 1)])
+	format(latex, '\\forall ~@. ~@', [latex_var(X),latex_formula(F, 1)])
    ;
-	format(latex, '\\forall ~w. [~@]', [Y,latex_formula(F, 0)])
+	format(latex, '\\forall ~@. [~@]', [latex_var(X),latex_formula(F, 0)])
    ).
 latex_formula(exists(X,F), _) :-
 	!,
-	update_var(X, Y),
    (
 	is_quantified(F)
    ->
-	format(latex, '\\exists ~w. ~@', [Y,latex_formula(F, 1)])
+	format(latex, '\\exists ~@. ~@', [latex_var(X),latex_formula(F, 1)])
    ;
-	format(latex, '\\exists ~w. [~@]', [Y,latex_formula(F, 0)])
+	format(latex, '\\exists ~@. [~@]', [latex_var(X),latex_formula(F, 0)])
    ).
 latex_formula(p(A,B), NB) :-
 	!,
@@ -840,25 +837,15 @@ is_quantified(forall(_,_)).
 is_quantified(at(_,_)).
 is_quantified(at(_,_,_,_)).
 
-update_vars([], []).
-update_vars([V|Vs], [W|Ws]) :-
-	update_var(V, W),
-	update_vars(Vs, Ws).
-
-update_var(V, W) :-
+latex_var(V) :-
     (
          V = var(M)
     ->
-         variable_atom(M, W)
+         variable_atom(M, W),
+         write(latex, W)
     ;
-         V =.. [F|As0],
-         F \= '$VAR'
-    ->
-         update_vars(As0, As),
-	 W =.. [F|As]
-    ;
-         V = W
-    ).	
+         print(latex, V)
+    ).
 
 
 variable_atom(N, At) :-
