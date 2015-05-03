@@ -52,6 +52,12 @@ translate(F0, [X,Y], F) :-
 translate(F0, [X,Y], F) :-
 	translate_displacement(F0, [X,Y], F),
 	!.
+translate(forall(Z,F0), [X,Y], forall(Z,F)) :-
+	!,
+	translate(F0, [X,Y], F).
+translate(exists(Z,F0), [X,Y], exists(Z,F)) :-
+	!,
+	translate(F0, [X,Y], F).
 
 % =======================
 % =   Lambek calculus   =

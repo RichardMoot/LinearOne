@@ -19,7 +19,6 @@
 % short for lambda(X,lambda(Y,lambda(Z,appl(appl(X,Y),Z))))
 % though be warned that X@Y+V@Z corresponds to (X@Y)+(V@Z)
 
-
 atomic_formula(n(_)).
 atomic_formula(np(_)).
 atomic_formula(s(_)).
@@ -40,8 +39,15 @@ lex(is, forall(Y,impl(adj(R,Y),forall(X,impl(np(nom,X,L), s(main,X,Y))))), L, R,
 lex(red, adj(L,R), L, R, red).
 lex(green, adj(L,R), L, R, green).
 lex(very, forall(X,impl(adj(R,X),adj(L,X))), L, R, Adj^N^(very@Adj)@N).
-
-
+% extraction and CSC
+lex(book, forall(X,n(X,L,R)), L, R, book).
+lex(and, forall(Z,forall(Y,impl(np(t(Z),R,Y),forall(X,impl(np(s(Z),X,L),np(Z,X,Y)))))), L, R, and).
+lex(read, forall(Z,forall(Y,impl(np(Z,R,Y),forall(X,impl(np(Z,X,L),s(Z,X,Y)))))), L, R, read).
+lex(mary, forall(Z,np(Z,L,R)), L, R, mary).
+lex(ak, forall(Z,np(Z,L,R)), L, R, ak).
+lex(wp, forall(Z,np(Z,L,R)), L, R, wp).
+lex(which, forall(Z,forall(X,impl(exists(Y,impl(np(Z,Y,Y),s(Z,R,X))),forall(V,impl(n(Z,V,L),n(Z,V,X)))))), L, R, Q^P^X^bool(P@X,&,Q@X)).
+   
 test(1) :-
 	parse([the,hulk,is,green], s(main)).
 test(2) :-
@@ -56,3 +62,13 @@ test(3) :-
 test(4) :-
 	/* should fail because empy antecedent derivations have been excluded for "very" */
 	parse([the,hulk,is,very], s(main)).
+
+% extraction and CSC
+test(5) :-
+	parse([book,which,mary,read], forall(X,n(X))).
+test(6) :-
+	parse([mary,read,ak,and,wp], forall(X,s(X))).
+test(7) :-
+	parse([book,which,mary,read,ak,and], forall(X,n(X))).
+test(8) :-
+	parse([book,which,mary,read,and,wp], forall(X,n(X))).
