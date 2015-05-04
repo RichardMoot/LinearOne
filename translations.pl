@@ -42,8 +42,8 @@
 % When set to "simple", pure lambda terms are converted, whenever possible, to simple lambda terms
 % using concatenation "+" and the empty string "epsilon".
 
-%hybrid_pros(pure).
-hybrid_pros(simple).
+hybrid_pros(pure).
+%hybrid_pros(simple).
 
 
 translate(F0, [X,Y], F) :-
