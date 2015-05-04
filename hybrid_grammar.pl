@@ -40,6 +40,8 @@
 
 :- abolish(lex/3), abolish(lex/4), abolish(test/1), abolish(atomic_formula/3), abolish(atomic_formula/1), abolish(macro/2).
 
+test(0) :-
+	parse([everyone,talked,to,someone], s).
 test(1) :-
 	parse([someone,talked,to,everyone,yesterday], s).
 test(2) :-
@@ -114,10 +116,10 @@ lex(discover, tv, discover, discover).
 lex(discovers, tv, discovers, discover).
 lex(walks, np\s, walks, walk).
 lex(eat, tv, eat, eat).
-lex(a, ((s|(s|np))|n), lambda(N,lambda(P,lambda(Z,appl(appl(P,lambda(V,appl(a,appl(N,V)))),Z)))), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
-lex(every, ((s|(s|np))|n), lambda(N, lambda(P,appl(P,every+N))), lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
-lex(someone, (s|(s|np)), lambda(Pr,lambda(Z,appl(appl(Pr,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
-lex(everyone, (s|(s|np)), lambda(Pr,lambda(Z,appl(appl(Pr,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
+lex(a, ((s|(s|np))|n), N^P^P@(a+N), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(every, ((s|(s|np))|n), N^P^P@(every+N), lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
+lex(someone, (s|(s|np)), P^P@someone, P^quant(exists,X,bool(person@X,&,P@X))).
+lex(everyone, (s|(s|np)), P^P@everyone, P^quant(forall,X,bool(person@X,->,P@X))).
 lex(yesterday, (np\s)\(np\s), yesterday, lambda(X,lambda(Y,appl(yesterday,appl(X,Y))))).
 lex(fish, n, fish, fish).
 lex(dog, n, dog, dog).
