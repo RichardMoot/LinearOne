@@ -120,7 +120,7 @@ lex(a, ((s|(s|np))|n), N^P^P@(a+N), lambda(X,lambda(Y,quant(exists,Z,bool(appl(X
 lex(every, ((s|(s|np))|n), N^P^P@(every+N), lambda(X,lambda(Y,quant(forall,Z,bool(appl(X,Z),->,appl(Y,Z)))))).
 lex(someone, (s|(s|np)), P^P@someone, P^quant(exists,X,bool(person@X,&,P@X))).
 lex(everyone, (s|(s|np)), P^P@everyone, P^quant(forall,X,bool(person@X,->,P@X))).
-lex(yesterday, (np\s)\(np\s), yesterday, lambda(X,lambda(Y,appl(yesterday,appl(X,Y))))).
+lex(yesterday, (np\s)\(np\s), yesterday, X^Y^(yesterday@(X@Y))).
 lex(fish, n, fish, fish).
 lex(dog, n, dog, dog).
 lex(cat, n, cat, cat).
