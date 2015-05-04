@@ -1,4 +1,4 @@
-:- module(lexicon, [lookup/4, lookup/5, macro_expand/2, lexical_lookup/5, lex_to_displacement/2, lex_to_hybrid/3]).
+:- module(lexicon, [lookup/4, lookup/5, macro_expand/2, lexical_lookup/5, lex_to_displacement/2, lex_to_hybrid/3,canonical_semantic_term/2]).
 
 :- use_module(translations, [translate/3, translate_hybrid/6,linear_to_hybrid/3,linear_to_displacement/3]).
 :- use_module(auxiliaries, [universal_closure/2,universal_disclosure/2, is_ll1_formula/2]).

@@ -1,7 +1,7 @@
 :- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1]).
 
 :- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
-:- use_module(lexicon, [macro_expand/2]).
+:- use_module(lexicon, [macro_expand/2,canonical_semantic_term/2]).
 
 % =====================================================
 % =          parameters for semantic output           =
@@ -208,6 +208,13 @@ latex_lexicon(mill1) :-
 	lexicon_footer.
 
 % hybrid type-logical grammars
+%
+% treat "acg" and "lambda" as "hybrid".
+
+latex_lexicon(acg) :-
+	latex_lexicon(hybrid).
+latex_lexicon(lambda) :-
+	latex_lexicon(hybrid).
 
 latex_lexicon(hybrid) :-
 	lexicon_header,
@@ -230,9 +237,10 @@ latex_lexicon_d([d_lex(A,B,C)|As]) :-
 	latex_d_item(A,B,C),
 	latex_lexicon_d(As).
 
-latex_d_item(Word, Formula0, Semantics) :-
+latex_d_item(Word, Formula0, Semantics0) :-
 	macro_expand(Formula0, Formula),
 	lexicon_separator(Sep),
+	canonical_semantic_term(Semantics0, Semantics),
 	numbervars(Semantics, 0, _),
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_d_formula(Formula), Sep, latex_semantics(Semantics,0)]).
@@ -246,17 +254,19 @@ latex_lexicon_list([A|As]) :-
 	latex_mill1_item(A),
 	latex_lexicon_list(As).
 
-latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics)) :-
+latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics0)) :-
 	macro_expand(Formula0, Formula1),
 	translate_hybrid(Formula1, ProsTerm, Word, l, r, Formula),
+	canonical_semantic_term(Semantics0, Semantics),
 	numbervars(Formula, 0, _),
 	numbervars(Semantics, 0, _),
 	lexicon_separator(Sep),
 	!,
 	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
-latex_mill1_item(mill1_lex(Word,Formula0,Semantics)) :-
+latex_mill1_item(mill1_lex(Word,Formula0,Semantics0)) :-
 	macro_expand(Formula0, Formula1),
 	try_translate(Formula1, Formula),
+	canonical_semantic_term(Semantics0, Semantics),
 	numbervars(Formula, 0, _),
 	numbervars(Semantics, 0, _),
 	lexicon_separator(Sep),
@@ -272,9 +282,10 @@ latex_lexicon_hybrid([hybrid_lex(A,B,C,D)|As]) :-
 	latex_lexical_entry(A, B, C, D),
 	latex_lexicon_hybrid(As).
 
-latex_lexical_entry(mill1_lex(Word,Formula0,Semantics)) :-
+latex_lexical_entry(mill1_lex(Word,Formula0,Semantics0)) :-
 	macro_expand(Formula0, Formula1),
 	try_translate(Formula1, Formula),
+	canonical_semantic_term(Semantics0, Semantics),
 	numbervars(Semantics, 0, _),
 	lexicon_separator(Sep),
 	!,
@@ -286,7 +297,7 @@ latex_lexical_entry(Word, Formula0, ProsTerm0, SemTerm0) :-
 	/* meaning of bound variables, but very unlikely what the grammar writer intended) */
 	/* NOTE: best practice is still to use a different set of variables for the prosodic */
 	/* term and the semantic term */
-	copy_term(SemTerm0, SemTerm),
+	canonical_semantic_term(SemTerm0, SemTerm),
 	numbervars(SemTerm, 0, _),
 	compute_pros_term(ProsTerm0, Formula, ProsTerm),
 	lexicon_separator(Sep),
