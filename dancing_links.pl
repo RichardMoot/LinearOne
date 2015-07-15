@@ -1,4 +1,4 @@
-:- module(dancing_links, [compute_axioms/4, update_roots_axiom/4, update_roots_contraction/4]).
+:- module(dancing_links, [compute_axioms/4, update_roots_axiom/4, update_roots_contraction/5]).
 
 :- use_module(ordset, [ord_union/3,ord_insert/3,ord_member/2,ord_select/3]).
 :- use_module(tree234, [btree_init/1,btree_get_replace/5,btree_insert/4,btree_to_list/2,btree_get/3]).
@@ -197,11 +197,18 @@ update_roots_axiom(Roots0, N0, N1, Roots) :-
         Roots = Roots1
    ).
 
-update_roots_contraction(Roots0, N0, N1, Roots) :-
+update_roots_contraction(Roots0, Graph, N0, N1, Roots) :-
    (
         ord_select(N0, Roots0, Roots1)
    ->
-        ord_insert(Roots1, N1, Roots)
+    /* N1 does not necessarily become a root when N0 was, verify there are no other paths */
+        (is_root(Graph,N1) -> ord_insert(Roots1, N1, Roots) ; Roots = Roots1)
    ;
         Roots = Roots0
    ).
+
+is_root([], _).
+is_root([vertex(_, _, _, Ps)|Rest], N) :-
+	next_edges(Ps, Next, []),
+	\+ member(N, Next),
+	is_root(Rest, N).
