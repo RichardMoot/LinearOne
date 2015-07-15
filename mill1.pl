@@ -1,7 +1,7 @@
 
 :- use_module(dancing_links,       [compute_axioms/4,
 				    update_roots_axiom/4,
-				    update_roots_contraction/4]).
+				    update_roots_contraction/5]).
 %:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(portray_graph_none,  [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations,        [translate_lambek/3,
@@ -298,7 +298,6 @@ first_parse(ListOfWords, Goal0) :-
 	write_lookups(L),
         final_statistics.
 
-
 % = prove1(+Graph, +Roots, -Trace)
 %
 % true if Graph (with root nodes Roots) is a proof net, as justified by
@@ -317,11 +316,13 @@ prove1(Graph0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	/* choices returned by the dancing links algorithm */
 	/* TODO: evaluate different tie-breakers here as a heuristic for selecting */
 	/* atoms likely to fail quickly */
-	compute_axioms(Roots0, Graph0, _ATree, [tuple(AtV1,AtO1,N1,Choices)|_Axioms]),
+	compute_axioms(Roots0, Graph0, _ATree, Axioms),
+	select_first(Axioms, Graph0, tuple(AtV1,AtO1,N1,Choices)),
         select(vertex(N1, [A|As0], FVs0, Ps0), Graph0, Graph1),
         select(pos(At,AtV1,AtO1,X,Vars), [A|As0], As),
 	!,
 	/* enumerate choices for negative atom */
+%	select_manual(Choices, Graph1, tuple(AtV0,AtO0,N0)),
 	member(tuple(AtV0,AtO0,N0), Choices),
 	select(vertex(N0, [B|Bs0], FVs1, Ps1), Graph1, Graph2),
 	select(neg(At,AtV0,AtO0,X,Vars), [B|Bs0], Bs),
@@ -352,6 +353,62 @@ prove1(Graph0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 % =              Proof nets             =
 % =======================================
 
+% = axiom selection predicates
+
+% default: select first
+
+select_first([Item|_], _, Item).
+
+select_random(List, _, Item) :-
+	random_member(Item, List).
+	
+select_manual(List, Graph, Item) :-
+	portray_atoms(List, Graph, 0, Len),
+	Len > 0,
+	read_integer_max(Len, ItemNo),
+	nth1(ItemNo, List, Item).
+
+
+read_integer_max(Max, Int) :-
+	read(Int0),
+   (
+	integer(Int0),
+	Int0 =< Max
+   ->
+        Int = Int0
+   ;
+        read_integer_max(Max, Int)
+   ).
+    
+portray_atoms([], _, N, N) :-
+	format('Selection?', []).
+portray_atoms([A|As], Graph, N0, N) :-
+	N1 is N0 + 1,
+	portray_atom(A, N1, Graph),
+	portray_atoms(As, Graph, N1, N).
+
+portray_atom(tuple(AtV1,AtO1,N1), N, Graph) :-
+        select(vertex(N1, [A|As0], _FVs0, _Ps0), Graph, _),
+        select(neg(At,AtV1,AtO1,_X,Vars), [A|As0], _),
+	!,
+	format('[~d] -~w(~@) ~d-~d~n', [N, At, portray_vars(Vars), AtV1, AtO1]).
+portray_atom(tuple(AtV1,AtO1,N1,Choices), N, Graph) :-
+	length(Choices, Len),
+	Len > 0,
+        select(vertex(N1, [A|As0], _FVs0, _Ps0), Graph, _),
+        select(pos(At,AtV1,AtO1,_X,Vars), [A|As0], _),
+	!,
+	format('[~d] +~w(~@) ~d-~d [~d]~n', [N, At, portray_vars(Vars), AtV1, AtO1, Len]).
+
+portray_vars([]).
+portray_vars([V|Vs]) :-
+	portray_vars(Vs, V).
+portray_vars([], V) :-
+	print(V).
+portray_vars([V|Vs], V0) :-
+	format('~p, ~@', [V0, portray_vars(Vs, V)]).
+	
+
 % = contract(+InGraph,-OutGraph, TraceDL, RootNodeAcc)
 %
 % perform all valid contractions on InGraph producing OutGraph;
@@ -380,7 +437,7 @@ contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-par(N1)|Rest], Rest, Roots0,
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_graph(Graph2, Rs0, N0, N1, Graph, Rs),
-        update_roots_contraction(Roots0, N0, N1, Roots).
+        update_roots_contraction(Roots0, Graph, N0, N1, Roots).
 % forall contraction
 contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Roots0, Roots) :-
         select(vertex(N0, As, FVsA, Ps0), Graph0, Graph1),
@@ -394,7 +451,7 @@ contract1(Graph0, [vertex(N1,Cs,FVs,Rs)|Graph], [N0-univ(U,N1)|Rest], Rest, Root
 	append(Ps, Qs, Rs0),
 	merge_fvs(FVsA, FVsB, FVs),
 	replace_graph(Graph2, Rs0, N0, N1, Graph, Rs),
-        update_roots_contraction(Roots0, N0, N1, Roots).
+        update_roots_contraction(Roots0, Graph, N0, N1, Roots).
 
 % = no_occurrences
 %
