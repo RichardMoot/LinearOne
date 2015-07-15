@@ -80,10 +80,10 @@ test(12) :-
 	/*                          = 4d8h14m01.334s */
 	/*    59 proofs */
 	/* with first dancing links version */
-	/*        24,757,440 axioms */
-        /*    78,463,497,676 inferences,  10008.709 CPU in  10097.414 seconds (99% CPU, 7839522 Lips) */
-	/*                            = 2h46m48.709s */
-	/*    42 proofs (why this difference?) */
+	/*        24,370,833 axioms */
+        /*    77,693,926,965 inferences,  11458.063 CPU in  12895.382 seconds  (89% CPU, 6780721 Lips) */
+	/*                            = 3h10m58.063s */
+	/*    59 proofs */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
 
