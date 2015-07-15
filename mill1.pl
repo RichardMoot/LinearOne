@@ -2,8 +2,8 @@
 :- use_module(dancing_links,       [compute_axioms/4,
 				    update_roots_axiom/4,
 				    update_roots_contraction/5]).
-:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
-%:- use_module(portray_graph_none,  [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+%:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+:- use_module(portray_graph_none,  [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations,        [translate_lambek/3,
 				    translate_displacement/3,
 				    translate_hybrid/6,
@@ -360,10 +360,8 @@ prove1(Graph0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 select_first([Item|_], _, Item).
 
 select_random(List, _, Item) :-
-	length(List, Len),
-	random_between(1, Len, Random),
-	nth1(Random, List, Item).
-
+	random_member(Item, List).
+	
 select_manual(List, Graph, Item) :-
 	portray_atoms(List, Graph, 0, Len),
 	Len > 0,

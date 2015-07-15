@@ -70,8 +70,8 @@ test(11) :-
 	/*         3,142,516 axioms ! */
         /*     5,808,425,093 inferences, 2014.396 CPU in 2139.522 seconds (94% CPU, 2883458 Lips) */
 	/* with first dancing links version */
-	/*            28,640 axioms */
-        /*        65,938,819 inferences,    9.097 CPU in 9.842 seconds (92% CPU, 7248058 Lips) */
+	/*            28,520 axioms */
+        /*        65,422,872 inferences,    8.827 CPU in 10.075 seconds (88% CPU, 7411284 Lips) */
 	parse([no,dog,eats,whiskas,or,cat,alpo], s).
 test(12) :-
 	/* first-found */
