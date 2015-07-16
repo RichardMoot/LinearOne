@@ -317,8 +317,9 @@ try_translate(Formula, Formula).
 latex_proof(Proof0) :-
 	copy_term(Proof0, Proof),
 	numbervars(Proof, 0, _),
+        format(latex, '\\[~n', []),
 	latex_proof(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_proof(_-Proof, Tab) :-
         latex_proof(Proof, Tab).
@@ -481,8 +482,9 @@ latex_antecedent([A|As], B) :-
 latex_nd(Proof0) :-
 	copy_term(Proof0, Proof),
 	numbervars(Proof, 0, _),
+        format(latex, '\\[~n', []),
 	latex_nd(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_nd(_-Proof, Tab) :-
         latex_nd(Proof, Tab).
@@ -515,8 +517,9 @@ latex_nds([P|Ps], Q, Tab) :-
 % this version of latex_proof outputs hybrid type-logical grammar natural deduction proofs (with implicit antecedents and coindexing between rules and withdrawn hypotheses)
 
 latex_hybrid(Proof) :-
+        format(latex, '\\[~n', []),
 	latex_hybrid(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_hybrid(_-Proof, Tab) :-
         latex_hybrid(Proof, Tab).
@@ -639,8 +642,9 @@ latex_hybrid_formula(dl(A,B), N) :-
 % latex_displacement
 
 latex_displacement(Proof) :-
+        format(latex, '\\[~n', []),
 	latex_displacement(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_displacement(_-Proof, Tab) :-
         latex_displacement(Proof, Tab).
