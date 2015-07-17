@@ -39,6 +39,9 @@
 %generate_diagnostics(true).
 generate_diagnostics(false).
 
+% set this flag to anything but true to obtain long normal form natural deduction
+% proofs.
+
 eta_short(true).
 
 % =======================================
@@ -823,9 +826,10 @@ sequent_to_nd(rule(pr, Gamma, C, [R1,R2]), rule(pi, Gamma, C, [Proof1, Proof2]),
 	sequent_to_nd(R2, Proof2, I1, I).
 
 
-% = eta_reduce(+SequentProof, -EtaShortSequentProof)
+% = eta_reduce(+NDProof, -EtaShortNDProof)
 %
-% 
+% true if EtaShortNDProof is a eta normal form natural deduction proof of
+% (first order linear logic) NDProof.
 
 eta_reduce(InProof, OutProof) :-
    (	
@@ -835,6 +839,8 @@ eta_reduce(InProof, OutProof) :-
    ;
 	OutProof = InProof
    ).
+
+% iterate eta_reduce1/2 until the proof stays the same
 
 eta_reduce_all(Proof0, Proof) :-
 	eta_reduce1(Proof0, Proof1),
