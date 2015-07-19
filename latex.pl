@@ -343,8 +343,8 @@ latex_rule_name(dri) :-
 latex_rule_name(dli) :-
 	format(latex, '\\backslash I', []),
 	!.
-latex_rule_name(bridge_e) :-
-	format(latex, '\\,\\hat{\\,} E', []).
+latex_rule_name(bridge_i) :-
+	format(latex, '\\,\\hat{\\,} I', []).
 latex_rule_name(rproj_e) :-
 	format(latex, '\\triangleright^{-1} E', []).
 latex_rule_name(lproj_e) :-

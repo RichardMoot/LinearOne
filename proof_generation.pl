@@ -1103,7 +1103,7 @@ nd_to_displacement(Rule0, Max0, Max, Rule) :-
 	d_withdraw_hypothesis(DF, I, HLabel, PLabel, Proof1, Rule),
 	!.
 % = bridge
-nd_to_displacement(rule(ei,_,C0, [P1]), Max0, Max, rule(bridge_e, Label, DF, [Proof1])) :-
+nd_to_displacement(rule(ei,_,C0, [P1]), Max0, Max, rule(bridge_i, Label, DF, [Proof1])) :-
 	remove_formula_nodes(C0, C),
 	linear_to_displacement(C, _, DF),
 	nd_to_displacement(P1, Max0, Max, Proof1),
@@ -1120,7 +1120,7 @@ nd_to_displacement(rule(fe, _, C0, [P1]), Max0, Max, rule(Nm, Label, DF, [Proof1
 	!.
 
 % TODO
-% - bridge_i
+% - bridge_e
 % - rproj_i
 % - lproj_i
 % - product elimination rules, Lambek and Displacement
