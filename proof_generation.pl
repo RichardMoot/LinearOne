@@ -3,7 +3,8 @@
 			     generate_natural_deduction_proof/2,
 			     generate_nd_proof/2,
 			     generate_displacement_proof/2,
-			     generate_hybrid_proof/2]).
+			     generate_hybrid_proof/2,
+			     eta_reduce/2]).
 
 :- use_module(latex,        [latex_proof/1,
 			     latex_nd/1,
@@ -31,18 +32,9 @@
 			     pure_to_simple/3,
 			     compute_pros_term/5,
 			     formula_type/2]).
+:- use_module(options, [generate_diagnostics/1,eta_short/1]).
 
 :- dynamic free_var/2, d_hyp/2.
-
-% set this flag to true to obtain a proof trace of the sequent proof generation
-%
-%generate_diagnostics(true).
-generate_diagnostics(false).
-
-% set this flag to anything but true to obtain long normal form natural deduction
-% proofs.
-
-eta_short(true).
 
 % =======================================
 % =           Proof generation          =
@@ -743,8 +735,7 @@ remove_formula_nodes(p(A0,B0), p(A,B)) :-
 % translate a sequent proof to a natural deduction proof
 
 sequent_to_nd(SequentProof, NDproof) :-
-	sequent_to_nd(SequentProof, NDproof0, 1, _NewIndex),
-	eta_reduce(NDproof0, NDproof).
+	sequent_to_nd(SequentProof, NDproof, 1, _NewIndex).
 
 sequent_to_nd(_-R0, R, I0, I) :-
 	sequent_to_nd(R0, R, I0, I).
@@ -860,9 +851,14 @@ eta_reduce1(rule(ee(I), _, _, [ProofE, ProofC]), Proof) :-
 eta_reduce1(rule(pe(I),_, _, [ProofP, ProofC]), Proof) :-
 	replace_proof(ProofC, rule(pi, _, _, [rule(hyp(I),_,_, []), rule(hyp(I),_,_,[])]), ProofP, Proof),
 	!.
-eta_reduce1(rule(fi, _, _, [rule(fe,_,_, [Rule])]), Rule) :-
+eta_reduce1(rule(NmI, _, _, [rule(NmE,_,_, [Rule])]), Rule) :-
+	eta_pair_unary(NmI, NmE),
 	!.
-eta_reduce1(rule(ii(I), _, _, [rule(ie, _, _, [rule(hyp(I), _, _, []),Rule])]), Rule) :-
+eta_reduce1(rule(NmI, _, _, [rule(NmE, _, _, [rule(hyp(I), _, _, []),Rule])]), Rule) :-
+	eta_pair_binary(NmI, I, NmE),
+	!.
+eta_reduce1(rule(NmI, _, _, [rule(NmE, _, _, [Rule,rule(hyp(I), _, _, [])])]), Rule) :-
+	eta_pair_binary(NmI, I, NmE),
 	!.
 eta_reduce1(rule(Nm, Gamma, C, Ps0), rule(Nm, Gamma, C, Ps)) :-
 	eta_reduce_list(Ps0, Ps).
@@ -871,6 +867,14 @@ eta_reduce_list([], []).
 eta_reduce_list([P0|Ps0], [P|Ps]) :-
 	eta_reduce1(P0, P),
 	eta_reduce_list(Ps0, Ps).
+
+eta_pair_unary(fi, fe).
+eta_pair_binary(ii(I), I, ie).
+eta_pair_binary(dri(I), I, dre).
+eta_pair_binary(dli(I), I, dle).
+eta_pair_binary(dri(D,I), I, dre(D)).
+eta_pair_binary(dli(D,I), I, dle(D)).
+eta_pair_binary(hi(I), I, he).
 
 replace_proof(Proof1, Proof1, Proof2, Proof2) :-
 	!.
@@ -964,7 +968,7 @@ nd_to_hybrid(rule(ii(I), _, C0, [P1]), Max0, Max, rule(hi(I), Term, HF, [Proof1]
 	antecedent(Proof1, Term0),
 	retractall(free_var(I, _)),
 	compute_pros_term(lambda('$VAR'(I),Term0), HF, Term, Max1, Max).
-	
+
 get_positions(VarList0, L, R) :-
 	msort(VarList0, VarList),
 	get_positions1(VarList, L, R).
