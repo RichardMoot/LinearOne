@@ -845,6 +845,7 @@ eta_reduce_all(Proof0, Proof) :-
 
 eta_reduce1(N-Proof0, N-Proof) :-
 	eta_reduce1(Proof0, Proof).
+% TODO: generalize to other product/existential quantifier-like rules
 eta_reduce1(rule(ee(I), _, _, [ProofE, ProofC]), Proof) :-
 	replace_proof(ProofC, rule(ei, _, _, [rule(hyp(I),_,_, [])]), ProofE, Proof),
 	!.
@@ -868,13 +869,28 @@ eta_reduce_list([P0|Ps0], [P|Ps]) :-
 	eta_reduce1(P0, P),
 	eta_reduce_list(Ps0, Ps).
 
+% = eta_pair_unary(?IntroductionRuleName, ?EliminationRuleName)
+%
+% pairs of introduction/elimination rules with a single premiss (for the elimination rule)
+
 eta_pair_unary(fi, fe).
+
+% = eta_pair_binary(?IntroductionRuleName, ?HypothesisIndex, ?EliminationRuleName)
+%
+% pairs of introduction/elimination rules with two premisses (for the elimination rule)
+% HypothesisIndex is the unique integer corresponding to the withdrawn hypothesis
+
 eta_pair_binary(ii(I), I, ie).
 eta_pair_binary(dri(I), I, dre).
 eta_pair_binary(dli(I), I, dle).
 eta_pair_binary(dri(D,I), I, dre(D)).
 eta_pair_binary(dli(D,I), I, dle(D)).
 eta_pair_binary(hi(I), I, he).
+
+% = replace_proof(+InProof, +ProofA, +ProofB, -OutProof)
+%
+% true if OutProof is InProof with the first occurrence of ProofA replaced by ProofB
+% fails if there are no occurrences of ProofA in InProof.
 
 replace_proof(Proof1, Proof1, Proof2, Proof2) :-
 	!.
