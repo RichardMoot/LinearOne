@@ -48,8 +48,13 @@ lex(robin, np(0,0), robin, r).
 lex(likes, tv_i, lambda(P,lambda(Q,Q+likes+P)), like).
 lex(hates, tv_i, lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(and, (((s(A,B)|np(A,B))|(s(C,1)|np(C,1)))|(s(D,1)|np(D,1))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s(L,R)))),
+    lambda(P1,lambda(P2,lambda(P3,appl(P2,lambda(X1,lambda(Y1,X1+appl(appl(P3,epsilon),epsilon)+Y1)))+and+appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
+    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,Z3),&,appl(Z2,Z3)))))).
 
 test(1) :-
 	parse([leslie,likes,terry], s(_,_)).
 test(2) :-
 	parse([terry,hates,and,robin,likes,leslie], s(_,_)).
+test(3) :-
+	parse([terry,hates,robin,and,bill,leslie], s(_,_)).
