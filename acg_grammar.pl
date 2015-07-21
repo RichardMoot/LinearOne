@@ -40,6 +40,7 @@ macro(tv_i, ((s(L,R)|np(L,0))|np(0,R))).
 
 atomic_formula(np(_,_)).
 atomic_formula(s(_,_)).
+atomic_formula(s1(_,_)).
 
 lex(leslie, np(0,0), leslie, l).
 lex(terry, np(0,0), terry, t).
@@ -48,13 +49,21 @@ lex(robin, np(0,0), robin, r).
 lex(likes, tv_i, lambda(P,lambda(Q,Q+likes+P)), like).
 lex(hates, tv_i, lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(and, (((s(A,B)|np(A,B))|(s(C,1)|np(C,1)))|(s(D,1)|np(D,1))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
-lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s(L,R)))),
+lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
     lambda(P1,lambda(P2,lambda(P3,appl(P2,lambda(X1,lambda(Y1,X1+appl(appl(P3,epsilon),epsilon)+Y1)))+and+appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
-    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,Z3),&,appl(Z2,Z3)))))).
+    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
+lex(everyone, ((np(L,R)->s(L,R))->s(L,R)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
+lex(someone, ((np(L,R)->s(L,R))->s(L,R)), lambda(P,appl(P,everyone)), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 
 test(1) :-
 	parse([leslie,likes,terry], s(_,_)).
 test(2) :-
 	parse([terry,hates,and,robin,likes,leslie], s(_,_)).
 test(3) :-
-	parse([terry,hates,robin,and,bill,leslie], s(_,_)).
+	parse([terry,hates,robin,and,bill,leslie], s1(_,_)).
+test(4) :-
+	parse([everyone,likes,terry], s(_,_)).
+test(5) :-
+	parse([everyone,likes,someone], s(_,_)).
+test(6) :-
+	parse([terry,hates,someone,and,bill,everyone], s1(_,_)).
