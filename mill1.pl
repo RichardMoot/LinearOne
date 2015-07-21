@@ -936,6 +936,11 @@ test7 :-
         translate_hybrid(at(np), lambda(Z1,appl(phonetics,Z1)), phonetics, 5, 6, Phonetics),
 	prove([John, Studies, Logic, And, Charles, Phonetics], at(s,[0,6])).
 
+%
+
+test_eta :-
+	prove([exists(Y,p(at(a,[Y]),at(b,[Y])))], exists(Y,p(at(a,[Y]),at(b,[Y])))).
+	
 % = test translations
 
 test_d1(F) :-

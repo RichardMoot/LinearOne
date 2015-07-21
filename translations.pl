@@ -30,20 +30,10 @@
 			    identical_lists/2]).
 :- use_module(ordset, [ord_key_union_u/3, ord_key_insert/4, ord_key_member/3]).
 
+:- use_module(options, [hybrid_pros/1]).
+
 :- op(190, yfx, @).
 
-% = hybrid_pros
-%
-% This flag controls how the prosodic lambda term of hybrid type-logical grammars are output to LaTeX.
-%
-% When set of "pure", lambda terms are converted to pure lambda terms (without either the empty string
-% "epsilon" or the explicit concatenation operation "+".
-%
-% When set to "simple", pure lambda terms are converted, whenever possible, to simple lambda terms
-% using concatenation "+" and the empty string "epsilon".
-
-%hybrid_pros(pure).
-hybrid_pros(simple).
 
 
 translate(F0, [X,Y], F) :-

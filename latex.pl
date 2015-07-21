@@ -1,104 +1,22 @@
 :- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1]).
 
+:- use_module(proof_generation, [eta_reduce/2]).
 :- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
 :- use_module(lexicon, [macro_expand/2,canonical_semantic_term/2]).
-
-% =====================================================
-% =          parameters for semantic output           =
-% =====================================================
-
-% set this option to "prolog_like" for a Prolog-like output; this will portray terms like
-% ((f y) x) as f(x,y)
-
-option(prolog_like).
-% option(lambda_like).
-
-%lexicon_separator(' - ').
-lexicon_separator(' :: ').
-
-% =====================================================
-% = parameters for hybrid type-logical grammar output =
-% =====================================================
-
-
-% this option allows you to choose how to display the ACG/lambda grammar/hybrid type-logical
-% grammar "|" or "-o" connective.
-% A connective h(A,B) will be displayed by portraying, from left-to-right one of the
-% subformulas (A or B) then a Prolog atom (passed to LaTeX directly), then the other
-% subformula.
-
-hybrid_connective(h(A,B), A, '|', B).             % hybrid type-logical grammar style
-%hybrid_connective(h(A,B), B, '\\multimap ', A).   % ACG/lambda grammar style
-
-% these options allow you to customise the LaTeX display of the empty string "epsilon" and
-% the concatenation "+"; the only argument of these predicates is a single Prolog atom which
-% will be sent to LaTeX (we need a double backslash for LaTeX commands, due to the Prolog
-% meaning of the backslash).
-%
-% NOTE: these options make sense only when the option the file translations.pl has the option
-%
-% "hybrid_pros(simple)."
-%
-% For hybrid_pros(pure), there is no effect.
-
-hybrid_epsilon('\\epsilon').
-hybrid_concat('\\circ').
-
-% customize the display of items in hybrid proofs
-
-% = single-line Pros:Formula
-%
-%hybrid_item_start('').
-%hybrid_item_mid(':').
-%hybrid_item_end('').
-
-% = separate line for Pros and Formula
-%
-hybrid_item_start('\\begin{array}{l}').
-hybrid_item_mid('\\\\').
-hybrid_item_end('\\end{array}').
-
-% =====================================================
-% =    parameters for Displacement calculus output    =
-% =====================================================
-
-% these options allow you to customise the LaTeX display of Displacement calculus
-% string labels, we can use a symbol for the separator, for concatenation and for the
-% empty string, with d_separator, d_concat and d_epsilon respectively.
-
-% this option uses the +, 1, 0 operations, though it doesn't simplify "+0"
-%d_separator('+1+').
-%d_concat('+').
-%d_epsilon(0).
-d_separator(',').
-d_concat('\\ ').
-d_epsilon('\\epsilon').
-
-
-% =====================================================
-% =          parameters for axiom link trace          =
-% =====================================================
-
-
-% set this option to "yes" to ouput unique identifier indices of atomic formulas (useful for
-% debugging)
-
-%output_indices(yes).
-
-output_indices(no).
-
-% =====================================================
-% =            parameters LaTeX paper size            =
-% =====================================================
-
-% the argument to the predicate geometry/1 is passed as an argument to the LaTeX geometry package.
-% so very wide page lenghts are preset; comment out all but the desired choice.
-% geometry(a2paper).
-geometry(a1paper).
-% geometry('paperwidth=200cm,textwidth=195cm').
-% geometry('paperwidth=300cm,textwidth=295cm').
-% geometry('paperwidth=400cm,textwidth=395cm').
-% geometry('paperwidth=500cm,textwidth=495cm').
+:- use_module(options, [term_application/1,
+			lexicon_separator/1,
+			hybrid_connective/4,
+			hybrid_epsilon/1,
+			hybrid_concat/1,
+			hybrid_item_start/1,
+			hybrid_item_mid/1,
+			hybrid_item_end/1,
+			d_separator/1,
+			d_concat/1,
+			d_epsilon/1,
+			output_indices/1,
+			geometry/1,
+			eta_short/1]).
 
 proof_header :-
       ( exists_file('latex_proofs.tex') -> delete_file('latex_proofs.tex') ; true),
@@ -317,8 +235,9 @@ try_translate(Formula, Formula).
 latex_proof(Proof0) :-
 	copy_term(Proof0, Proof),
 	numbervars(Proof, 0, _),
+        format(latex, '\\[~n', []),
 	latex_proof(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_proof(_-Proof, Tab) :-
         latex_proof(Proof, Tab).
@@ -424,8 +343,8 @@ latex_rule_name(dri) :-
 latex_rule_name(dli) :-
 	format(latex, '\\backslash I', []),
 	!.
-latex_rule_name(bridge_e) :-
-	format(latex, '\\,\\hat{\\,} E', []).
+latex_rule_name(bridge_i) :-
+	format(latex, '\\,\\hat{\\,} I', []).
 latex_rule_name(rproj_e) :-
 	format(latex, '\\triangleright^{-1} E', []).
 latex_rule_name(lproj_e) :-
@@ -479,10 +398,12 @@ latex_antecedent([A|As], B) :-
 % this version of latex_proof output natural deduction proofs with implicit antecedents (and coindexing between rules and withdrawn hypotheses)
 
 latex_nd(Proof0) :-
-	copy_term(Proof0, Proof),
-	numbervars(Proof, 0, _),
+	copy_term(Proof0, Proof1),
+	numbervars(Proof1, 0, _),
+	eta_reduce(Proof1, Proof),
+        format(latex, '\\[~n', []),
 	latex_nd(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_nd(_-Proof, Tab) :-
         latex_nd(Proof, Tab).
@@ -514,9 +435,11 @@ latex_nds([P|Ps], Q, Tab) :-
 %
 % this version of latex_proof outputs hybrid type-logical grammar natural deduction proofs (with implicit antecedents and coindexing between rules and withdrawn hypotheses)
 
-latex_hybrid(Proof) :-
+latex_hybrid(Proof0) :-
+	eta_reduce(Proof0, Proof),
+        format(latex, '\\[~n', []),
 	latex_hybrid(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_hybrid(_-Proof, Tab) :-
         latex_hybrid(Proof, Tab).
@@ -638,9 +561,11 @@ latex_hybrid_formula(dl(A,B), N) :-
 
 % latex_displacement
 
-latex_displacement(Proof) :-
+latex_displacement(Proof0) :-
+	eta_reduce(Proof0, Proof),
+        format(latex, '\\[~n', []),
 	latex_displacement(Proof, 0),
-        format(latex, '~n\\bigskip~n', []).
+        format(latex, '\\]~n\\bigskip~n', []).
 
 latex_displacement(_-Proof, Tab) :-
         latex_displacement(Proof, Tab).
@@ -927,17 +852,17 @@ latex_semantics(lambda(X,M), NB) :-
    ).
 latex_semantics(appl(appl(appl(F,Z),Y),X), _) :-
 	atomic(F),
-	option(prolog_like),
+	term_application(prolog_like),
 	!,
 	format(latex, '~@(~@,~@,~@)', [latex_atom(F),latex_semantics(X, 0),latex_semantics(Y, 0),latex_semantics(Z, 0)]).
 latex_semantics(appl(appl(F,Y),X), _) :-
 	atomic(F),
-	option(prolog_like),
+	term_application(prolog_like),
 	!,
 	format(latex, '~@(~@,~@)', [latex_atom(F),latex_semantics(X, 0),latex_semantics(Y, 0)]).
 latex_semantics(appl(F,X), _) :-
 	atomic(F),
-	option(prolog_like),
+	term_application(prolog_like),
 	!,
 	format(latex, '~@(~@)', [latex_atom(F),latex_semantics(X, 0)]).
 latex_semantics(appl(N,M), NB) :-

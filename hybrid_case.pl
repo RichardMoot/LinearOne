@@ -19,7 +19,7 @@
 % WARNING: in case of doubt, use parentheses to disambiguate!
 % I have deliberately not changed the definitions of standard
 % mathematical and logical operations of Prolog, notably |
-% (alternative of ; for use in DCG), \ and *.
+% (alternative of ; for use in DCG), / and *.
 %
 % This means for example that:
 % c/d*b/c = ((c/d)*b)/c
