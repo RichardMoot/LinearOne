@@ -87,8 +87,10 @@ test(5) :-
 	parse([everyone,likes,someone], s(_,_)).
 test(6) :-
 	parse([terry,hates,someone,and,bill,everyone], s1(_,_)).
+% = overgenerates
 test(7) :-
-	parse([book,which,bill,likes,and,terry,hates], n(_,_)).
+	parse([book,which,bill,likes,and2,terry,hates], n(_,_)).
+% = overgenerates
 test(8) :-
 	parse([book,which,bill,loves,madly,and2,terry,hates,passionately], n(_,_)).
 % = overgenerates
