@@ -88,10 +88,8 @@ lex(passionately, (s(L,0)->s(L,0)), lambda(P,P+passionately), passionately).
 lex(madly, (s(L,0)->s(L,0)), lambda(P,P+madly), madly).
 lex(himself, ((np(0,R)->(np(1,0)->s(1,R)))->(np(L,0)->s(L,R))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 
-test(0) :-
-	parse([everyone], (np(0,0)->(np(0,0)->s(0,R)))->(np(L,0)->s(L,R))).
 test(1) :-
-	parse([leslie,hates,terry,passionately], s(_,_)).
+	parse([terry,gave,everyone,a_present], s(_,_)).
 test(2) :-
 	parse([terry,hates,and,robin,likes,leslie], s(_,_)).
 test(3) :-
@@ -128,7 +126,5 @@ test(15) :-
 	parse([terry,promised,robin,and,gave,himself,a_present], s(_,_)).
 test(16) :-
 	parse([terry,gave,himself,and,promised,robin,a_present], s(_,_)).
-test(17) :-
-	parse([terry,gave,himself,a_present], s(_,_)).
 test(18) :-
 	parse([terry,gave,a_present,himself], s(_,_)).
