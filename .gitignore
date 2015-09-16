@@ -21,6 +21,7 @@ and.pl
 fish.pl
 test.pl
 test_grammar.pl
+test_grammar2.pl
 new_grammar.pl
 lsa_grammar.pl
 

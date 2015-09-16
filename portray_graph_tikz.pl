@@ -10,7 +10,7 @@ graph_header :-
       ( exists_file('graph.tex') -> delete_file('graph.tex') ; true),
 	open('graph.tex', write, _, [alias(graph)]),
 	format(graph, '\\documentclass{article}~2n', []),
-	format(graph, '\\usepackage[a3paper]{geometry}~n', []),
+	format(graph, '\\usepackage[a2paper]{geometry}~n', []),
 	format(graph, '\\usepackage{amsmath}~n', []),
 	format(graph, '\\usepackage{cmll}~n', []),
 	format(graph, '\\usepackage{tikz}~n', []),

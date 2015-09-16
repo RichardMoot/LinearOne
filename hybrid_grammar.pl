@@ -91,6 +91,8 @@ test(12) :-
 test_and :-
 	exhaustive_test('and.pl', and, ((((s| np)| np)| (s| np)| np)| (s| np)| np), lambda(M, lambda(J, lambda(K, lambda(L, bool(appl(appl(J, K), L), &, appl(appl(M, K), L)))))), [and], (((np\s)/np)\((np\s)/np))/((np\s)/np)).
 
+test_jsl :-
+	parse([john,studies,logic,and,charles,phonetics], s).
 
 % =======================
 % =       Lexicon       =
@@ -103,9 +105,13 @@ test_and :-
 lex(leslie, np, leslie, l).
 lex(robin, np, robin, r).
 lex(john, np, john, j).
+lex(charles, np, charles, c).
+lex(logic, np, logic, l).
+lex(phonetics, np, phonetics, p).
 lex(mary, np, mary, m).
 lex(bought, tv, bought, buy).
 lex(buys, tv, buys, buy).
+lex(studies, tv, studies, study).
 lex(eats, tv, eats, eat).
 lex(ate, tv, ate, eat).
 lex(chased, tv, chased, chase).

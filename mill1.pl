@@ -243,6 +243,7 @@ prove0(Antecedent, Goal, LexSem) :-
 	/* generate semantics */
 	substitute_sem(LexSem, Sem0, Sem1),
 	reduce_sem(Sem1, Sem),
+	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem0]),
 	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* update proof statistics */
