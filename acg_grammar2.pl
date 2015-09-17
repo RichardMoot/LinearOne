@@ -55,9 +55,9 @@ lex(book, n(0,0), book, book).
 lex(gave, (np(0,0)->(np(0,0)->(np(L,0)->s(L,0)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
 lex(gave, (np(0,0)->(np(0,1)->(np(L,0)->s(L,1)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
 lex(gave, (np(0,1)->(np(0,3)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
-lex(promised, (np(0,0)->(np(0,0)->(np(L,0)->s(L,0)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), promise).
-lex(promised, (np(0,0)->(np(0,1)->(np(L,0)->s(L,1)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), promise).
-lex(promised, (np(0,1)->(np(0,3)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), promise).
+lex(promised, (np(0,0)->(np(0,0)->(np(L,0)->s(L,0)))), lambda(P,lambda(Q,lambda(R,R+promised+P+Q))), promise).
+lex(promised, (np(0,0)->(np(0,1)->(np(L,0)->s(L,1)))), lambda(P,lambda(Q,lambda(R,R+promised+P+Q))), promise).
+lex(promised, (np(0,1)->(np(0,3)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+promised+P+Q))), promise).
 lex(likes, (np(0,0)->(np(L,0)->s(L,0))), lambda(P,lambda(Q,Q+likes+P)), like).
 lex(likes, (np(0,1)->(np(L,0)->s(L,1))), lambda(P,lambda(Q,Q+likes+P)), like).
 lex(likes, (np(0,3)->(np(L,0)->s(L,3))), lambda(P,lambda(Q,Q+likes+P)), like).
@@ -67,7 +67,6 @@ lex(loves, (np(0,3)->(np(L,0)->s(L,3))), lambda(P,lambda(Q,Q+loves+P)), love).
 lex(hates, (np(0,0)->(np(L,0)->s(L,0))), lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(hates, (np(0,1)->(np(L,0)->s(L,1))), lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(hates, (np(0,3)->(np(L,0)->s(L,3))), lambda(P,lambda(Q,Q+hates+P)), hate).
-% update from here
 % right-node-raising
 lex(and, (((s(A,B)|np(A,B))|(s(C,1)|np(C,1)))|(s(D,1)|np(D,1))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 % tv conjunction
@@ -76,55 +75,68 @@ lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,R)->np(L
 lex(and2, ((np(0,0)->s(0,R))->(np(0,0)->s(L,0))->(np(0,0)->s1(L,R))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and2+appl(P1,Z)))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 %lex(and2, ((np(0,0)->s(0,0))->(np(0,0)->s(L,0))->(np(0,R)->s1(L,R))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and2+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 %lex(and2, ((np(0,0)->s(0,R))->(np(0,0)->s(0,0))->(np(L,0)->s1(L,R))), lambda(P1,lambda(P2,lambda(Z,Z+appl(P2,epsilon)+and2+appl(P1,epsilon)))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
-% abbreviates 64 entries
+% gapping
 lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
     lambda(P1,lambda(P2,lambda(P3,appl(P2,lambda(X1,lambda(Y1,X1+appl(appl(P3,epsilon),epsilon)+Y1)))+and+appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
     lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
+% argument cluster coordination
+% TODO: complete
+%lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
+%    lambda(P1,lambda(P2,lambda(P3,appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
+%    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
 lex(everyone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(someone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,someone)), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(a_present, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_present)), lambda(P,quant(exists,X,bool(appl(present,X),&,appl(P,X))))).
 lex(which, ((np(0,R)->s1(0,R))->(n(L,0)->n(L,R))), lambda(P,lambda(Q,Q+which+appl(P,epsilon))), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(passionately, (s(L,0)->s(L,0)), lambda(P,P+passionately), passionately).
 lex(madly, (s(L,0)->s(L,0)), lambda(P,P+madly), madly).
-lex(himself, ((np(0,R)->(np(1,0)->s(1,R)))->(np(L,0)->s(L,R))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
+lex(himself, ((np(0,0)->(np(1,0)->s(1,0)))->(np(L,0)->s(L,0))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
+lex(himself, ((np(0,0)->(np(1,0)->s(1,1)))->(np(L,0)->s(L,1))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
+lex(himself, ((np(0,0)->(np(1,0)->s(1,3)))->(np(L,0)->s(L,3))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 
 test(1) :-
-	parse([terry,gave,everyone,a_present], s(_,_)).
+	parse([terry,hates,leslie], s(0,0)).
 test(2) :-
-	parse([terry,hates,and,robin,likes,leslie], s(_,_)).
+	parse([terry,gave,everyone,a_present], s(0,0)).
 test(3) :-
-	parse([terry,hates,robin,and,bill,leslie], s1(_,_)).
+	parse([terry,hates,and,robin,likes,leslie], s(0,0)).
 test(4) :-
-	parse([everyone,likes,terry], s(_,_)).
+	parse([terry,gave,leslie,and,bill,promised,robin,a_present], s(0,0)).
 test(5) :-
-	parse([everyone,likes,someone], s(_,_)).
+	parse([everyone,likes,terry], s(0,0)).
 test(6) :-
-	parse([terry,hates,someone,and,bill,everyone], s1(_,_)).
-% = overgenerates
+	parse([everyone,likes,someone], s(0,0)).
 test(7) :-
-	parse([book,which,bill,likes,and2,terry,hates], n(_,_)).
-% = overgenerates
+	parse([terry,hates,someone,and,bill,everyone], s1(0,0)).
+% = overgenerates (generates a reading where Bill loves *Terry*)
 test(8) :-
-	parse([book,which,bill,loves,madly,and2,terry,hates,passionately], n(_,_)).
-% = overgenerates
+	parse([book,which,bill,likes,and2,terry,hates], n(0,0)).
+% = overgenerates (generates a reading where Bill madly loves *Terry*)
 test(9) :-
-	parse([terry,hates,and2,robin,likes,leslie], s1(_,_)).
-test(91) :-
-	parse([terry,hates,robin,and2,likes,leslie], s1(_,_)).
+	parse([book,which,bill,loves,madly,and2,terry,hates,passionately], n(0,0)).
+% = overgenerates (generates a reading where Terry hates *Robin*)
 test(10) :-
-	parse([robin,likes,himself], s(_,_)).
-% = only wrong reading
+	parse([terry,hates,and2,robin,likes,leslie], s1(0,0)).
+% unparsed (no assignment for VP conjunction yet)
 test(11) :-
-	parse([terry,hates,and,robin,likes,himself], s(_,_)).
+	parse([terry,hates,robin,and2,likes,leslie], s1(0,0)).
 test(12) :-
-	parse([terry,hates,and2,robin,likes,himself], s1(_,_)).
+	parse([robin,likes,himself], s(0,0)).
+% unparsed
 test(13) :-
-	parse([terry,hates,and,robin,likes,everyone], s(_,_)).
+	parse([terry,hates,and,robin,likes,himself], s(0,0)).
+% = only wrong reading (where Terry hates *Robin*)
 test(14) :-
-	parse([terry,loves,and,hates,everyone], s(_,_)).
+	parse([terry,hates,and2,robin,likes,himself], s1(0,0)).
 test(15) :-
-	parse([terry,promised,robin,and,gave,himself,a_present], s(_,_)).
+	parse([terry,hates,and,robin,likes,everyone], s(0,0)).
 test(16) :-
-	parse([terry,gave,himself,and,promised,robin,a_present], s(_,_)).
+	parse([terry,loves,and,hates,everyone], s(0,0)).
+% = *three* derivations of the same reading (verify!)
+test(17) :-
+	parse([terry,promised,robin,and,gave,himself,a_present], s(0,0)).
+% = *three* derivations of the same reading (verify!)
 test(18) :-
-	parse([terry,gave,a_present,himself], s(_,_)).
+	parse([terry,gave,himself,and,promised,robin,a_present], s(0,0)).
+test(19) :-
+	parse([terry,gave,a_present,himself], s(0,0)).
