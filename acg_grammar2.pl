@@ -97,6 +97,12 @@ lex(himself, ((np(0,0)->(np(1,0)->s(1,0)))->(np(L,0)->s(L,0))), lambda(P,lambda(
 lex(himself, ((np(0,0)->(np(1,0)->s(1,1)))->(np(L,0)->s(L,1))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,3)))->(np(L,0)->s(L,3))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 
+lex(and, (((np(0, 0)->np(0, 0)->s(1, 0))->s(1, R))-> ((np(0, 0)->np(0, 0)->s(1, 0))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(L, 12))->s(L, R)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, epsilon+D+E)))+ (and+appl(A, lambda(F, lambda(G, epsilon+F+G)))))))), and).
+
+
+% requires two left arguments
+lex(very, (((np(2, 0)->s(3, 0))->np(2, 0)->s(3, R))-> (np(1, 0)->s(1, 0))->np(L, 0)->s(L, R)), lambda(A, lambda(B, lambda(C, C+(appl(B, epsilon)+(very+appl(appl(A, lambda(D, D+epsilon)), epsilon)))))), very).
+
 test(1) :-
 	parse([terry,hates,leslie], s(0,0)).
 test(2) :-

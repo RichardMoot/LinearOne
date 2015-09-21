@@ -22,6 +22,9 @@ lambek_to_acg(F0, F, T0, T) :-
 	macro_expand(F0, F1),
 	acg(F1, F2, T0, T1),
 	numbervars(T1, 0, _),
+	write('% '),
+	write(T1),
+	nl,
 	term_to_formula(F2, T1, F),
 	filter_term(T1, T).
 
@@ -131,18 +134,20 @@ term_to_states(A, p(0, 0), _) :-
 
 prev_state_left(1, 1, 0).
 % second left argument
-prev_state_left(2, 21, 1).
+%prev_state_left(2, 21, 1).
 
+%combine_left(X, 0, X).
 combine_left(0, 0, 0).
 combine_left(1, 0, 1).
 % second left argument
-combine_left(21, 0, 21).
-combine_left(2, 1, 21).
+%combine_left(21, 0, 21).
+%combine_left(2, 1, 21).
 
 prev_state_right(1, 1, 0).
 % second right argument
 prev_state_right(2, 12, 1).
 
+%combine_right(0, X, X).
 combine_right(0, 0, 0).
 combine_right(0, 1, 1).
 % second right argument
