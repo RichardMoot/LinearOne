@@ -54,7 +54,8 @@ lex(robin, np(0,0), robin, r).
 lex(book, n(0,0), book, book).
 lex(gave, (np(0,0)->(np(0,0)->(np(L,0)->s(L,0)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
 lex(gave, (np(0,0)->(np(0,1)->(np(L,0)->s(L,1)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
-lex(gave, (np(0,1)->(np(0,3)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
+lex(gave, (np(0,0)->(np(0,3)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
+lex(gave, (np(0,1)->(np(0,2)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+gave+P+Q))), give).
 lex(promised, (np(0,0)->(np(0,0)->(np(L,0)->s(L,0)))), lambda(P,lambda(Q,lambda(R,R+promised+P+Q))), promise).
 lex(promised, (np(0,0)->(np(0,1)->(np(L,0)->s(L,1)))), lambda(P,lambda(Q,lambda(R,R+promised+P+Q))), promise).
 lex(promised, (np(0,1)->(np(0,3)->(np(L,0)->s(L,3)))), lambda(P,lambda(Q,lambda(R,R+promised+P+Q))), promise).
@@ -81,15 +82,17 @@ lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(
     lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
 % argument cluster coordination
 % TODO: complete
-lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
-    lambda(P1,lambda(P2,lambda(P3,appl(P2,lambda(X1,lambda(Y1,X1+Y1)))+and+appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
-    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
+%lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
+%    lambda(P1,lambda(P2,lambda(P3,appl(P2,lambda(X1,lambda(Y1,X1+Y1)))+and+appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
+%    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
 %lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
 %    lambda(P1,lambda(P2,lambda(P3,appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
 %    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
 lex(everyone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(someone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,someone)), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(a_present, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_present)), lambda(P,quant(exists,X,bool(appl(present,X),&,appl(P,X))))).
+lex(a_book, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_book)), lambda(P,quant(exists,X,bool(appl(book,X),&,appl(P,X))))).
+lex(a_cd, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_cd)), lambda(P,quant(exists,X,bool(appl(cd,X),&,appl(P,X))))).
 lex(which, ((np(0,R)->s1(0,R))->(n(L,0)->n(L,R))), lambda(P,lambda(Q,Q+which+appl(P,epsilon))), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(passionately, (s(L,0)->s(L,0)), lambda(P,P+passionately), passionately).
 lex(madly, (s(L,0)->s(L,0)), lambda(P,P+madly), madly).
@@ -97,7 +100,16 @@ lex(himself, ((np(0,0)->(np(1,0)->s(1,0)))->(np(L,0)->s(L,0))), lambda(P,lambda(
 lex(himself, ((np(0,0)->(np(1,0)->s(1,1)))->(np(L,0)->s(L,1))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,3)))->(np(L,0)->s(L,3))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 
-lex(and, (((np(0, 0)->np(0, 0)->s(1, 0))->s(1, R))-> ((np(0, 0)->np(0, 0)->s(1, 0))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(L, 12))->s(L, R)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, epsilon+D+E)))+ (and+appl(A, lambda(F, lambda(G, epsilon+F+G)))))))), and).
+
+% lambda(A,lambda(B,lambda(C,appl(O_R(1),appl(O_R(2),appl(appl(C,epsilon(R,1)),epsilon(R,2))))+ (appl(O_L(1),appl(B,lambda(D,lambda(E,epsilon(L,1)+D+E))))+ (and+appl(O_L(1),appl(A,lambda(F,lambda(G,epsilon(L,1)+F+G)))))))))
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, D))-> ((np(0, 0)->np(0, B)->s(1, B))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(C, 3))->s1(C, D)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, 2))-> ((np(0, 0)->np(0, B)->s(1, B))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(C, 3))->s1(C, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, C))-> ((np(0, 0)->np(0, A)->s(1, A))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, C)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 2))-> ((np(0, 0)->np(0, A)->s(1, A))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, C))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, C)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, 2))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, B))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(A, 3))->s1(A, B)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 2))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(A, 3))->s1(A, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
 
 
 % requires two left arguments
@@ -149,3 +161,5 @@ test(18) :-
 	parse([terry,gave,himself,and,promised,robin,a_present], s(0,0)).
 test(19) :-
 	parse([terry,gave,a_present,himself], s(0,0)).
+test(20) :-
+	parse([terry,gave,robin,a_book,and,leslie,a_cd], s1(0,0)).
