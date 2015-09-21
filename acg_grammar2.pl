@@ -161,5 +161,6 @@ test(18) :-
 	parse([terry,gave,himself,and,promised,robin,a_present], s(0,0)).
 test(19) :-
 	parse([terry,gave,a_present,himself], s(0,0)).
+% two derivations (gapping of "gave robin" and argument cluster coordination)
 test(20) :-
 	parse([terry,gave,robin,a_book,and,leslie,a_cd], s1(0,0)).
