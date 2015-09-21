@@ -164,3 +164,8 @@ test(19) :-
 % two derivations (gapping of "gave robin" and argument cluster coordination)
 test(20) :-
 	parse([terry,gave,robin,a_book,and,leslie,a_cd], s1(0,0)).
+% only has gapping reading with "gave himself" (probably because "himself" is a vp-level quantifier)
+test(21) :-
+	parse([terry,gave,himself,a_book,and,leslie,a_cd], s1(0,0)).
+test(22) :-
+	parse([terry,gave,everyone,a_book,and,leslie,a_cd], s1(0,0)).
