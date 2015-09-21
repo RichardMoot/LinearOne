@@ -55,6 +55,11 @@ lambek(dr(B0,A0), (A->B), N, M0, X, appl('O_R'(M0),Term)) :-
 	acg(A0, A, epsilon('R',M0), Term0),
 	lambek(B0, B, N, M, appl(X, Term0), Term).
 
+% = filter_term(+ExtendedTerm, -SimpleTerm)
+%
+% removes all occurrences of the auxiliary symbols O_L, O_R from ExtendedTerm
+% and replaces all variants of epsilon(_,_) by epsilon.
+
 filter_term(appl('O_L'(_), A0), A) :-
 	!,
 	filter_term(A0, A).
@@ -72,6 +77,13 @@ filter_term(appl(A0,B0), appl(A,B)) :-
 filter_term(lambda(A,B0), lambda(A, B)) :-
 	!,
 	filter_term(B0, B).
+% simplify epsilon/concatenation combinations
+filter_term(epsilon(_,_)+B0, B) :-
+	!,
+	filter_term(B0, B).
+filter_term(A0+epsilon(_,_), A) :-
+	!,
+	filter_term(A0, A).
 filter_term(A0+B0, A+B) :-
 	!,
 	filter_term(A0, A),
@@ -136,9 +148,9 @@ prev_state_left(1, 1, 0).
 % second left argument
 %prev_state_left(2, 21, 1).
 
-%combine_left(X, 0, X).
-combine_left(0, 0, 0).
-combine_left(1, 0, 1).
+combine_left(X, 0, X).  % careful! may cause incorrect entries
+%combine_left(0, 0, 0).
+%combine_left(1, 0, 1).
 % second left argument
 %combine_left(21, 0, 21).
 %combine_left(2, 1, 21).
@@ -147,7 +159,7 @@ prev_state_right(1, 1, 0).
 % second right argument
 prev_state_right(2, 12, 1).
 
-%combine_right(0, X, X).
+%combine_right(0, X, X).  % careful! may cause incorrect entries
 combine_right(0, 0, 0).
 combine_right(0, 1, 1).
 % second right argument
@@ -181,6 +193,11 @@ test(and_rnr, F, S) :-
 
 test(very, F, S) :-
 	lambek_to_acg(dr(dl(dl(np,s),dl(np,s)),dl(dl(np,s),dl(np,s))), F, very, S).
+test(tv, F, S) :-
+	lambek_to_acg(tv, F, loves, S).
+test(dtv, F, S) :-
+	lambek_to_acg(dr(tv,np), F, gave, S).
+
 
 count(tv, Count) :-
 	lambek_to_acg_count(tv, Count).
