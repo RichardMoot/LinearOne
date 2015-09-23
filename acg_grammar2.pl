@@ -69,9 +69,13 @@ lex(hates, (np(0,0)->(np(L,0)->s(L,0))), lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(hates, (np(0,1)->(np(L,0)->s(L,1))), lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(hates, (np(0,3)->(np(L,0)->s(L,3))), lambda(P,lambda(Q,Q+hates+P)), hate).
 % right-node-raising
-lex(and, (((s(A,B)|np(A,B))|(s(C,1)|np(C,1)))|(s(D,1)|np(D,1))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,0)->s(L,0)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,1)->s(L,1)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,3)->s(L,3)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 % tv conjunction
-lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,R)->np(L,0)->s(L,R))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
+lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,0)->np(L,0)->s(L,0))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
+lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(L,0)->s(L,1))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
+lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,3)->np(L,0)->s(L,3))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
 % across the board extraction
 lex(and2, ((np(0,0)->s(0,R))->(np(0,0)->s(L,0))->(np(0,0)->s1(L,R))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and2+appl(P1,Z)))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 %lex(and2, ((np(0,0)->s(0,0))->(np(0,0)->s(L,0))->(np(0,R)->s1(L,R))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and2+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
@@ -96,6 +100,7 @@ lex(a_cd, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_cd)), lambda(P,quant(ex
 lex(which, ((np(0,R)->s1(0,R))->(n(L,0)->n(L,R))), lambda(P,lambda(Q,Q+which+appl(P,epsilon))), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(passionately, (s(L,0)->s(L,0)), lambda(P,P+passionately), passionately).
 lex(madly, (s(L,0)->s(L,0)), lambda(P,P+madly), madly).
+%lex(himself, ((np(0, 1)->np(1, 0)->s(1, 1))->np(L, 0)->s(L, 0)), lambda(A, lambda(B, B+ (appl(appl(A, epsilon), epsilon)+and))), and).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,0)))->(np(L,0)->s(L,0))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,1)))->(np(L,0)->s(L,1))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,3)))->(np(L,0)->s(L,3))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).

@@ -48,13 +48,14 @@ lex(terry, np(0,0), terry, t).
 lex(bill, np(0,0), bill, b).
 lex(robin, np(0,0), robin, r).
 lex(book, n(0,0), book, book).
+lex(discover, tv_i, lambda(P,lambda(Q,Q+discover+P)), discover).
 lex(likes, tv_i, lambda(P,lambda(Q,Q+likes+P)), like).
 lex(loves, tv_i, lambda(P,lambda(Q,Q+loves+P)), love).
 lex(hates, tv_i, lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(promised, (np(0,0)->tv_i), lambda(P,lambda(Q,lambda(R,R+promised+Q+P))), promise).
 lex(gave, (np(0,0)->tv_i), lambda(P,lambda(Q,lambda(R,R+gave+Q+P))), give).
 % right-node-raising
-lex(and, (((s(A,B)|np(A,B))|(s(C,1)|np(C,1)))|(s(D,1)|np(D,1))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,R)->s(L,R)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 % tv conjunction
 lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,R)->np(L,0)->s(L,R))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
 % across the board extraction
@@ -68,11 +69,15 @@ lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(
 lex(everyone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(someone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,someone)), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(a_present, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_present)), lambda(P,quant(exists,X,bool(appl(present,X),&,appl(P,X))))).
+lex(a_solution, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_solution)), lambda(P,quant(exists,X,bool(appl(solution,X),&,appl(P,X))))).
 lex(which, ((np(0,R)->s1(0,R))->(n(L,0)->n(L,R))), lambda(P,lambda(Q,Q+which+appl(P,epsilon))), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(quickly, (s(L,0)->s(L,0)), lambda(P,P+quickly), quickly).
 lex(passionately, (s(L,0)->s(L,0)), lambda(P,P+passionately), passionately).
 lex(madly, (s(L,0)->s(L,0)), lambda(P,P+madly), madly).
 %lex(himself, ((np(0,R)->(np(1,0)->s(1,R)))->(np(L,0)->s(L,R))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,R)))->(np(L,0)->s(L,R))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
+lex(must, ((((np(1, 0)->s(1, 0))->np(L1, 0)->s(L1, 0))->s(L,R))->s(L,R)), lambda(SVP,appl(SVP,lambda(A, lambda(B, B+ (must+appl(A, epsilon)))))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
+
 
 test(0) :-
 	parse([everyone], (np(0,0)->(np(0,0)->s(0,R)))->(np(L,0)->s(L,R))).
@@ -118,3 +123,8 @@ test(17) :-
 	parse([terry,gave,himself,a_present], s(_,_)).
 test(18) :-
 	parse([terry,gave,a_present,himself], s(_,_)).
+% OK
+test(19) :-
+	parse([robin,must,discover,a_solution], s(0,0)).
+test(20) :-
+	parse([robin,must,discover,a_solution,quickly], s(0,0)).
