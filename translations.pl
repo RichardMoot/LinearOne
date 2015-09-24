@@ -252,7 +252,7 @@ translate_displacement(dr(>,C0,B0), [X0,X1,XN|Vars], F0) :-
 	/* Vars = X_n+1,...,X_n+m */
 	displacement_sort(B0, SB),
 	L is 2*SB,
-	N is L + 2,
+%	N is L + 2,
 	/* Vs = X_2,...,X_n-1 */
 	length(Vs, L),
 	forall_prefix(Vs, F0, impl(B,C)),
@@ -301,7 +301,7 @@ translate_displacement(dr(<,C0,B0), [X0|Vars], F0) :-
 	/* Vars = X_1,...,X_n,X_n+m-1,X_n+m */
 	displacement_sort(B0, SB),
 	L is 2*SB,
-	M is L + 2,
+%	M is L + 2,
 	/* Left = X_1,...,X_n-1 */
 	append(Left, [XN,XNM1,XNM], Vars),
 	/* Vs = X_n+1,...,X_n+m-2 */
@@ -323,7 +323,7 @@ translate_displacement(dl(<,A0,C0), [XN|Vars], F0) :-
 	/* fail for incorrect sorts (exception/error message might be preferable) */
 	SA > 0,
 	L is 2*SA,
-	N is L - 1,
+%	N is L - 1,
 	/* Vs = X_0,....,X_n-1,X_n+m */
 	length(Vs, L),
 	/* Left = X_0,...,X_n-1 */
