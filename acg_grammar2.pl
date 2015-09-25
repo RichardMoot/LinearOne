@@ -72,6 +72,10 @@ lex(hates, (np(0,3)->(np(L,0)->s(L,3))), lambda(P,lambda(Q,Q+hates+P)), hate).
 lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,0)->s(L,0)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,1)->s(L,1)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 lex(and, ((np(0,1)->s(0,1))->((np(0,1)->s(L,1))->(np(0,3)->s(L,3)))), lambda(P1,lambda(P2,lambda(Z,appl(P2,epsilon)+and+appl(P1,epsilon)+Z))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+% vp conjunction
+lex(and, ((np(1, 0)->s(1, 0))-> (np(1, 0)->s(1, 0))->np(L, 0)->s(L, 0)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (and+appl(A, epsilon)))))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, ((np(1, 0)->s(1, 1))-> (np(1, 0)->s(1, 0))->np(L, 0)->s(L, 1)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (and+appl(A, epsilon)))))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
+lex(and, ((np(1, 0)->s(1, 3))-> (np(1, 0)->s(1, 0))->np(L, 0)->s(L, 3)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (and+appl(A, epsilon)))))), lambda(Z1,lambda(Z2,lambda(X,bool(appl(Z1,X),&,appl(Z2,X)))))).
 % tv conjunction
 lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,0)->np(L,0)->s(L,0))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
 lex(and, ((np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(1,0)->s(1,1))->(np(0,1)->np(L,0)->s(L,1))), lambda(P1,lambda(P2,lambda(Z,lambda(V,V+appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,epsilon),epsilon)+Z)))), lambda(Z1,lambda(Z2,lambda(X,lambda(Y,bool(appl(appl(Z1,X),Y),&,appl(appl(Z2,X),Y))))))).
@@ -172,6 +176,16 @@ lex(and, (((np(0,3)->(np(L1,0)->s(L1,3)))->s(0,3))->(((np(0,3)->(np(L2,0)->s(L2,
 %lex(and, (((np(0,R1)->(np(L1,0)->s(L1,R1)))->s(0,R))->(((np(0,R2)->(np(L2,0)->s(L2,R2)))->s(L,0))->((np(0,1)->(np(1,0)->s(1,1)))->s1(L,R)))),
 %    lambda(P1,lambda(P2,lambda(P3,appl(appl(P2,epsilon),epsilon)+and+appl(appl(P1,lambda(X2,lambda(Y2,X2+Y2)))))),
 %    lambda(Z1,lambda(Z2,lambda(Z3,bool(appl(Z1,lambda(Y,lambda(X,appl(appl(Z3,X),Y)))),&,appl(Z2,lambda(V,lambda(W,appl(appl(Z3,W),V))))))))).
+% lambda(A,lambda(B,lambda(C,appl(O_R(1),appl(O_R(2),appl(appl(C,epsilon(R,1)),epsilon(R,2))))+ (appl(O_L(1),appl(B,lambda(D,lambda(E,epsilon(L,1)+D+E))))+ (and+appl(O_L(1),appl(A,lambda(F,lambda(G,epsilon(L,1)+F+G)))))))))
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, D))-> ((np(0, 0)->np(0, B)->s(1, B))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(C, 3))->s1(C, D)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, 2))-> ((np(0, 0)->np(0, B)->s(1, B))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(C, 3))->s1(C, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, C))-> ((np(0, 0)->np(0, A)->s(1, A))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, C)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 2))-> ((np(0, 0)->np(0, A)->s(1, A))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, C))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, C)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, 2))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, B))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(A, 3))->s1(A, B)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 2))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(A, 3))->s1(A, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
+
 lex(everyone, ((np(0,0)->s(L,0))->s(L,0)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(everyone, ((np(0,0)->s(L,1))->s(L,1)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(everyone, ((np(0,0)->s(L,3))->s(L,3)), lambda(P,appl(P,everyone)), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
@@ -197,16 +211,6 @@ lex(himself, ((np(0,0)->(np(1,0)->s(1,0)))->(np(L,0)->s(L,0))), lambda(P,lambda(
 lex(himself, ((np(0,0)->(np(1,0)->s(1,1)))->(np(L,0)->s(L,1))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 lex(himself, ((np(0,0)->(np(1,0)->s(1,3)))->(np(L,0)->s(L,3))), lambda(P,lambda(X,X+appl(appl(P,himself),epsilon))), lambda(R1,lambda(Y,appl(appl(R1,Y),Y)))).
 
-
-% lambda(A,lambda(B,lambda(C,appl(O_R(1),appl(O_R(2),appl(appl(C,epsilon(R,1)),epsilon(R,2))))+ (appl(O_L(1),appl(B,lambda(D,lambda(E,epsilon(L,1)+D+E))))+ (and+appl(O_L(1),appl(A,lambda(F,lambda(G,epsilon(L,1)+F+G)))))))))
-lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, D))-> ((np(0, 0)->np(0, B)->s(1, B))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(C, 3))->s1(C, D)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, 2))-> ((np(0, 0)->np(0, B)->s(1, B))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(C, 3))->s1(C, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, C))-> ((np(0, 0)->np(0, A)->s(1, A))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, C)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 2))-> ((np(0, 0)->np(0, A)->s(1, A))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, C))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, C)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 0)->np(0, A)->s(1, A))->s(1, 2))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(B, 3))->s1(B, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, B))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 0))-> (np(0, 1)->np(0, 2)->s(A, 3))->s1(A, B)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
-lex(and, (((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 2))-> ((np(0, 1)->np(0, 2)->s(1, 3))->s(1, 1))-> (np(0, 1)->np(0, 2)->s(A, 3))->s1(A, 3)), lambda(A, lambda(B, lambda(C, appl(appl(C, epsilon), epsilon)+ (appl(B, lambda(D, lambda(E, D+E)))+ (and+appl(A, lambda(F, lambda(G, F+G)))))))), lambda(P,lambda(Q,lambda(R,bool(appl(Q,R),&,appl(P,R)))))).
 
 
 % requires two left arguments
@@ -235,9 +239,9 @@ test(9) :-
 % = overgenerates (generates a reading where Terry hates *Robin*)
 test(10) :-
 	parse([terry,hates,and2,robin,likes,leslie], s1(0,0)).
-% unparsed (no assignment for VP conjunction yet)
+% OK
 test(11) :-
-	parse([terry,hates,robin,and2,likes,leslie], s1(0,0)).
+	parse([terry,hates,robin,and,likes,leslie], s(0,0)).
 test(12) :-
 	parse([robin,likes,himself], s(0,0)).
 % = only wrong reading (where Terry hates *Robin*)
@@ -251,21 +255,24 @@ test(15) :-
 	parse([terry,hates,and,robin,likes,everyone], s(0,0)).
 test(16) :-
 	parse([terry,loves,and,hates,everyone], s(0,0)).
-% = *three* derivations of the same reading (verify!)
+% = first and third derivation are semantically equivalent (semantically neutral scope alternation of "and")
 test(17) :-
+	parse([terry,promised,robin,and,gave,everyone,a_present], s(0,0)).
+% = *three* derivations of the same reading (semantically neutral scope alternation of "and" and "himself")
+test(18) :-
 	parse([terry,promised,robin,and,gave,himself,a_present], s(0,0)).
 % = *three* derivations of the same reading (verify!)
-test(18) :-
+test(19) :-
 	parse([terry,gave,himself,and,promised,robin,a_present], s(0,0)).
 % = two derivations (there appears to be a semantically neutral scope alternation between "a_present" and "himself").
-test(19) :-
+test(20) :-
 	parse([terry,gave,a_present,himself], s(0,0)).
 % = should have two derivations (gapping of "gave robin" and argument cluster coordination), has 10
-test(20) :-
+test(21) :-
 	parse([terry,gave,robin,a_book,and,leslie,a_cd], s1(0,0)).
 % 9 readings, seems to only have gapping reading with "gave himself" (probably because "himself" is a vp-level quantifier)
-test(21) :-
-	parse([terry,gave,himself,a_book,and,leslie,a_cd], s1(0,0)).
-% 11 readings
 test(22) :-
+	parse([terry,gave,himself,a_book,and,leslie,a_cd], s1(0,0)).
+% 11 readings, first 9 seem the same, last 2 as well (argment cluster coordination)
+test(23) :-
 	parse([terry,gave,everyone,a_book,and,leslie,a_cd], s1(0,0)).
