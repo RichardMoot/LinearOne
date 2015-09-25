@@ -72,7 +72,7 @@ lex(everyone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,everyone)), lambda(P,
 lex(someone, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,someone)), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(a_present, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_present)), lambda(P,quant(exists,X,bool(appl(present,X),&,appl(P,X))))).
 lex(a_solution, ((np(0,0)->s(L,R))->s(L,R)), lambda(P,appl(P,a_solution)), lambda(P,quant(exists,X,bool(appl(solution,X),&,appl(P,X))))).
-lex(which, ((np(0,R)->s1(0,R))->(n(L,0)->n(L,R))), lambda(P,lambda(Q,Q+which+appl(P,epsilon))), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
+lex(which, ((np(0,0)->s1(0,R))->(n(L,0)->n(L,R))), lambda(P,lambda(Q,Q+which+appl(P,epsilon))), lambda(X,lambda(Y,lambda(Z,bool(appl(X,Z),&,appl(Y,Z)))))).
 lex(quickly, (s(L,0)->s(L,0)), lambda(P,P+quickly), quickly).
 lex(passionately, (s(L,0)->s(L,0)), lambda(P,P+passionately), passionately).
 lex(madly, (s(L,0)->s(L,0)), lambda(P,P+madly), madly).
@@ -131,12 +131,13 @@ test(19) :-
 	parse([robin,must,discover,a_solution], s(0,0)).
 test(20) :-
 	parse([robin,must,discover,a_solution,quickly], s(0,0)).
+% = ellipsis
 test(21) :-
 	parse([robin,left,before,terry,did], s(0,0)).
 % 6 readings, though some seem to be spurious
 test(22) :-
 	parse([robin,gave,himself,a_present,before,terry,did], s(0,0)).
-% why only one reading?
+% OK, both readings
 test(23) :-
 	parse([robin,saw,everyone,before,terry,did], s(0,0)).
 % OK, both readings
