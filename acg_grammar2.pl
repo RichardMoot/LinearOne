@@ -230,13 +230,13 @@ test(6) :-
 	parse([everyone,likes,someone], s(0,0)).
 test(7) :-
 	parse([terry,hates,someone,and,bill,everyone], s1(0,0)).
-% = overgenerates (generates a reading where Bill loves *Terry*)
+% = overgenerates (generates a reading where Bill loves *Terry*), ATB "and"
 test(8) :-
 	parse([book,which,bill,likes,and2,terry,hates], n(0,0)).
-% = overgenerates (generates a reading where Bill madly loves *Terry*)
+% = overgenerates (generates a reading where Bill madly loves *Terry*), ATB "and"
 test(9) :-
 	parse([book,which,bill,loves,madly,and2,terry,hates,passionately], n(0,0)).
-% = overgenerates (generates a reading where Terry hates *Robin*)
+% = overgenerates (generates a reading where Terry hates *Robin*), ATB "and"
 test(10) :-
 	parse([terry,hates,and2,robin,likes,leslie], s1(0,0)).
 % OK
@@ -244,10 +244,10 @@ test(11) :-
 	parse([terry,hates,robin,and,likes,leslie], s(0,0)).
 test(12) :-
 	parse([robin,likes,himself], s(0,0)).
-% = only wrong reading (where Terry hates *Robin*)
+% = only wrong reading (where Terry hates *Robin*), RNR "and"
 test(13) :-
 	parse([terry,hates,and,robin,likes,himself], s(0,0)).
-% = only wrong reading (where Terry hates *Robin*)
+% = only wrong reading (where Terry hates *Robin*), ATB "and"
 test(14) :-
 	parse([terry,hates,and2,robin,likes,himself], s1(0,0)).
 % OK

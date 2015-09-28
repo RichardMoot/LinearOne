@@ -86,13 +86,14 @@ test(12) :-
 	/*    59 proofs */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
-
+test(24) :-
+	parse([captain_jack,served,lobster,yesterday,and3,bananafish,today], s).
 
 test_and :-
 	exhaustive_test('and.pl', and, ((((s| np)| np)| (s| np)| np)| (s| np)| np), lambda(M, lambda(J, lambda(K, lambda(L, bool(appl(appl(J, K), L), &, appl(appl(M, K), L)))))), [and], (((np\s)/np)\((np\s)/np))/((np\s)/np)).
 
 test_jsl :-
-	parse([john,studies,logic,and,charles,phonetics], s).
+	parse([john,studies,logic,and,charles,phonetics], s1).
 
 % =======================
 % =       Lexicon       =
@@ -125,6 +126,7 @@ lex(every, ((s|(s|np))|n), lambda(N, lambda(P,appl(P,every+N))), lambda(X,lambda
 lex(someone, (s|(s|np)), lambda(Pr,lambda(Z,appl(appl(Pr,someone),Z))), lambda(P,quant(exists,X,bool(appl(person,X),&,appl(P,X))))).
 lex(everyone, (s|(s|np)), lambda(Pr,lambda(Z,appl(appl(Pr,everyone),Z))), lambda(P,quant(forall,X,bool(appl(person,X),->,appl(P,X))))).
 lex(yesterday, (np\s)\(np\s), yesterday, X^Y^(yesterday@(X@Y))).
+lex(today, (np\s)\(np\s), today, X^Y^(today@(X@Y))).
 lex(fish, n, fish, fish).
 lex(dog, n, dog, dog).
 lex(cat, n, cat, cat).
@@ -153,6 +155,11 @@ lex(than, than, than, lambda(X,X)).
 lex(more, (((s|(s|h_det))|(s|h_det))|than), lambda(Than,lambda(Rho1,lambda(Rho2,lambda(Z,appl(appl(Rho2,lambda(Phi,lambda(Sigma,appl(Sigma,lambda(V,appl(more,appl(Phi,V))))))),appl(Than,appl(appl(Rho1,lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z))))))), lambda(_,lambda(F,lambda(G,bool(number_of(appl(G,lambda(P,lambda(Q,lambda(X,bool(appl(P,X),&,appl(Q,X))))))),gneq,number_of(appl(F,lambda(P2,lambda(Q2,lambda(Y,bool(appl(P2,Y),&,appl(Q2,Y)))))))))))).
 lex(or, ((((s|h_det)|tv)|((s|h_det)|tv))|((s|h_det)|tv)), lambda(Rho2,lambda(Rho1,lambda(Phi,lambda(Tau,lambda(Z,appl(appl(appl(Rho1,Phi),Tau),appl(or,appl(appl(appl(Rho2,lambda(V,V)),lambda(Phi2,lambda(Sigma2,lambda(W,appl(appl(Sigma2,Phi2),W))))),Z)))))))), lambda(SDTV2,lambda(SDTV1,lambda(TV,lambda(Det,bool(appl(appl(SDTV1,TV),Det),\/,appl(appl(SDTV2,TV),Det))))))).
 %lex(more_d, (s/<d_q)\<(s/(^(cp/<d_q))), lambda(X,lambda(Y,bool(number_of(lambda(Z,appl(X,lambda(P,lambda(Q,bool(appl(P,Z),&,appl(Q,Z))))))),gneq,number_of(lambda(Z1,appl(Y,lambda(P1,lambda(Q1,bool(appl(P1,Z1),&,appl(Q1,Z1))))))))))).
+lex(and3, ((np\s/np)\np\s)\ (np\s/np)\np\s/ ((np\s/np)\np\s), and3, lambda(P,lambda(Q,lambda(R,lambda(X,bool(appl(appl(Q,R),X),&,appl(appl(P,R),X))))))).
+lex(served, (np\s)/np, served, serve).
+lex(captain_jack, np, captain_jack, captain_jack).
+lex(lobster, np, lobster, lobster).
+lex(bananafish, np, bananafish, bananafish).
 
 % lexical entries for "split scope"
 
