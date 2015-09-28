@@ -47,7 +47,7 @@ lex(mary, forall(Z,np(Z,L,R)), L, R, mary).
 lex(ak, forall(Z,np(Z,L,R)), L, R, ak).
 lex(wp, forall(Z,np(Z,L,R)), L, R, wp).
 lex(which, forall(Z,forall(X,impl(exists(Y,impl(np(Z,Y,Y),s(Z,R,X))),forall(V,impl(n(Z,V,L),n(Z,V,X)))))), L, R, Q^P^X^bool(P@X,&,Q@X)).
-   
+
 test(1) :-
 	parse([the,hulk,is,green], s(main)).
 test(2) :-
@@ -72,3 +72,4 @@ test(7) :-
 	parse([book,which,mary,read,ak,and], forall(X,n(X))).
 test(8) :-
 	parse([book,which,mary,read,and,wp], forall(X,n(X))).
+%

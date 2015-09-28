@@ -276,3 +276,5 @@ test(22) :-
 % 11 readings, first 9 seem the same, last 2 as well (argment cluster coordination)
 test(23) :-
 	parse([terry,gave,everyone,a_book,and,leslie,a_cd], s1(0,0)).
+test(23) :-
+	parse([terry,gave,everyone,a_book,and,someone,a_cd], s1(0,0)).
