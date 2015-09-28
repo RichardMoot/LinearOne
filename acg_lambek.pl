@@ -146,14 +146,14 @@ term_to_states(A, p(0, 0), _) :-
 
 prev_state_left(1, 1, 0).
 % second left argument
-%prev_state_left(2, 21, 1).
+prev_state_left(2, 21, 1).
 
-combine_left(X, 0, X).  % careful! may cause incorrect entries
-%combine_left(0, 0, 0).
-%combine_left(1, 0, 1).
+%combine_left(X, 0, X).  % careful! may cause incorrect entries
+combine_left(0, 0, 0).
+combine_left(1, 0, 1).
 % second left argument
-%combine_left(21, 0, 21).
-%combine_left(2, 1, 21).
+combine_left(21, 0, 21).
+combine_left(2, 1, 21).
 
 prev_state_right(1, 1, 0).
 % second right argument
