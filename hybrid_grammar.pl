@@ -86,6 +86,9 @@ test(12) :-
 	/*    59 proofs */
  	parse([no,dog,eats,more,whiskas2,than,leslie,buys,donuts,or,cat,alpo], s).
 
+% has (unwanted) second reading since the np "bananafish" can lift to Lambek reflexive type and resulting
+% in a coordination between "lobster yesterday" and "bananafish", with "today" having wide scope over the
+% complete sentence.
 test(24) :-
 	parse([captain_jack,served,lobster,yesterday,and3,bananafish,today], s).
 
