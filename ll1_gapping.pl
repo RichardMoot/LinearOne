@@ -33,24 +33,44 @@ macro(to_inf(X,Y), at(to_inf, [X,Y])).
 macro(tv(X,Y), forall(R,impl(at(np, [Y,R]),forall(L,impl(at(np, [L,X]), at(s, [L,R])))))).
 % extracted (s/np)/np, with left position L
 macro(tvie(L), forall(M,impl(at(np, [L,M]),forall(R,impl(at(np, [M,R]), at(s, [L,R])))))).
+macro(tvie_to_inf(L), forall(M,impl(at(np, [L,M]),forall(R,impl(at(np, [M,R]), at(to_inf, [L,R])))))).
 macro(tv(A,B,C,D), impl(np(B,C),forall(X,impl(np(X,A), s(X,D))))).
 macro(tvi(A,B,C,D), impl(np(B,C),forall(X,impl(np(D,X), s(A,X))))).
-macro(tvi(A,B,C,D,E,F), impl(np(B,C),impl(np(D,E), s(A,F)))).
+macro(tvi_to_inf(A,B,C,D), impl(np(B,C),forall(X,impl(np(D,X), to_inf(A,X))))).
 macro(tv_to_inf(A,B,C,D), impl(np(B,C),to_inf(A,D))).
 
 lex(peter, np(L,R), L, R, peter).
 lex(suzy, np(L,R), L, R, suzy).
 lex(susan, np(L,R), L, R, susan).
 lex(john, np(L,R), L, R, john).
+lex(jack, np(L,R), L, R, jack).
+lex(wilfred, np(L,R), L, R, wilfred).
+lex(elsie, np(L,R), L, R, elsie).
+lex(phoebe, np(L,R), L, R, phoebe).
 lex(wendy, np(L,R), L, R, wendy).
 lex(jimmy, np(L,R), L, R, jimmy).
 lex(jill, np(L,R), L, R, jill).
+lex(time, np(L,R), L, R, time).
+lex(newsweek, np(L,R), L, R, newsweek).
+lex(agnew, np(L,R), L, R, agnew).
+lex(nixon, np(L,R), L, R, nixon).
+lex(arizona, np(L,R), L, R, arizona).
+lex(goldwater, np(L,R), L, R, goldwater).
+lex(pennsylvania, np(L,R), L, R, pennsylvania).
+lex(schweiker, np(L,R), L, R, schweiker).
 
 lex(up, at(up, [L,R]), L, R, up).
+lex(senator, at(elect, [L,R]), L, R, senator).
+lex(president, at(elect, [L,R]), L, R, president).
+lex(elected, forall(C,forall(D,impl(at(elect, [C,D]), tv(L,R,C,D)))), L, R, elect).
 lex(rang, forall(C,forall(D,impl(at(up, [C,D]), tv(L,R,C,D)))), L, R, lambda(_,lambda(Y,lambda(X,appl(appl(ring_up,Y),X))))).
 lex(home, at(home, [L,R]), L, R, home).
 lex(took, forall(C,forall(D,impl(at(home, [C,D]), tv(L,R,C,D)))), L, R, lambda(_,lambda(Y,lambda(X,appl(appl(take_home,Y),X))))).
 lex(to_take, forall(C,forall(D,impl(at(home, [C,D]), tv_to_inf(L,R,C,D)))), L, R, lambda(_,lambda(Y,lambda(X,appl(appl(take_home,Y),X))))).
+lex(to_be_guilty, to_inf(L,R), L, R, guilty).
+lex(to_get_married, to_inf(L,R), L, R, get_married).
+lex(to_stay, to_inf(L,R), L, R, stay).
+lex(to_leave, to_inf(L,R), L, R, leave).
 lex(should, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(should,appl(INF,NP))))).
 lex(will, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(will,appl(INF,NP))))).
 lex(i, np(L,R), L, R, i).
@@ -58,19 +78,23 @@ lex(me, np(L,R), L, R, me).
 lex(you, np(L,R), L, R, you).
 lex(call, forall(A,impl(np(R,A),inf(L,A))), L, R, call).
 lex(greet, forall(A,impl(np(R,A),inf(L,A))), L, R, greet).
-% the entry below scopes over the left conjunct of a gapping construction only, eg. for sentence 8
+% the entry below scopes over the left conjunct of a gapping construction only, eg. for sentence 14
 lex(first, forall(A,impl(s(A,L),s(A,R))), L, R, first).
-% the entry below fails to derive sentence 8 at all
+% the entry below fails to derive sentence 14 at all
 %lex(first, forall(A,impl(inf(A,L),inf(A,R))), L, R, lambda(INF,lambda(X,appl(first,appl(INF,X))))).
 lex(asked, forall(B,impl(np(R,B),forall(C,impl(to_inf(B,C),forall(A,impl(np(A,L),s(A,C))))))), L, R, lambda(O,lambda(INF,lambda(S,appl(appl(appl(ask,O),appl(INF,O)),S))))).
+lex(begged, forall(B,impl(np(R,B),forall(C,impl(to_inf(B,C),forall(A,impl(np(A,L),s(A,C))))))), L, R, lambda(O,lambda(INF,lambda(S,appl(appl(appl(beg,O),appl(INF,O)),S))))).
+lex(believes, forall(B,impl(np(R,B),forall(C,impl(to_inf(B,C),forall(A,impl(np(A,L),s(A,C))))))), L, R, lambda(O,lambda(INF,lambda(S,appl(appl(believe,appl(INF,O)),S))))).
 
 % gapping lexical entries
 % gapping of (np\s)|np 
 lex(and, forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(impl(tv(G,G),at(s, [R,F])), impl(impl(tv(A,B,C,D),at(s, [E,L])), impl(tv(A,B,C,D), s(E,F))))))))))), L, R, lambda(P,lambda(Q,lambda(TV,bool(appl(Q,TV),&,appl(P,TV)))))).
 lex(or, forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(impl(tv(G,G),at(s, [R,F])), impl(impl(tv(A,B,C,D),at(s, [E,L])), impl(tv(A,B,C,D), s(E,F))))))))))), L, R, lambda(P,lambda(Q,lambda(TV,bool(appl(Q,TV),\/,appl(P,TV)))))).
-% gapping of (s/np)|np
+% gapping of (s/np)|np (necessary for sentences 10 and 12)
 lex(and, forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(impl(tvie(G),s(R,F)), impl(impl(tvi(A,B,C,D),s(E,L)), impl(tvi(A,B,C,D), s(E,F))))))))))), L, R, lambda(P,lambda(Q,lambda(TV,bool(appl(Q,TV),&,appl(P,TV)))))).
 lex(or,  forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(impl(tvie(G),s(R,F)), impl(impl(tvi(A,B,C,D),s(E,L)), impl(tvi(A,B,C,D), s(E,F))))))))))), L, R, lambda(P,lambda(Q,lambda(TV,bool(appl(Q,TV),\/,appl(P,TV)))))).
+%
+%lex(and, forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(impl(tvie_to_inf(G),s(R,F)), impl(impl(tvi_to_inf(A,B,C,D),s(E,L)), impl(tvi_to_inf(A,B,C,D), s(E,F))))))))))), L, R, lambda(P,lambda(Q,lambda(TV,bool(appl(Q,TV),&,appl(P,TV)))))).
 
 % = discontinuous gapping
 test(1) :-
@@ -81,22 +105,41 @@ test(3) :-
 	parse([peter,took,suzy,home], s).
 test(4) :-
 	parse([peter,took,suzy,home,and,john,wendy], s).
-%
 test(5) :-
+	parse([time,believes,agnew,to_be_guilty], s).
+% Sag (1976), p. 274
+test(6) :-
+	parse([time,believes,agnew,to_be_guilty,and,newsweek,nixon], s).
+test(7) :-
+	parse([arizona,elected,goldwater,senator], s).
+% Jackendoff (1971), p. 24
+test(8) :-
+	parse([arizona,elected,goldwater,senator,and,pennsylvania,schweiker], s).
+%
+test(9) :-
+	parse([jack,begged,elsie,to_get_married], s).
+% Jackendoff (1971), p. 24
+test(10) :-
+	parse([jack,begged,elsie,to_get_married,and,wilfred,phoebe], s).
+test(11) :-
 	parse([should,i,call,you], s).
 %
-test(6) :-
+test(12) :-
 	parse([should,i,call,you,or,you,me], s).
-test(7) :-
+test(13) :-
 	parse([will,jimmy,greet,jill,first], s).
-% fails (verify why)
-test(8) :-
+% succeeds with incorrect scope of "first"
+test(14) :-
 	parse([will,jimmy,greet,jill,first,or,jill,jimmy], s).
-test(9) :-
+test(15) :-
 	parse([i,asked,peter,to_take,susan,home], s).
 % two readings, both using the (np\s)|np assignment, is it possible to get the third using the (s/np)|np assignment?
 % v 1) I asked Peter to take Susan home and           John [asked Peter to take] Wendy [home]
 % v 2) I asked Peter to take Susan home and           John [asked]               Wendy [to take Susan home]
 % x 3) I asked Peter to take Susan home and [I asked] John [to take]             Wendy [home]
-test(10) :-
+test(16) :-
 	parse([i,asked,peter,to_take,susan,home,and,john,wendy], s).
+test(17) :-
+	parse([i,asked,peter,to_leave], s).
+test(18) :-
+	parse([i,asked,peter,to_leave,and,susan,to_stay], s).
