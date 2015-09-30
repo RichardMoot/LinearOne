@@ -50,6 +50,7 @@ lex(phoebe, np(L,R), L, R, phoebe).
 lex(wendy, np(L,R), L, R, wendy).
 lex(jimmy, np(L,R), L, R, jimmy).
 lex(jill, np(L,R), L, R, jill).
+lex(mary, np(L,R), L, R, mary).
 lex(time, np(L,R), L, R, time).
 lex(newsweek, np(L,R), L, R, newsweek).
 lex(agnew, np(L,R), L, R, agnew).
@@ -71,8 +72,6 @@ lex(to_be_guilty, to_inf(L,R), L, R, guilty).
 lex(to_get_married, to_inf(L,R), L, R, get_married).
 lex(to_stay, to_inf(L,R), L, R, stay).
 lex(to_leave, to_inf(L,R), L, R, leave).
-lex(should, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(should,appl(INF,NP))))).
-lex(will, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(will,appl(INF,NP))))).
 lex(i, np(L,R), L, R, i).
 lex(me, np(L,R), L, R, me).
 lex(you, np(L,R), L, R, you).
@@ -82,8 +81,18 @@ lex(greet, forall(A,impl(np(R,A),inf(L,A))), L, R, greet).
 lex(first, forall(A,impl(s(A,L),s(A,R))), L, R, first).
 % the entry below fails to derive sentence 14 at all
 %lex(first, forall(A,impl(inf(A,L),inf(A,R))), L, R, lambda(INF,lambda(X,appl(first,appl(INF,X))))).
+lex(rarely, forall(A,impl(s(R,A),s(L,A))), L, R, rarely).
+lex(at_home, forall(A,impl(s(A,L),s(A,R))), L, R, at_home).
+
+% = auxiliaries
+lex(should, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(should,appl(INF,NP))))).
+lex(will, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(will,appl(INF,NP))))).
+lex(does, forall(A,impl(np(R,A),forall(B,impl(inf(A,B),s(L,B))))), L, R, lambda(NP,lambda(INF,appl(INF,NP)))).
+
+% = control verbs
 lex(asked, forall(B,impl(np(R,B),forall(C,impl(to_inf(B,C),forall(A,impl(np(A,L),s(A,C))))))), L, R, lambda(O,lambda(INF,lambda(S,appl(appl(appl(ask,O),appl(INF,O)),S))))).
 lex(begged, forall(B,impl(np(R,B),forall(C,impl(to_inf(B,C),forall(A,impl(np(A,L),s(A,C))))))), L, R, lambda(O,lambda(INF,lambda(S,appl(appl(appl(beg,O),appl(INF,O)),S))))).
+% = equi verbs
 lex(believes, forall(B,impl(np(R,B),forall(C,impl(to_inf(B,C),forall(A,impl(np(A,L),s(A,C))))))), L, R, lambda(O,lambda(INF,lambda(S,appl(appl(believe,appl(INF,O)),S))))).
 
 % gapping lexical entries
@@ -143,3 +152,9 @@ test(17) :-
 	parse([i,asked,peter,to_leave], s).
 test(18) :-
 	parse([i,asked,peter,to_leave,and,susan,to_stay], s).
+test(20) :-
+	parse([rarely,does,john,call,mary], s).
+test(21) :-
+	parse([rarely,does,john,call,mary,and,mary,john], s).
+test(22) :-
+	parse([rarely,does,john,call,mary,at_home,and,mary,john], s).
