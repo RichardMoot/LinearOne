@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1,latex_rm_atom/1,latex_it_atom/1]).
 
 :- use_module(proof_generation, [eta_reduce/2]).
 :- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
