@@ -49,6 +49,7 @@ lex(peter, np(L,R), L, R, peter).
 lex(suzy, np(L,R), L, R, suzy).
 lex(susan, np(L,R), L, R, susan).
 lex(john, np(L,R), L, R, john).
+lex(mary, np(L,R), L, R, mary).
 lex(jack, np(L,R), L, R, jack).
 lex(wilfred, np(L,R), L, R, wilfred).
 lex(elsie, np(L,R), L, R, elsie).
@@ -123,9 +124,9 @@ lex(or,  forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(imp
 
 % argument cluster coordination for np and to_inf
 % (X\X)/X for X = ((s/to_inf)/np)\s
-%lex(and, forall(G, impl(x(np,to_inf,R,G),forall(A,impl(x(np,to_inf,A,L),x(np,to_inf,A,G))))), L, R, lambda(P2,lambda(P1,lambda(Q,bool(appl(P2,Q),&,appl(P1,Q)))))).
+lex(and, forall(G, impl(x(np,to_inf,R,G),forall(A,impl(x(np,to_inf,A,L),x(np,to_inf,A,G))))), L, R, lambda(P2,lambda(P1,lambda(Q,bool(appl(P2,Q),&,appl(P1,Q)))))).
 % argument cluster coordination for two np's (this entry simply serves as a control against overgeneration)
-%lex(and, forall(G, impl(x(np,np,R,G),forall(A,impl(x(np,np,A,L),x(np,np,A,G))))), L, R, lambda(P2,lambda(P1,lambda(Q,bool(appl(P2,Q),&,appl(P1,Q)))))).
+lex(and, forall(G, impl(x(np,np,R,G),forall(A,impl(x(np,np,A,L),x(np,np,A,G))))), L, R, lambda(P2,lambda(P1,lambda(Q,bool(appl(P2,Q),&,appl(P1,Q)))))).
 % is this entry useful?
 %lex(and, forall(A,forall(B,forall(C,forall(D,forall(E,forall(F,forall(G,impl(impl(tvie_to_inf(G),s(R,F)), impl(impl(tvi_to_inf(A,B,C,D),s(E,L)), impl(tvi_to_inf(A,B,C,D), s(E,F))))))))))), L, R, lambda(P,lambda(Q,lambda(TV,bool(appl(Q,TV),&,appl(P,TV)))))).
 
