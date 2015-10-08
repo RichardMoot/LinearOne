@@ -173,8 +173,17 @@ lex(end, (((np(0, 12)->np(2, 0)->s(21, 12))->np(2, 0)->s(21, 0))->s(0, 0)), lamb
 %lex(end, ((np(0, 1)->np(1, 0)->s(1, 1))->np(21, 0)->s(21, 0)), lambda(A, lambda(B, B+ (appl(appl(A, epsilon), epsilon)+end))), end).
 
 
-% requires two left arguments
-lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, R))-> (np(1, 0)->s(1, 0))->np(L, 0)->s(L, R)), lambda(A, lambda(B, lambda(C, C+(appl(B, epsilon)+(very+appl(appl(A, lambda(D, D+epsilon)), epsilon)))))), very).
+% lambda(A,lambda(B,lambda(C,C+ (appl(O_L(1),appl(B,epsilon(L,1)))+ (very+appl(O_L(1),appl(O_L(2),appl(appl(A,lambda(D,D+epsilon(L,1))),epsilon(L,2)))))))))
+
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 0))-> (np(1, 0)->s(1, 0))->np(0, 0)->s(0, 0)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 0))-> (np(1, 0)->s(1, 0))->np(1, 0)->s(1, 0)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 0))-> (np(1, 0)->s(1, 0))->np(21, 0)->s(21, 0)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 1))-> (np(1, 0)->s(1, 0))->np(0, 0)->s(0, 1)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 1))-> (np(1, 0)->s(1, 0))->np(1, 0)->s(1, 1)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 1))-> (np(1, 0)->s(1, 0))->np(21, 0)->s(21, 1)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 12))-> (np(1, 0)->s(1, 0))->np(0, 0)->s(0, 12)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 12))-> (np(1, 0)->s(1, 0))->np(1, 0)->s(1, 12)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
+lex(very, (((np(2, 0)->s(21, 0))->np(2, 0)->s(21, 12))-> (np(1, 0)->s(1, 0))->np(21, 0)->s(21, 12)), lambda(A, lambda(B, lambda(C, C+ (appl(B, epsilon)+ (very+appl(appl(A, lambda(D, D)), epsilon)))))), very).
 
 test(1) :-
 	parse([captain_jack,served,lobster,yesterday], s(0,0)).
