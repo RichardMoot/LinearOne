@@ -81,6 +81,7 @@ lex(himself, ((np(0,0)->(np(1,0)->s(1,R)))->(np(L,0)->s(L,R))), lambda(P,lambda(
 lex(must, ((((np(1, 0)->s(1, 0))->np(L1, 0)->s(L1, 0))->s(L,R))->s(L,R)), lambda(SVP,appl(SVP,lambda(A, lambda(B, B+ (must+appl(A, epsilon)))))), lambda(F,necessary(appl(F,lambda(Y,Y))))).
 lex(did, (((np(L1,0)->s(L1,0))->((np(L2,0)->s(L2,0))->s(L,R)))->((np(1,0)->s(1,0))->s(L,R))), lambda(S,lambda(P,appl(appl(S,lambda(X,X+did)),lambda(Y,Y+appl(P,epsilon))))), lambda(W,lambda(V,appl(appl(W,V),V)))).
 lex(before, (s(L,0)->(s(0,R)->s(L,R))), lambda(P1,lambda(P2,P1+before+P2)), before).
+lex(only_she, ((np(1,0)->s(1,R))->s(0,R)), lambda(P,only_she+appl(P,epsilon)), only_she).
 
 test(0) :-
 	parse([everyone], (np(0,0)->(np(0,0)->s(0,R)))->(np(L,0)->s(L,R))).

@@ -92,6 +92,11 @@ test(12) :-
 test(24) :-
 	parse([captain_jack,served,lobster,yesterday,and3,bananafish,today], s).
 
+test(30) :-
+	parse([rarely,does,john,call,mary,and,mary,john], s).
+test(31) :-
+	parse([rarely,does,john,call,mary,at_home,and,mary,john], s).
+
 test_and :-
 	exhaustive_test('and.pl', and, ((((s| np)| np)| (s| np)| np)| (s| np)| np), lambda(M, lambda(J, lambda(K, lambda(L, bool(appl(appl(J, K), L), &, appl(appl(M, K), L)))))), [and], (((np\s)/np)\((np\s)/np))/((np\s)/np)).
 
@@ -101,6 +106,14 @@ test_jsl :-
 % =======================
 % =       Lexicon       =
 % =======================
+
+lex(rarely, s/s, rarely, rarely).
+lex(does, (s/sinf)/np, does, lambda(Subj,lambda(Inf,appl(Inf,Subj)))).
+lex(call, sinf/np, call, call).
+%lex(at_home, sinf\sinf, at_home, at_home).
+lex(at_home, s\s, at_home, at_home).
+%lex(and, (s|((s/np)|np))|
+lex(and, (((s|((s/np)|np))|(s|((s/np)|np)))|(s|((s/np)|np))), lambda(STV2,lambda(STV1,lambda(TV,appl(STV1,TV)+and+(appl(STV2,lambda(W,W)))))), lambda(S2,lambda(S1,lambda(T,bool(appl(S1,T),&,appl(S2,T)))))).
 
 % = lex(+Word, +Formula, +ProsodicTerm, +SemanticTerm)
 %
