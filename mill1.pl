@@ -802,12 +802,12 @@ portray_sequent_statistics(stats(A,B,C,D,E,F)) :-
    (
 	A =:= B
     ->
-	format(user_error, '~NAtoms:   ~|~t~D~4+~n', [A])
+	format_error('~NAtoms:   ~|~t~D~4+~n', [A])
     ;
-        format(user_error, '~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
+        format_error('~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
     ),
-        format(user_error, 'Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
-	format(user_error, 'Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
+        format_error('Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
+	format_error('Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
 
 
 
@@ -1001,6 +1001,8 @@ test_h2(F) :-
 
 
 % = control over messages
+%
+% use output_error(0) to suppress diagnostic messages
 
 :- dynamic output_error/1, output_info/1.
 
