@@ -73,8 +73,17 @@ portray(rule(N,A,B,Ps)) :-
 	numbervars(AA-BB, 0, _),
 	Ps \== [],
 	format('rule(~p,~p  |-  ~p,...)', [N,AA,BB]).
-portray(appl(appl(appl(F,Z),Y),X)) :-
+portray(appl(appl(appl(appl(appl(F,W),V),Z),Y),X)) :-
+	atom(F),
 	!,
+	Term =.. [F,X,Y,Z,V,W],
+	print(Term).
+portray(appl(appl(appl(appl(F,V),Z),Y),X)) :-
+	atom(F),
+	!,
+	Term =.. [F,X,Y,Z,V],
+	print(Term).
+portray(appl(appl(appl(F,Z),Y),X)) :-
 	atom(F),
 	!,
 	Term =.. [F,X,Y,Z],
