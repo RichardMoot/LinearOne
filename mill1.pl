@@ -1,9 +1,10 @@
+#!/Applications/SWI-Prolog.app/Contents/MacOS//swipl -q -t main -f
 
 :- use_module(dancing_links,       [compute_axioms/4,
 				    update_roots_axiom/4,
 				    update_roots_contraction/5]).
-%:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
-:- use_module(portray_graph_none,  [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+:- use_module(portray_graph_tikz, [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
+%:- use_module(portray_graph_none,  [portray_graph/1,graph_header/0,graph_footer/1,latex_graph/1]).
 :- use_module(translations,        [translate_lambek/3,
 				    translate_displacement/3,
 				    translate_hybrid/6,
@@ -72,8 +73,17 @@ portray(rule(N,A,B,Ps)) :-
 	numbervars(AA-BB, 0, _),
 	Ps \== [],
 	format('rule(~p,~p  |-  ~p,...)', [N,AA,BB]).
-portray(appl(appl(appl(F,Z),Y),X)) :-
+portray(appl(appl(appl(appl(appl(F,W),V),Z),Y),X)) :-
+	atom(F),
 	!,
+	Term =.. [F,X,Y,Z,V,W],
+	print(Term).
+portray(appl(appl(appl(appl(F,V),Z),Y),X)) :-
+	atom(F),
+	!,
+	Term =.. [F,X,Y,Z,V],
+	print(Term).
+portray(appl(appl(appl(F,Z),Y),X)) :-
 	atom(F),
 	!,
 	Term =.. [F,X,Y,Z],
@@ -126,6 +136,7 @@ main([GrammarFile,Atom|Words]) :-
 	halt.
 main(_) :-
 	format(user_output, 'Usage: mill1 GrammarFileName GoalFormula Words~n', []).
+
 
 % = load_grammar(File)
 %
@@ -791,12 +802,12 @@ portray_sequent_statistics(stats(A,B,C,D,E,F)) :-
    (
 	A =:= B
     ->
-	format_error('~NAtoms:   ~|~t~D~4+~n', [A])
+	format(user_error, '~NAtoms:   ~|~t~D~4+~n', [A])
     ;
-        format_error('~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
+        format(user_error, '~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
     ),
-        format_error('Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
-	format_error('Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
+        format(user_error, 'Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
+	format(user_error, 'Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
 
 
 
