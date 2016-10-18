@@ -1006,7 +1006,8 @@ test_h2(F) :-
 
 :- dynamic output_error/1, output_info/1.
 
-output_error(1).
+% output_error(0) % suppress diagnostic messages
+output_error(1). % print diagnostic messages
 output_info(1).
 
 format_error(_, _) :-
