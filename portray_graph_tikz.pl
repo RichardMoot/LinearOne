@@ -10,7 +10,7 @@ graph_header :-
       ( exists_file('graph.tex') -> delete_file('graph.tex') ; true),
 	open('graph.tex', write, _, [alias(graph)]),
 	format(graph, '\\documentclass{article}~2n', []),
-	format(graph, '\\usepackage[a3paper]{geometry}~n', []),
+	format(graph, '\\usepackage[a2paper]{geometry}~n', []),
 	format(graph, '\\usepackage{amsmath}~n', []),
 	format(graph, '\\usepackage{cmll}~n', []),
 	format(graph, '\\usepackage{tikz}~n', []),
@@ -200,9 +200,10 @@ portray_fvs([V|Vs]) :-
   portray_fvs(Vs).
 
 portray_atom1([], Atom) :-
-    write(graph, Atom).
+    latex_it_atom(Atom).
 portray_atom1([V|Vs], Pred) :-
-    format(graph, '~w(~@)', [Pred,portray_vars(Vs,V)]).
+    latex_it_atom(Pred),
+    format(graph, '(~@)', [portray_vars(Vs,V)]).
     
 portray_vars([], V) :-
 	portray_var1(V).
@@ -274,3 +275,9 @@ latex_arguments([A|As], A0) :-
         format(graph, '~@, ', [portray_var1(A0)])
     ),
 	latex_arguments(As, A).
+
+latex_it_atom(A0) :-
+	/* take care of Prolog atoms containing '_' */
+	atomic_list_concat(List, '_', A0),
+	atomic_list_concat(List, '\\_', A),
+	format(graph, '\\textit{~w}', [A]).
