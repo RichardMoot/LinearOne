@@ -1,4 +1,4 @@
-:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1]).
+:- module(latex, [latex_proof/1,latex_nd/1,latex_hybrid/1,latex_displacement/1,proof_header/0,proof_footer/0,latex_semantics/1,latex_lexicon/1,latex_lexicon1/0,latex_it_atom/1,latex_arguments/1,latex_rm_atom/1,latex_it_atom/1]).
 
 :- use_module(proof_generation, [eta_reduce/2]).
 :- use_module(translations, [compute_pros_term/3,translate/3,translate_hybrid/6]).
@@ -121,7 +121,15 @@ latex_lexicon(mill1) :-
     ;
         List2 = []
     ),     
-        append(List1, List2, List),
+    (	
+	current_predicate(lex/5)
+    ->			    
+        findall(ll1_lex(X,Y,Z), lex(X,Y,l,r,Z), List3)
+    ;
+        List3 = []
+    ),
+        append(List1, List2, List12),
+        append(List12, List3, List),
 	latex_lexicon_list(List),
 	lexicon_footer.
 
@@ -184,6 +192,14 @@ latex_mill1_item(hybrid_lex(Word,Formula0,ProsTerm,Semantics0)) :-
 latex_mill1_item(mill1_lex(Word,Formula0,Semantics0)) :-
 	macro_expand(Formula0, Formula1),
 	try_translate(Formula1, Formula),
+	canonical_semantic_term(Semantics0, Semantics),
+	numbervars(Formula, 0, _),
+	numbervars(Semantics, 0, _),
+	lexicon_separator(Sep),
+	!,
+	format(latex, '~@ &~w ~@ ~w ~@\\\\~n', [latex_rm_atom(Word), Sep, latex_formula(Formula), Sep, latex_semantics(Semantics,0)]).
+latex_mill1_item(ll1_lex(Word,Formula0,Semantics0)) :-
+	macro_expand(Formula0, Formula),
 	canonical_semantic_term(Semantics0, Semantics),
 	numbervars(Formula, 0, _),
 	numbervars(Semantics, 0, _),
