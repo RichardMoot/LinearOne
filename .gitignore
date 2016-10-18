@@ -24,4 +24,5 @@ test_grammar.pl
 test_grammar2.pl
 new_grammar.pl
 lsa_grammar.pl
+tmp*.txt
 

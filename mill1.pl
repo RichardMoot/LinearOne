@@ -1,3 +1,4 @@
+#!/Applications/SWI-Prolog.app/Contents/MacOS//swipl -q -t main -f
 
 :- use_module(dancing_links,       [compute_axioms/4,
 				    update_roots_axiom/4,
@@ -99,6 +100,30 @@ portray(bool(P,B,Q)) :-
 % = Top-level theorem prover predicates =
 % =======================================
 
+% command line execution
+%
+% mill1 GrammarFile GoalFormula Words
+%
+% loads GrammarFile and passes Words and GoalFormula to parse/2
+
+main :-
+	current_prolog_flag(os_argv, Argv),
+        append(_, [A|Av], Argv),
+	file_base_name(A, 'mill1.pl'),
+	!,
+        main(Av).
+
+
+main([GrammarFile,Atom|Words]) :-
+	!,
+	load_grammar(GrammarFile),
+	/* allow goal formulas of the form "s\(fin\)", etc. (backslashes are necessary!) */
+	read_term_from_atom(Atom, GoalFormula, []),
+	parse(Words, GoalFormula),
+	halt.
+main(_) :-
+	format(user_output, 'Usage: mill1 GrammarFileName GoalFormula Words~n', []).
+	
 % = load_grammar(File)
 %
 % compile Prolog grammar file File
@@ -245,6 +270,7 @@ prove0(Antecedent, Goal, LexSem) :-
 	reduce_sem(Sem1, Sem),
 	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem0]),
 	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
+	format(user_output, '~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* update proof statistics */
 	retractall('$PROOFS'(_, _)),
@@ -764,12 +790,12 @@ portray_sequent_statistics(stats(A,B,C,D,E,F)) :-
    (
 	A =:= B
     ->
-	format('~NAtoms:   ~|~t~D~4+~n', [A])
+	format(user_error, '~NAtoms:   ~|~t~D~4+~n', [A])
     ;
-        format('~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
+        format(user_error, '~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
     ),
-        format('Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
-	format('Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
+        format(user_error, 'Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
+	format(user_error, 'Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
 
 
 
