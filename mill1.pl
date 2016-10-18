@@ -99,6 +99,34 @@ portray(bool(P,B,Q)) :-
 % = Top-level theorem prover predicates =
 % =======================================
 
+% command line execution
+%
+% mill1 GrammarFile GoalFormula Words
+%
+% loads GrammarFile and passes Words and GoalFormula to parse/2
+
+main :-
+	current_prolog_flag(os_argv, Argv),
+        append(_, [A|Av], Argv),
+	file_base_name(A, 'mill1.pl'),
+	!,
+        main(Av).
+
+main([silent|Rest]) :-
+	!,
+	retractall(output_error(_)),
+	assert(output_error(0)),
+	main(Rest).
+main([GrammarFile,Atom|Words]) :-
+	!,
+	load_grammar(GrammarFile),
+	/* allow goal formulas of the form "s\(fin\)", etc. (backslashes are necessary!) */
+	read_term_from_atom(Atom, GoalFormula, []),
+	parse(Words, GoalFormula),
+	halt.
+main(_) :-
+	format(user_output, 'Usage: mill1 GrammarFileName GoalFormula Words~n', []).
+
 % = load_grammar(File)
 %
 % compile Prolog grammar file File
@@ -162,11 +190,11 @@ parse(ListOfWords, Goal0) :-
 	N is N0 + 1,
 	retractall('$LOOKUP'(_)),
 	assert('$LOOKUP'(N)),
-        format(user_error, '~N= Lookup ~D~n', [N]),
+        format_error('~N= Lookup ~D~n', [N]),
 	prove0(Formulas, Goal, LexSem),
 	fail.
 parse(_, _) :-
-        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
+        format_error('~N= Done!~2n================~n=  statistics  =~n================~n', []),	
 	'$LOOKUP'(L),
 	write_lookups(L),
         final_statistics.
@@ -197,7 +225,7 @@ prove(Antecedent, Goal, LexSem) :-
 	prove0(Antecedent, Goal, LexSem),
 	fail.
 prove(_, _, _) :-
-        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
+        format_error('~N= Done!~2n================~n=  statistics  =~n================~n', []),	
 	final_statistics.
 
 initialisation :-
@@ -232,7 +260,7 @@ prove0(Antecedent, Goal) :-
 prove0(Antecedent, Goal, LexSem) :-
         unfold_sequent(Antecedent, Goal, Roots, Graph, Sem0, Stats),
 	portray_sequent_statistics(Stats),
-	format(user_error, 'Parsing: ', []),
+	format_error('Parsing: ', []),
 	/* keep a copy of the initial graph (before any unificiations) for later proof generation */
 	copy_term(Graph, GraphCopy),
 	portray_graph(Graph),
@@ -243,7 +271,7 @@ prove0(Antecedent, Goal, LexSem) :-
 	/* generate semantics */
 	substitute_sem(LexSem, Sem0, Sem1),
 	reduce_sem(Sem1, Sem),
-	format(user_error, '~N= Semantics ~w: ~p~n', [N,Sem]),
+	format_info('~N= Semantics ~w: ~p~n', [N,Sem]),
 	latex_semantics(Sem),
 	/* update proof statistics */
 	retractall('$PROOFS'(_, _)),
@@ -290,10 +318,10 @@ first_parse(ListOfWords, Goal0) :-
 	N is N0 + 1,
 	retractall('$LOOKUP'(_)),
 	assert('$LOOKUP'(N)),
-        format(user_error, '~N= Lookup ~D~n', [N]),
+        format_error('~N= Lookup ~D~n', [N]),
 	prove0(Formulas, Goal, LexSem),
 	!,
-        format(user_error, '~N= Done!~2n================~n=  statistics  =~n================~n', []),	
+        format_error('~N= Done!~2n================~n=  statistics  =~n================~n', []),	
 	'$LOOKUP'(L),
 	write_lookups(L),
         final_statistics.
@@ -309,7 +337,7 @@ first_parse(ListOfWords, Goal0) :-
 
 prove1([vertex(_, [], _, [])], _, []) :-
 	/* a single vertex with atoms or links, we have succeeded ! */
-        format(user_error, '~N= Proof found!~n', []),
+        format_error('~N= Proof found!~n', []),
         !.
 prove1(Graph0, Roots0, [ax(N0,AtV0,AtO0,N1,AtV1,AtO1)|Rest0]) :-
 	/* forced choice for positive atom, using first-found from the best */
@@ -732,7 +760,7 @@ number_subformulas_pos(impl(A,B), C, N0, N, M, M, C-impl(NA,NB)) :-
 
 mark_progress(G) :-
 	length(G, L),
-	format(user_error, '~D.', [L]),
+	format_error('~D.', [L]),
         flush_output(user_error).
 	
 
@@ -763,12 +791,12 @@ portray_sequent_statistics(stats(A,B,C,D,E,F)) :-
    (
 	A =:= B
     ->
-	format('~NAtoms:   ~|~t~D~4+~n', [A])
+	format_error('~NAtoms:   ~|~t~D~4+~n', [A])
     ;
-        format('~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
+        format_error('~NAtoms:   ~|~t-~D~4+  ~|~t+~D~4+~n', [A,B])
     ),
-        format('Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
-	format('Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
+        format_error('Unary : T~|~t~D~4+ P~|~t~D~4+~n', [C,D]),
+	format_error('Binary: T~|~t~D~4+ P~|~t~D~4+~n', [E,F]).
 
 
 
@@ -794,7 +822,7 @@ print_trace([B|Bs], A, Stream) :-
 
 print_list([]).
 print_list([A|As]) :-
-	format(user_error, '~p~n', [A]),
+	format_error('~p~n', [A]),
 	print_list(As).
 
 % = write_proof(P)
@@ -805,13 +833,13 @@ write_proofs(P) :-
    (
        P =:= 0
    ->
-       format(user_output, 'No proofs found!~n', [])
+       format_error('No proofs found!~n', [])
    ;
        P =:= 1
    ->
-       format(user_output, '1 proof found.~n', [])
+       format_error('1 proof found.~n', [])
    ;
-       format(user_output, '~D proofs found.~n', [P])
+       format_error('~D proofs found.~n', [P])
    ).
 
 % = write_axioms(A)
@@ -822,13 +850,13 @@ write_axioms(A) :-
    (
        A =:= 0
    ->
-       format(user_output, 'No axioms performed!~n', [])
+       format_error('No axioms performed!~n', [])
    ;
        A =:= 1
    ->
-       format(user_output, '1 axiom performed.~n', [])
+       format_error('1 axiom performed.~n', [])
    ;
-       format(user_output, '~D axioms performed.~n', [A])
+       format_error('~D axioms performed.~n', [A])
    ).
 
 % = write_lookup(L)
@@ -839,13 +867,13 @@ write_lookups(L) :-
    (
        L =:= 0
    ->
-       format(user_output, 'No lexical lookups!~n', [])
+       format_error('No lexical lookups!~n', [])
    ;
        L =:= 1
    ->
-       format(user_output, '1 lexical lookup.~n', [])
+       format_error('1 lexical lookup.~n', [])
    ;
-       format(user_output, '~D lexical lookups.~n', [L])
+       format_error('~D lexical lookups.~n', [L])
    ).
 
 
@@ -858,26 +886,26 @@ write_lookups(L) :-
 print_solutions(L, NS) :-
 	open('parse_log.txt', write, Stream, []), 
 	format(Stream, 'SentNo Solutions~n', []),
-	format(user_error, 'SentNo Solutions~n', []),
+	format_error('SentNo Solutions~n', []),
 	print_solutions(L, Stream, 0, 0, NS),
 	close(Stream).
 print_solutions([], Stream, S, F, []) :-
 	Total is S + F,
 	format(Stream, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]),
-	format(user_error, '~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]).
+	format_error('~nTotal sentences :~|~t~d~4+~nSucceeded       :~|~t~d~4+~nFailed          :~|~t~d~4+~n', [Total, S, F]).
 print_solutions([N|Ns], Stream, S0, F0, [P-SemList|Ps]) :-
 	format(Stream, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
-	format(user_error, '~|~t~d~6+ ~|~t~d~9+', [N,P]),
+	format_error('~|~t~d~6+ ~|~t~d~9+', [N,P]),
     (
 	P =:= 0
     ->
         format(Stream, ' * ~p~n', [SemList]),
-        format(user_error, ' * ~p~n', [SemList]),
+        format_error(' * ~p~n', [SemList]),
 	F is F0 + 1,
 	S = S0
     ;
         format(Stream, '   ~p~n', [SemList]),
-        format(user_error, '   ~p~n', [SemList]),
+        format_error('   ~p~n', [SemList]),
         S is S0 + 1,
         F = F0
     ),
@@ -959,3 +987,25 @@ test_h2(F) :-
 	translate_hybrid(h(at(s),h(at(s),at(np))), lambda(P,lambda(Z,appl(appl(P,everyone),Z))), everyone, 0, 1, F).
 
 % = generate exhaustive test file	
+
+
+% = control over messages
+
+:- dynamic output_error/1, output_info/1.
+
+output_error(1).
+output_info(1).
+
+format_error(_, _) :-
+	output_error(0),
+	!.
+format_error(X, Y) :-
+	format(user_error, X, Y).
+
+
+format_info(_, _) :-
+	output_info(0),
+	!.
+format_info(X, Y) :-
+	format(user_output, X, Y).
+
