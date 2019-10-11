@@ -1,8 +1,8 @@
 #   LinearOne
 
-:copyright: 2015-2016 [CNRS](http://www.cnrs.fr)
+:copyright: 2015-2019 [CNRS](http://www.cnrs.fr)
 
-:copyright: 2015-2016 Richard Moot (@RichardMoot)
+:copyright: 2015-2019 Richard Moot (@RichardMoot)
 
 This research has received financial support from the ANR CONTINT, project POLYMNIE (ANR-12-CORD-0004). 
 
