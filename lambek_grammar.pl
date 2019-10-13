@@ -17,18 +17,27 @@
 
 lex(every, (s/(np\s))/n, lambda(P,lambda(Q,quant(forall,X,bool(appl(P,X),->,appl(Q,X)))))).
 lex(some, ((s/np)\s)/n, lambda(P,lambda(Q,quant(exists,X,bool(appl(P,X),&,appl(Q,X)))))).
+lex(a, ((s/np)\s)/n, lambda(P,lambda(Q,quant(exists,X,bool(appl(P,X),&,appl(Q,X)))))).
 lex(student, n, student).
 lex(exam, n, exam).
+lex(donkey, n, donkey).
 lex(aced, (np\s)/np, ace).
+lex(own, (np\s)/np, own).
 lex(slept, np\s, sleep).
+lex(john, np, john).
+lex(mary, np, mary).    
 lex(during, ((np\s)\(np\s))/np, lambda(X,lambda(P,lambda(Y,appl(appl(during,X),appl(P,Y)))))).
 lex(the, np/n, iota).
 lex(who, (n\n)/(np\s), lambda(P,lambda(Q,lambda(X,bool(appl(Q,X),&,appl(P,X)))))).
 lex(loves, (np\s)/np, love).
 lex(alyssa, np, alyssa).
+lex(and, ((s/(np\s))\(s/(np\s)))/(s/(np\s)), lambda(Q2,lambda(Q1,lambda(P,bool(appl(Q1,P),&,appl(Q2,P)))))).
 
+    
 test(1) :-
 	parse([every,student,aced,some,exam], s).
 
 test(2) :-
 	parse([the,student,who,slept,during,the,exam,loves,alyssa], s).
+test(3) :-
+        parse([john,and,mary,own,a,donkey], s).
