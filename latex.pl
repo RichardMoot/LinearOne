@@ -803,8 +803,8 @@ latex_var(V) :-
 variable_atom(N, At) :-
 	VN is N mod 5,
 	VI is N//5,
-	print_var1(VI, V),
-	atomic_list_concat([V, '_{', VN, '}'], At).
+	print_var1(VN, V),
+	atomic_list_concat([V, '_{', VI, '}'], At).
     
 print_var1(0, x).
 print_var1(1, y).
