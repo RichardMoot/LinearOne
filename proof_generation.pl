@@ -785,11 +785,11 @@ sequent_to_nd(rule(fr, Gamma, N-A, [R0]), rule(fi, Gamma, N-A, [R]), I0, I) :-
 %
 
 sequent_to_nd(rule(il, Ant, C, [R1,R2]), Proof, I0, I) :-
-	member(M-impl(N-A,N-B0), Ant),
 	sequent_to_nd(R1, ProofA, I0, I1),
 	sequent_to_nd(R2, ProofC, I1, I),
 	ProofA = rule(_, Delta, _NA0, _),
 	ProofC = rule(_, GammaB, _, _),
+	member(M-impl(N-A,N-B0), Ant),
 	antecedent_member(B0, B, R2),
 	select_same_formula(_NB, B, GammaB, Gamma),
 	append(Delta, [M-impl(N-A,N-B0)], DeltaAB),
