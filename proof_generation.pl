@@ -1,3 +1,5 @@
+% -*- Mode: Prolog -*-
+
 :- module(proof_generation, [generate_proof/2,
 			     generate_sequent_proof/2,
 			     generate_natural_deduction_proof/2,
@@ -930,16 +932,21 @@ nd_to_hybrid(Proof0, Proof) :-
 	numbervars(Proof, Max, _).
 
 nd_to_hybrid(rule(hyp(I), _, C0, []), Max, Max, rule(hyp(I), '$VAR'(I), HF, [])) :-
+        /* withdrawn hypothesis with unique identifier I */
 	remove_formula_nodes(C0, C),
 	linear_to_hybrid(C, HF),
+	/* compute the Church type of hybrid formula  HF */
 	formula_type(HF, Type),
 	retractall(free_var(I, _)),
 	assert(free_var(I, Type)).
 nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, Rule) :-
+        /* HTLG lexicon rule */ 
 	remove_formula_nodes(C0, C),
 	/* recover lexical lambda term here */
 	linear_to_hybrid(C, VarList, _, HF),
 	numbervars(VarList, 0, _),
+	/* complex manipulations to allow HTLG grammars to use first-order */
+	/* quantifiers for things like case */
         get_positions(VarList, N0, _R),
 	lexicon:hybrid_lookup(N0, HF0, Lambda0),
 	compute_pros_term(Lambda0, HF0, Lambda, Max0, Max),
@@ -952,22 +959,28 @@ nd_to_hybrid(rule(ax, _, C0, []), Max0, Max, Rule) :-
         Rule = rule(fe, Lambda, HF, [rule(ax, Lambda, HF0, [])])
     ).
 nd_to_hybrid(rule(ie, _, _, [P1,rule(fe, _, _, [P2])]), Max0, Max, Rule) :-
-	!,
+        !,
+        /* Lambek calculus elimination rule */
 	P2 = rule(_, _, C0, _),
 	nd_to_hybrid(P1, Max0, Max1, Proof1),
 	nd_to_hybrid(P2, Max1, Max2, Proof2),
 	antecedent(Proof1, Term1),
 	antecedent(Proof2, Term2),
 	remove_formula_nodes(C0, C),
+	/* compute the Lambek calculus formula LF corresponding to C */
 	linear_to_lambek(C, [_, _], LF),
+	/* use this formula LF to infer the relevant rule application */
 	lambek_rule(LF, Term1, Term2, Max2, Max, Proof1, Proof2, Rule).
 nd_to_hybrid(rule(fi, _, C0, [rule(ii(I), _, _, [P1])]), Max0, Max, rule(Nm, Term, LF, [Proof1])) :-
+        /* Lambek calculus introduction rule */
 	remove_formula_nodes(C0, C),
 	linear_to_lambek(C, [_, _], LF),
 	nd_to_hybrid(P1, Max0, Max1, Proof1),
 	antecedent(Proof1, Term1),
 	retractall(free_var(I, _)),
 	compute_pros_term(appl(lambda('$VAR'(I),Term1),epsilon), LF, Term, Max1, Max),
+	/* use the main connective of the Lambek calculus formula LF to */
+	/* determine the rule name */
         lambek_rule_name(LF, I, Nm).
 nd_to_hybrid(rule(ie, _, C0, [P1,P2]), Max0, Max, rule(he, Term, HF, [Proof1,Proof2])) :-
 	remove_formula_nodes(C0, C),
