@@ -25,4 +25,5 @@ test_grammar2.pl
 new_grammar.pl
 lsa_grammar.pl
 tmp*.txt
-
+grammar.tgz
+hybrid_split.pl
