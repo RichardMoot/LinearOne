@@ -1,3 +1,5 @@
+% -*- Mode: Prolog -*-
+
 % = portray_graph(+Graph)
 %
 % GraphViz output
