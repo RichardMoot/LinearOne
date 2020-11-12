@@ -1,3 +1,5 @@
+% -*- Mode: Prolog -*-
+
 :- module(options, [term_application/1,
 		    lexicon_separator/1,
 		    hybrid_pros/1,
