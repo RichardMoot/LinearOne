@@ -1,3 +1,4 @@
+% -*- Mode: Prolog -*-
 
 :- module(translations, [translate_lambek/3,
 			 linear_to_lambek/3,
@@ -71,7 +72,7 @@ translate_lambek(p(A0,B0), [X,Z], exists(Y,p(A,B))) :-
 	translate_lambek(A0, [X,Y], A),
 	translate_lambek(B0, [Y,Z], B).
 
-% = linear_to_lambek(-LinearLogicFormula, Positions, LambekFormula)
+% = linear_to_lambek(-LinearLogicFormula, ?Positions, ?LambekFormula)
 %
 % the inverse of translate_lambek, works correctly even when LinearLogicFormula
 % is not a ground term (for example when it contains first-order quantifiers).
@@ -593,6 +594,12 @@ linear_to_hybrid(impl(A,B), Vars, impl(TA,TB), h(FB,FA)) :-
 	linear_to_hybrid(B, Vars1, TB, FB),
 	append(Vars0, Vars1, Vars).
 
+% = list_to_impl(+ListOfVariables, -Implication)
+%
+% converts a list of variables (as occurring in an atomic formula) into the
+% corresponding implication; only the cases of two and four variables are
+% treated
+
 list_to_impl([V1,V2], impl(at(V2,[]),at(V1,[]))) :-
 	!.
 list_to_impl([V3,V1,V2,V4], impl(impl(at(V1,[]),at(V2,[])),impl(at(V3,[]),at(V4,[])))).
@@ -664,7 +671,7 @@ type_skeleton(impl(A0,B0), impl(A,B)) :-
 
 % = formula_type(+HybridFormula, -ProsodicType)
 %
-% computed the prosodic type of a hybrid formula
+% computed the prosodic (Church) type of a hybrid formula
 
 formula_type(h(B,A), impl(TA,TB)) :-
 	formula_type(A, TA),
@@ -767,14 +774,27 @@ replace(lambda(X, Y0), V, W, lambda(X, Y)) :-
    ( X = V -> Y = Y0 ; replace(Y0, V, W, Y)).
 replace(A, _, _, A).
 
-
-% = translate pure lambda term to simplified lambda term (requires types)
-%
+% = pure_to_simple_formula(+PureTerm, +Formula, -SimpleTerm)
+% 
+% given a pure lambda term PureTerm and a corresponding Formula, compute
+% the corresponding simple lambda term (with explicit concatenation and
+% the empty string etc.); this predicate simply computes the type of Formula
+% and passes this type to pure_to_simple/3
 
 pure_to_simple_formula(PureTerm, Formula0, SimpleTerm) :-
 	macro_expand(Formula0, Formula),
 	formula_type(Formula, Type),
 	pure_to_simple(PureTerm, Type, SimpleTerm).
+
+% = pure_to_simple_formula(+PureTerm, +Type, -SimpleTerm)
+%
+% given a pure lambda term PureTerm and it corresponding Type, compute
+% the corresponding simple lambda term (with explicit concatenation and
+% the empty string etc.)
+%
+% pure_to_simple/3 functions as the inverse to simple_to_pure/3, but where
+% the latter functions to make input easier, the goal of this predicate
+% is to make the output easier to read
 
 pure_to_simple(PureTerm, Type, SimpleTerm) :-
 	compute_types(PureTerm, Type, Tree),
@@ -788,6 +808,8 @@ pure_to_simple('$VAR'(N), Tree, Type, '$VAR'(N)) :-
 	!,
 	ord_key_member('$VAR'(N), Tree, Type).
 pure_to_simple(lambda(Z,Term0), Tree, impl(s,s), Term) :-
+        /* this is the key case: we try to translate terms of the form */
+        /* lambda z.M as the empty string or as string concatenation */
 	translate_string_concat(Term0, Z, Tree, Term),
 	!.
 pure_to_simple(appl(X0,Y0), Tree, TXY, appl(X,Y)) :-
@@ -797,12 +819,28 @@ pure_to_simple(lambda(X,Y0), Tree, impl(TX,TY), lambda(X,Term)) :-
 	ord_key_member(X, Tree, TX),
 	pure_to_simple(Y0, Tree, TY, Term).
 
+% = translate_string_concat(+Var, +Term, +Tree, -ComcatTerm)
+%
+% translate Term, when it corresponds to a concatenation - that is, it is
+% of the form lambda z, M_1 (... (M_n z)) and all M_i are of type impl(s,s) -
+% to a concatenation M_1 + ... + M_n (with epsilon when n=0)
+
 translate_string_concat(Z, Z, _, epsilon) :-
 	!.
 translate_string_concat(appl(X0,Y), Z, Tree, Term) :-
-	get_type(Tree, X0, impl(s,s)),
+        /* check whether X0 has the require string type impl(s,s) */
+        get_type(Tree, X0, impl(s,s)),
+        /* compute the simple term X corresponding to X0, then add */
+	/* this term as an extra argument */
 	pure_to_simple(X0, Tree, impl(s,s), X),
 	translate_string_concat(Y, X, Z, Tree, Term).
+
+% = translate_string_concat(+Var, +ProsTerm, +Term, +Tree, -ComcatTerm)
+%
+% this is translate_string_concat/4 with extra argument ProsTerm instantiated
+% to the previously treated argument (that is, we know we are not dealing
+% with the empty string, and output ProsTerm when arriving at the end of
+% the string.
 
 translate_string_concat(Z, X, Z, _, X) :-
 	!.
@@ -810,6 +848,12 @@ translate_string_concat(appl(X1,Y), X0, Z, Tree, X0+Term) :-
 	get_type(Tree, X1, impl(s,s)),
 	pure_to_simple(X1, Tree, impl(s,s), X),
 	translate_string_concat(Y, X, Z, Tree, Term).
+
+% = simple_to_pure(+SimplifiedLambdaTerm, -PureLambdaTerm)
+%
+% coverts a simplified lambda term to the corresponding pure lambda term.
+% Simplified lambda terms allow convenient abbreviations (such as "+" for
+% concatenation, "@" for application, "^" for abstraction, etc.)
 
 simple_to_pure(X0@Y0, appl(X,Y)) :-
 	!,
@@ -832,6 +876,12 @@ simple_to_pure(lambda(X,Y0), lambda(X,Y)) :-
 	!,
 	simple_to_pure(Y0, Y).
 simple_to_pure(X, X).
+
+% = simple_to_pure(+SimplifiedLambdaTerm, +NVin, -NVout, -PureLambdaTerm)
+%
+% version of simple_to_pure/2 but for use with lambda terms previously
+% frozen through numbervars/2; requires NVin to be the lowest integer
+% N0 such that all other occurrences of '$VAR'(M) in the term have M < N0
 
 simple_to_pure(X0@Y0, N0, N, appl(X,Y)) :-
 	!,
@@ -856,8 +906,6 @@ simple_to_pure(lambda(X,Y0), N0, N, lambda(X,Y)) :-
 	!,
 	simple_to_pure(Y0, N0, N, Y).
 simple_to_pure(X, N, N, X).
-
-
 
 % = principal_type(+Term, -PrincipalType)
 %
@@ -946,6 +994,12 @@ get_type_premisses(OrdSet, Term, Type) :-
 compute_type(Term, Type) :-
 	format_debug('~N= before principal type computation=~n Term: ~p~n Type: ~p~n===~n', [Term, Type]), 
 	compute_types(Term, Type, _List).
+
+% = compute_types(+Term, +Type, OrdListOfTermTypePairs)
+%
+% given a lambda term Term having type Type, compute the (Church) type for
+% each of the atomic subterms and add them to an ordered list of term-type
+% pairs; works both with pure and simplified lambda terms.
 
 compute_types('$VAR'(N), Type, ['$VAR'(N)-Type]) :-
 	!,
