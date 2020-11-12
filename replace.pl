@@ -1,4 +1,11 @@
-:- module(replace, [replace_proofs_labels/4, replace_proof_labels/4, replace_formula/5, replace_graph/6, rename_bound_variable/4, rename_bound_variables/2]).
+% -*- Mode: Prolog -*-
+
+:- module(replace, [replace_proofs_labels/4,
+		    replace_proof_labels/4,
+		    replace_formula/5,
+		    replace_graph/6,
+		    rename_bound_variable/4,
+		    rename_bound_variables/2]).
 
 :- use_module(ordset, [ord_key_insert/4, ord_key_member/3]).
 
