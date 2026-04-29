@@ -234,8 +234,8 @@ portray_var1(Term) :-
 portray_var(N) :-
     VI is N mod 5,
     VN is N//5,
-    var_name(VN),
-    format(graph, '_{~w}', [VI]).
+    var_name(VI),
+    format(graph, '_{~w}', [VN]).
 
 var_name(0) :-
     write(graph, x).
