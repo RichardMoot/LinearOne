@@ -1,12 +1,6 @@
 
 
 
-peek1(K, L, W, M, p(at(Stack,[L,W,M]), at(Head,[L,W,M]))) :-
-	stack_atom(K, Stack),
-	head_atom(K, Head).
-peek2(K, L, V, M, W, R, p(p(at(Stack,[L,V,M]),at(Stack,[M,W,R])), at(Head,[M,W,R]))) :-
-	stack_atom(K, Stack),
-	head_atom(K, Head).
 push(K, [S|Ss], R, Formula) :-
 	stack_atom(K, Stack),
 	head_atom(K, Head),
@@ -14,33 +8,36 @@ push(K, [S|Ss], R, Formula) :-
 
 stack(K, X, S, Y,  at(Stack,[X,S,Y])) :-
 	stack_atom(K, Stack).
-head(K, X, S, Y,  at(Head,[X,S,Y])) :-
+head(K, Y,  at(Head,[Y])) :-
 	head_atom(K, Head).
 word(L, W, R, at(word, [L,  W, R])).
 
-push([], S, R, Stack, Head, exists(X,p(at(Stack,[R,S,X]),at(Head,[R,S,X])))).
+push([], S, R, Stack, Head, exists(X,p(at(Stack,[R,S,X]),at(Head,[X])))).
 push([S|Ss], S0, R, Stack, Head, exists(X,p(at(Stack,[R,S0,X]),Form))) :-
 	push(Ss, S, X, Stack, Head, Form).
 
 % =
 % formula for popping symbol T from stack K
-pop(K,  T, forall(X, forall(Y, forall(Z, forall(S, impl(Peek2, Peek1)))))) :-
-	peek1(K, X, S, Y, Peek1),
-	peek2(K, X, S, Y, T, Z, Peek2).
-push(K, Ss, forall(X,forall(T,forall(Y,impl(Peek,p(Stack,Push)))))) :-
-	peek1(K, X, T, Y, Peek),
-	stack(K, X, T, Y, Stack),
+pop(K,  S, forall(Y, forall(Z, impl(at(Head,[Z]),impl(at(Stack,[Y,S,Z]),at(Head,[Y])))))) :-
+	head_atom(K,  Head),
+	stack_atom(K, Stack).
+push(K, Ss, forall(Y,impl(at(Head,[Y]),Push) :-
+	head_atom(K, Head),
+	stack_atom(K, Stack),
 	push(K, Ss, Y, Push).
-repl(K, S, Ss, forall(X, forall(Y, forall(Z, forall(T, impl(Peek,p(Stack,Push))))))) :-
-	peek2(K, X, S, Y, T, Z, Peek),
-	stack(K, X, T, Y, Stack),
+repl(K, S, Ss, forall(Y, forall(Z, impl(at(Head,[Z]),impl(at(Stack,[Y,S,Z]),Push))))) :-
+	head_atom(K, Head),
+	stack_atom(K, Stack),
 	push(K, Ss, Y, Push).
+scan(S, forall(X, forall(Y, impl(at(head,[X]),impl(at(word,[X,S,Y]),at(head,[Y])))))).
+
+
 
 state_change(X, Y,  impl(at(X,[]),at(Y,[]))).
 
 stack_init(K, p(Stack,Head)) :-
 	stack(K, 0, e, 0, Stack),
-	head(K, 0, e, 0, Head).
+	head(K, 0, Head).
 
 
 stack_atom(1, stack1).
