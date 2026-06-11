@@ -1,16 +1,16 @@
 
 
-
-push(K, [S|Ss], R, Formula) :-
-	stack_atom(K, Stack),
-	head_atom(K, Head),
-	push(Ss, S, R, Stack, Head, Formula).
-
 stack(K, X, S, Y,  at(Stack,[X,S,Y])) :-
 	stack_atom(K, Stack).
 head(K, Y,  at(Head,[Y])) :-
 	head_atom(K, Head).
 word(L, W, R, at(word, [L,  W, R])).
+
+
+push(K, [S|Ss], R, Formula) :-
+	stack_atom(K, Stack),
+	head_atom(K, Head),
+	push(Ss, S, R, Stack, Head, Formula).
 
 push([], S, R, Stack, Head, exists(X,p(at(Stack,[R,S,X]),at(Head,[X])))).
 push([S|Ss], S0, R, Stack, Head, exists(X,p(at(Stack,[R,S0,X]),Form))) :-
@@ -45,6 +45,26 @@ goal_formula(N, Q0, QF, F) :-
 word_formula(N0, Word, N, Actions, p(at(word, [N0, Word,  N]), F)) :-
 	actions_to_formula(Actions, F).
 
+
+test_ab :-
+	parse([a-[[scan(a),push(1,[a])]],
+	       b-[[scan(b),pop(1,a)]]], q0, q0).
+
+test_mix :-
+	parse([a-[[scan(a),push(1,[a])]],
+	       b-[[scan(b),push(2,[b])]],
+	       c-[[scan(c),push(3,[c])],
+	          [pop(1,a),pop(2,b),pop(3,c)]]
+	      ],  q0, q0).
+test_mix1 :-
+	parse([a-[[scan(a),push(1,[a])],[pop(1,a)]]
+	      ],  q0, q0).
+test_mix2 :-
+	parse([a-[scan(a),push(1,[a])],
+	       b-[scan(b),push(2,[b]),
+	          pop(1,a),pop(2,b)]
+	      ],  q0, q0).
+
 parse(WordsActions, Q0, QF) :-
 	words_actions_antecedent(WordsActions, 0, N, Antecedent),
 	goal_formula(N, Q0, QF, Goal),
@@ -53,12 +73,24 @@ parse(WordsActions, Q0, QF) :-
 words_actions_antecedent([],  N, N, []).
 words_actions_antecedent([W-As|Ws], N0, N, [F|Fs]) :-
 	N1 is N0 + 1,
-	word_formula(N0, W, N, As, F),
+	word_formula(N0, W, N1, As, F),
 	words_actions_antecedent(Ws, N1, N, Fs).
 
-actions_to_formula(Actions, F) :-
+actions_to_formula([A|As], F) :-
+	actions_to_formula(As, A, F).
+
+actions_to_formula([], Actions, F) :-
 	actions_to_formula(Actions, Qs, [], Bs, [], Cs, []),
 	create_formula(Qs, Bs, Cs, F).
+actions_to_formula([A|As], Actions, p(F,Formula)) :-
+	actions_to_formula(Actions, Qs, [], Bs, [], Cs, []),
+	create_formula(Qs, Bs, Cs, F),
+	actions_to_formula(As, A, Formula).
+	
+
+%actions_to_formula([Actions|ActionList], [F|Fs]) :-
+%	actions_to_formula(Actions, Qs, [], Bs, [], Cs, []),%
+%	create_formula(Qs, Bs, Cs, F).
 
 create_formula([], Bs,  Cs, F) :-
 	create_formula(Bs, Cs, F).
@@ -90,17 +122,16 @@ action_to_formula(scan(S), Qs0, Qs, Bs0, Bs, Cs0, Cs) :-
 action_to_formula(state(Q1,Q2), Qs0, Qs, Bs0, Bs, Cs0, Cs) :-
 	state(Q1, Q2, Qs0, Qs, Bs0, Bs, Cs0, Cs).
 
-test(Q0,  A0, B0) :-
-	state(q1, q1, Q0, Q1,  A0, A1, B0, B1),
-	scan(b, Q1, Q2, A1, A2, B1, B2),
-	pop(1, d, Q2, [], A2, [], B2, []).
+
 
 pop(K,  S, forall(Y, forall(Z, impl(at(Head,[Z]),impl(at(Stack,[Y,S,Z]),at(Head,[Y])))))) :-
 	head_atom(K,  Head),
 	stack_atom(K, Stack).
 push(K, Ss, forall(Y,impl(at(Head,[Y]),Push))) :-
+	% hack to allow atoms to be treated as singleton lists
+	( is_list(Ss) -> Stack = Ss ; Stack = [Ss] ),
 	head_atom(K, Head),
-	push(K, Ss, Y, Push).
+	push(K, Stack, Y, Push).
 repl(K, S, Ss, forall(Y, forall(Z, impl(at(Head,[Z]),impl(at(Stack,[Y,S,Z]),Push))))) :-
 	head_atom(K, Head),
 	stack_atom(K, Stack),
@@ -123,9 +154,3 @@ stack_atom(3, stack3).
 head_atom(1, head1).
 head_atom(2, head2).
 head_atom(3, head3).
-
-test :-
-        /* this should fail ! */
-	prove([forall(X,exists(Y,at(f,[X,Y])))], exists(V,forall(W,at(f,[W,V])))).
-test0 :-
-	prove([exists(X,forall(Y,at(f,[X,Y])))], forall(V,exists(W,at(f,[W,V])))).
