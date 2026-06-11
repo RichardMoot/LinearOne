@@ -16,7 +16,7 @@ stack(K, X, S, Y,  at(Stack,[X,S,Y])) :-
 	stack_atom(K, Stack).
 head(K, X, S, Y,  at(Head,[X,S,Y])) :-
 	head_atom(K, Head).
-
+word(L, W, R, at(word, [L,  W, R])).
 
 push([], S, R, Stack, Head, exists(X,p(at(Stack,[R,S,X]),at(Head,[R,S,X])))).
 push([S|Ss], S0, R, Stack, Head, exists(X,p(at(Stack,[R,S0,X]),Form))) :-
