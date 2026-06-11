@@ -32,7 +32,31 @@ scan(S, [X, Y|Qs], Qs,  [at(head,[X]),at(word,[X,S,Y])|As], As, [at(head,[Y])|Bs
 state(Q1, Q2, Qs, Qs, [at(Q1,[])|As], As, [at(Q2,[])|Bs], Bs).
 
 
-actions_to_formulas(Actions, F) :-
+goal_formula(N, Q0, QF, F) :-
+	create_formula([], [at(state, [Q0]), at(head,[0]),at(word, [N,e,N]),
+			    at(head1, [0]), at(stack1, [0,e,0]),
+			    at(head2, [0]), at(stack2, [0,e,0]),
+			    at(head3, [0]), at(stack3, [0,e,0])],
+			   [at(state, [QF]), at(head,[N]),at(word, [N,e,N]),
+			    at(head1, [0]), at(stack1, [0,e,0]),
+			    at(head2, [0]), at(stack2, [0,e,0]),
+			    at(head3, [0]), at(stack3, [0,e,0])],  F).  
+
+word_formula(N0, Word, N, Actions, p(at(word, [N0, Word,  N]), F)) :-
+	actions_to_formula(Actions, F).
+
+parse(WordsActions, Q0, QF) :-
+	words_actions_antecedent(WordsActions, 0, N, Antecedent),
+	goal_formula(N, Q0, QF, Goal),
+	prove(Antecedent, Goal).
+
+words_actions_antecedent([],  N, N, []).
+words_actions_antecedent([W-As|Ws], N0, N, [F|Fs]) :-
+	N1 is N0 + 1,
+	word_formula(N0, W, N, As, F),
+	words_actions_antecedent(Ws, N1, N, Fs).
+
+actions_to_formula(Actions, F) :-
 	actions_to_formula(Actions, Qs, [], Bs, [], Cs, []),
 	create_formula(Qs, Bs, Cs, F).
 
